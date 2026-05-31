@@ -1,77 +1,48 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AppLayout } from './components/layout/AppLayout'
-import { useCollectionStore } from './store/useCollectionStore'
-import { Button } from './components/ui/Button'
-import { Input } from './components/ui/Input'
+import { CountrySidebar } from './features/countries/CountrySidebar'
+import { useCountryManager } from './features/countries/useCountries'
 
 function App(): React.ReactElement {
-  const { countries, addCountry, selectedCountryId, selectCountry } = useCollectionStore()
-  const [newCountryName, setNewCountryName] = React.useState('')
-
-  const handleAddCountry = (): void => {
-    if (newCountryName.trim()) {
-      addCountry(newCountryName.trim())
-      setNewCountryName('')
-    }
-  }
+  const { t } = useTranslation()
+  const { countries, selectedId } = useCountryManager()
 
   return (
-    <AppLayout
-      sidebar={
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4 text-primary-700">Countries</h2>
-
-          <div className="flex gap-2 mb-4">
-            <Input
-              placeholder="New country..."
-              value={newCountryName}
-              onChange={(e) => setNewCountryName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddCountry()}
-              className="flex-1"
-            />
-            <Button onClick={handleAddCountry} size="sm">
-              Add
-            </Button>
-          </div>
-
-          <ul className="space-y-1">
-            {countries.map((country) => (
-              <li key={country.id}>
-                <button
-                  onClick={() => selectCountry(country.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedCountryId === country.id
-                      ? 'bg-primary-100 text-primary-800 font-medium'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {country.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {countries.length === 0 && (
-            <p className="text-sm text-gray-400 mt-4">No countries yet. Add one to get started!</p>
-          )}
-        </div>
-      }
-    >
+    <AppLayout sidebar={<CountrySidebar />}>
       <div className="flex flex-col items-center justify-center h-full">
-        {selectedCountryId ? (
+        {selectedId ? (
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-primary-800 mb-2">Coin Collection</h1>
+            <h1 className="text-2xl font-bold text-primary-800 mb-2">
+              {t('app.title')}
+            </h1>
             <p className="text-gray-500">
-              Selected:{' '}
-              {countries.find((c) => c.id === selectedCountryId)?.name ?? 'Unknown'}
+              {t('app.selected', {
+                name: countries.find((c) => c.id === selectedId)?.name ?? '?'
+              })}
             </p>
           </div>
         ) : (
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary-800 mb-4">Coin Collection</h1>
-            <p className="text-gray-500 text-lg">
-              Select a country from the sidebar or add a new one to get started.
-            </p>
+            <div className="mb-4">
+              <svg
+                className="w-16 h-16 mx-auto text-primary-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-primary-800 mb-2">
+              {t('app.title')}
+            </h1>
+            <p className="text-gray-500 text-lg">{t('app.emptyState')}</p>
           </div>
         )}
       </div>

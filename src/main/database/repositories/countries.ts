@@ -2,14 +2,32 @@ import { uuidv4 } from './uuid'
 import { getDatabase } from '..'
 import type { Country, CreateCountryInput, UpdateCountryInput } from '@shared/types'
 
+interface CountryRow {
+  id: string
+  name: string
+  created_at: number
+  updated_at: number
+}
+
+function toCountry(row: CountryRow): Country {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
 export function listCountries(): Country[] {
   const db = getDatabase()
-  return db.prepare('SELECT * FROM countries ORDER BY name').all() as Country[]
+  const rows = db.prepare('SELECT * FROM countries ORDER BY name').all() as CountryRow[]
+  return rows.map(toCountry)
 }
 
 export function getCountry(id: string): Country | undefined {
   const db = getDatabase()
-  return db.prepare('SELECT * FROM countries WHERE id = ?').get(id) as Country | undefined
+  const row = db.prepare('SELECT * FROM countries WHERE id = ?').get(id) as CountryRow | undefined
+  return row ? toCountry(row) : undefined
 }
 
 export function createCountry(input: CreateCountryInput): Country {

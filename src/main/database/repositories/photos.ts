@@ -2,11 +2,32 @@ import { uuidv4 } from './uuid'
 import { getDatabase } from '..'
 import type { Photo, CreatePhotoInput } from '@shared/types'
 
+interface PhotoRow {
+  id: string
+  coin_id: string
+  filename: string
+  original_name: string | null
+  position: number
+  created_at: number
+}
+
+function toPhoto(row: PhotoRow): Photo {
+  return {
+    id: row.id,
+    coinId: row.coin_id,
+    filename: row.filename,
+    originalName: row.original_name,
+    position: row.position,
+    createdAt: row.created_at
+  }
+}
+
 export function listPhotos(coinId: string): Photo[] {
   const db = getDatabase()
-  return db
+  const rows = db
     .prepare('SELECT * FROM photos WHERE coin_id = ? ORDER BY position')
-    .all(coinId) as Photo[]
+    .all(coinId) as PhotoRow[]
+  return rows.map(toPhoto)
 }
 
 export function getPhotoPath(id: string): string | undefined {
