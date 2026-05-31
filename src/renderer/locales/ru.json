@@ -41,5 +41,58 @@
     "label": "Язык",
     "en": "English",
     "ru": "Русский"
+  },
+  "settings": {
+    "title": "Настройки",
+    "defaultCurrency": "Валюта по умолчанию",
+    "currencyHint": "Новые монеты будут создаваться в этой валюте. Для каждой монеты можно указать свою валюту."
+  },
+  "coins": {
+    "title": "Монеты",
+    "addButton": "Добавить монету",
+    "noCoins": "В этой коллекции пока нет монет.",
+    "noCoinsHint": "Нажмите «Добавить монету», чтобы начать коллекцию.",
+    "denomination": "Номинал",
+    "year": "Год",
+    "condition": "Состояние",
+    "purchaseDate": "Дата покупки",
+    "purchasePlace": "Место покупки",
+    "price": "Цена",
+    "shippingCost": "Доставка",
+    "currency": "Валюта",
+    "notes": "Заметки",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "deleteTitle": "Удалить монету",
+    "deleteConfirm": "Вы уверены, что хотите удалить эту монету?",
+    "createTitle": "Новая монета",
+    "editTitle": "Редактировать монету",
+    "selectCountry": "Сначала выберите страну",
+    "conditions": {
+      "UNC": "Uncirculated (UNC)",
+      "XF": "Extremely Fine (XF)",
+      "VF": "Very Fine (VF)",
+      "F": "Fine (F)",
+      "VG": "Very Good (VG)",
+      "G": "Good (G)",
+      "F-2": "Fair (F-2)",
+      "F-1": "Poor (F-1)"
+    },
+    "places": {
+      "ebay": "eBay",
+      "meshok": "Мешок",
+      "auction": "Аукцион",
+      "shop": "Магазин",
+      "other": "Другое"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить монеты",
+      "createFailed": "Не удалось создать монету",
+      "updateFailed": "Не удалось обновить монету",
+      "deleteFailed": "Не удалось удалить монету",
+      "denominationRequired": "Номинал обязателен"
+    }
   }
 }

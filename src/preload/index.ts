@@ -24,6 +24,11 @@ const api = {
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>
       ipcRenderer.invoke('photo:reorder', coinId, photoIds)
+  },
+  preferences: {
+    getCurrency: () => ipcRenderer.invoke('pref:getCurrency'),
+    setCurrency: (currency: string) => ipcRenderer.invoke('pref:setCurrency', currency),
+    getCurrencies: () => ipcRenderer.invoke('pref:getCurrencies')
   }
 }
 

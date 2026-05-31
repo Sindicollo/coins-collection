@@ -95,6 +95,7 @@ export function listCoins(
     purchasePlace: row.purchase_place as string | null,
     price: nullableNumber(row.price),
     shippingCost: nullableNumber(row.shipping_cost),
+    currency: (row.currency as string) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     createdAt: row.created_at as number,
@@ -132,6 +133,7 @@ export function getCoin(id: string): Coin | undefined {
     purchasePlace: row.purchase_place as string | null,
     price: nullableNumber(row.price),
     shippingCost: nullableNumber(row.shipping_cost),
+    currency: (row.currency as string) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     createdAt: row.created_at as number,
@@ -146,8 +148,8 @@ export function createCoin(input: CreateCoinInput): Coin {
 
   db.prepare(
     `INSERT INTO coins (id, country_id, denomination, year, condition, purchase_date,
-      purchase_place, price, shipping_cost, notes, extra_data, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      purchase_place, price, shipping_cost, currency, notes, extra_data, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.countryId,
@@ -158,6 +160,7 @@ export function createCoin(input: CreateCoinInput): Coin {
     input.purchasePlace ?? null,
     input.price ?? null,
     input.shippingCost ?? null,
+    input.currency ?? null,
     input.notes ?? null,
     input.extraData ? JSON.stringify(input.extraData) : null,
     now,
@@ -174,6 +177,7 @@ export function createCoin(input: CreateCoinInput): Coin {
     purchasePlace: input.purchasePlace ?? null,
     price: input.price ?? null,
     shippingCost: input.shippingCost ?? null,
+    currency: input.currency ?? null,
     notes: input.notes ?? null,
     extraData: input.extraData ?? null,
     createdAt: now,
@@ -197,13 +201,14 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
   if (input.purchasePlace !== undefined) fields.purchasePlace = input.purchasePlace ?? null
   if (input.price !== undefined) fields.price = input.price ?? null
   if (input.shippingCost !== undefined) fields.shippingCost = input.shippingCost ?? null
+  if (input.currency !== undefined) fields.currency = input.currency ?? null
   if (input.notes !== undefined) fields.notes = input.notes ?? null
   if (input.extraData !== undefined) fields.extraData = input.extraData ?? null
   fields.updatedAt = now
 
   db.prepare(
     `UPDATE coins SET country_id = ?, denomination = ?, year = ?, condition = ?,
-     purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?, notes = ?,
+     purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?, currency = ?, notes = ?,
      extra_data = ?, updated_at = ? WHERE id = ?`
   ).run(
     fields.countryId,
@@ -214,6 +219,7 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
     fields.purchasePlace,
     fields.price,
     fields.shippingCost,
+    fields.currency,
     fields.notes,
     fields.extraData ? JSON.stringify(fields.extraData) : null,
     fields.updatedAt,

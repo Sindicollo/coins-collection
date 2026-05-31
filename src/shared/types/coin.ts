@@ -9,6 +9,7 @@ export interface Coin {
   purchasePlace: string | null
   price: number | null
   shippingCost: number | null
+  currency: string | null
   notes: string | null
   extraData: Record<string, unknown> | null
   createdAt: number
@@ -28,6 +29,7 @@ export interface CreateCoinInput {
   purchasePlace?: string | null
   price?: number | null
   shippingCost?: number | null
+  currency?: string | null
   notes?: string | null
   extraData?: Record<string, unknown> | null
 }

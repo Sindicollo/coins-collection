@@ -32,4 +32,9 @@ export interface ElectronAPI {
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>
   }
+  preferences: {
+    getCurrency: () => Promise<string>
+    setCurrency: (currency: string) => Promise<string>
+    getCurrencies: () => Promise<Array<{ code: string; symbol: string; name: string }>>
+  }
 }

@@ -5,6 +5,7 @@ import { getDatabase, closeDatabase } from './database'
 import { registerCountryHandlers } from './ipc/countries'
 import { registerCoinHandlers } from './ipc/coins'
 import { registerPhotoHandlers } from './ipc/photos'
+import { registerPreferenceHandlers } from './ipc/preferences'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -51,6 +52,7 @@ app.whenReady().then(() => {
   registerCountryHandlers()
   registerCoinHandlers()
   registerPhotoHandlers()
+  registerPreferenceHandlers()
 
   createWindow()
 

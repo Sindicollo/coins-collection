@@ -51,6 +51,52 @@ i18n.use(initReactI18next).init({
           label: 'Language',
           en: 'English',
           ru: 'Русский'
+        },
+        settings: {
+          title: 'Settings',
+          defaultCurrency: 'Default currency',
+          currencyHint: 'New coins will use this currency by default.'
+        },
+        coins: {
+          title: 'Coins',
+          addButton: 'Add Coin',
+          noCoins: 'No coins in this collection yet.',
+          noCoinsHint: 'Click "Add Coin" to start your collection.',
+          denomination: 'Denomination',
+          year: 'Year',
+          condition: 'Condition',
+          purchaseDate: 'Purchase date',
+          purchasePlace: 'Purchase place',
+          price: 'Price',
+          shippingCost: 'Shipping',
+          currency: 'Currency',
+          notes: 'Notes',
+          save: 'Save',
+          cancel: 'Cancel',
+          edit: 'Edit',
+          delete: 'Delete',
+          deleteTitle: 'Delete Coin',
+          deleteConfirm: 'Are you sure you want to delete this coin?',
+          createTitle: 'New Coin',
+          editTitle: 'Edit Coin',
+          selectCountry: 'Select a country first',
+          conditions: {
+            UNC: 'Uncirculated (UNC)',
+            XF: 'Extremely Fine (XF)',
+            VF: 'Very Fine (VF)',
+            F: 'Fine (F)',
+            VG: 'Very Good (VG)',
+            G: 'Good (G)',
+            'F-2': 'Fair (F-2)',
+            'F-1': 'Poor (F-1)'
+          },
+          errors: {
+            loadFailed: 'Failed to load coins',
+            createFailed: 'Failed to create coin',
+            updateFailed: 'Failed to update coin',
+            deleteFailed: 'Failed to delete coin',
+            denominationRequired: 'Denomination is required'
+          }
         }
       }
     }
@@ -80,5 +126,10 @@ window.api = {
     create: vi.fn(),
     delete: vi.fn(),
     reorder: vi.fn()
+  },
+  preferences: {
+    getCurrency: vi.fn(),
+    setCurrency: vi.fn(),
+    getCurrencies: vi.fn()
   }
 }

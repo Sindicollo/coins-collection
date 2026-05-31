@@ -1,29 +1,42 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppLayout } from './components/layout/AppLayout'
+import { SettingsModal } from './components/common/SettingsModal'
 import { CountrySidebar } from './features/countries/CountrySidebar'
+import { CoinView } from './features/coins/CoinView'
 import { useCountryManager } from './features/countries/useCountries'
 
 function App(): React.ReactElement {
   const { t } = useTranslation()
   const { countries, selectedId } = useCountryManager()
+  const selectedCountry = selectedId ? countries.find((c) => c.id === selectedId) : null
+
+  const [showSettings, setShowSettings] = React.useState(false)
+  const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
+
+  React.useEffect(() => {
+    window.api.preferences.getCurrency().then(setDefaultCurrency)
+  }, [])
+
+  const handleSaveCurrency = (currency: string): void => {
+    window.api.preferences.setCurrency(currency)
+    setDefaultCurrency(currency)
+  }
 
   return (
-    <AppLayout sidebar={<CountrySidebar />}>
-      <div className="flex flex-col items-center justify-center h-full">
-        {selectedId ? (
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-primary-800 mb-2">
-              {t('app.title')}
-            </h1>
-            <p className="text-gray-500">
-              {t('app.selected', {
-                name: countries.find((c) => c.id === selectedId)?.name ?? '?'
-              })}
-            </p>
-          </div>
+    <>
+      <AppLayout
+        sidebar={<CountrySidebar />}
+        onOpenSettings={() => setShowSettings(true)}
+      >
+        {selectedCountry ? (
+          <CoinView
+            countryId={selectedCountry.id}
+            countryName={selectedCountry.name}
+            defaultCurrency={defaultCurrency}
+          />
         ) : (
-          <div className="text-center">
+          <div className="flex flex-col items-center justify-center h-full">
             <div className="mb-4">
               <svg
                 className="w-16 h-16 mx-auto text-primary-300"
@@ -39,14 +52,19 @@ function App(): React.ReactElement {
                 />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-primary-800 mb-2">
-              {t('app.title')}
-            </h1>
+            <h1 className="text-3xl font-bold text-primary-800 mb-2">{t('app.title')}</h1>
             <p className="text-gray-500 text-lg">{t('app.emptyState')}</p>
           </div>
         )}
-      </div>
-    </AppLayout>
+      </AppLayout>
+
+      <SettingsModal
+        open={showSettings}
+        currency={defaultCurrency}
+        onSaveCurrency={handleSaveCurrency}
+        onClose={() => setShowSettings(false)}
+      />
+    </>
   )
 }
 

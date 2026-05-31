@@ -37,6 +37,17 @@ const MIGRATIONS: string[] = [
 
     CREATE INDEX IF NOT EXISTS idx_coins_country ON coins(country_id, denomination, year, id);
     CREATE INDEX IF NOT EXISTS idx_photos_coin ON photos(coin_id, position);
+  `,
+  // V2: Currency support + preferences
+  `
+    ALTER TABLE coins ADD COLUMN currency TEXT;
+
+    CREATE TABLE IF NOT EXISTS preferences (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
+    INSERT OR IGNORE INTO preferences (key, value) VALUES ('currency', 'RUB');
   `
 ]
 
