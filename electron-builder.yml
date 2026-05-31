@@ -1,0 +1,29 @@
+appId: com.coincollection.app
+productName: Coin Collection
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**/*
+  - '!node_modules'
+mac:
+  category: public.app-category.collectibles
+  target:
+    - dmg
+    - zip
+  icon: resources/icons/icon.icns
+  hardenedRuntime: true
+win:
+  target:
+    - nsis
+    - portable
+  icon: resources/icons/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: resources/icons
+  category: Utility
