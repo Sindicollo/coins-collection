@@ -27,7 +27,7 @@ export interface ElectronAPI {
   }
   photos: {
     list: (coinId: string) => Promise<Array<Record<string, unknown>>>
-    getPath: (id: string) => Promise<string | null>
+    getPhotoData: (id: string) => Promise<string | null>
     create: (coinId: string) => Promise<Record<string, unknown> | null>
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>

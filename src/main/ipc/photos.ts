@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog } from 'electron'
-import { join } from 'path'
-import { copyFileSync, mkdirSync, existsSync, unlinkSync } from 'fs'
+import { join, extname } from 'path'
+import { copyFileSync, mkdirSync, existsSync, unlinkSync, readFileSync } from 'fs'
 import { IPC_CHANNELS } from '@shared/constants'
 import * as photoRepo from '../database/repositories/photos'
 import type { Photo } from '@shared/types'
@@ -19,11 +19,24 @@ export function registerPhotoHandlers(): void {
     return photoRepo.listPhotos(coinId)
   })
 
-  ipcMain.handle(IPC_CHANNELS.PHOTO.GET_PATH, async (_event, id: string): Promise<string | null> => {
-    const filename = photoRepo.getPhotoPath(id)
-    if (!filename) return null
-    return join(getPhotosDir(), filename)
-  })
+  ipcMain.handle(
+    IPC_CHANNELS.PHOTO.GET_PATH,
+    async (_event, id: string): Promise<string | null> => {
+      const filename = photoRepo.getPhotoPath(id)
+      if (!filename) return null
+      const filePath = join(getPhotosDir(), filename)
+      try {
+        if (!existsSync(filePath)) return null
+        const data = readFileSync(filePath)
+        const ext = extname(filename).toLowerCase()
+        const mimeType =
+          ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg'
+        return `data:${mimeType};base64,${data.toString('base64')}`
+      } catch {
+        return null
+      }
+    }
+  )
 
   ipcMain.handle(
     IPC_CHANNELS.PHOTO.CREATE,

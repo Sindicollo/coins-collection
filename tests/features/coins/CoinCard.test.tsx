@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { CoinCard } from '@/features/coins/CoinCard'
 import type { Coin } from '@shared/types'
 
@@ -20,9 +21,13 @@ const mockCoin: Coin = {
   updatedAt: 1000
 }
 
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
+
 describe('CoinCard', () => {
   it('renders denomination and year', () => {
-    render(
+    renderWithRouter(
       <CoinCard coin={mockCoin} onEdit={vi.fn()} onDelete={vi.fn()} onSelect={vi.fn()} />
     )
 
@@ -31,7 +36,7 @@ describe('CoinCard', () => {
   })
 
   it('renders condition label', () => {
-    render(
+    renderWithRouter(
       <CoinCard coin={mockCoin} onEdit={vi.fn()} onDelete={vi.fn()} onSelect={vi.fn()} />
     )
 
@@ -39,7 +44,7 @@ describe('CoinCard', () => {
   })
 
   it('renders price and purchase place', () => {
-    render(
+    renderWithRouter(
       <CoinCard coin={mockCoin} onEdit={vi.fn()} onDelete={vi.fn()} onSelect={vi.fn()} />
     )
 
@@ -48,7 +53,7 @@ describe('CoinCard', () => {
   })
 
   it('renders notes', () => {
-    render(
+    renderWithRouter(
       <CoinCard coin={mockCoin} onEdit={vi.fn()} onDelete={vi.fn()} onSelect={vi.fn()} />
     )
 
@@ -57,7 +62,7 @@ describe('CoinCard', () => {
 
   it('calls onSelect when clicked', () => {
     const onSelect = vi.fn()
-    render(
+    renderWithRouter(
       <CoinCard coin={mockCoin} onEdit={vi.fn()} onDelete={vi.fn()} onSelect={onSelect} />
     )
 

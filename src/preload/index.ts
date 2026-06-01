@@ -19,7 +19,7 @@ const api = {
   },
   photos: {
     list: (coinId: string) => ipcRenderer.invoke('photo:list', coinId),
-    getPath: (id: string) => ipcRenderer.invoke('photo:get-path', id),
+    getPhotoData: (id: string) => ipcRenderer.invoke('photo:get-path', id),
     create: (coinId: string) => ipcRenderer.invoke('photo:create', coinId),
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>

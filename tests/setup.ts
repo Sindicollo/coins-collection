@@ -96,7 +96,20 @@ i18n.use(initReactI18next).init({
             updateFailed: 'Failed to update coin',
             deleteFailed: 'Failed to delete coin',
             denominationRequired: 'Denomination is required'
-          }
+          },
+          retry: 'Retry'
+        },
+        photos: {
+          title: 'Photos',
+          photo: 'photo',
+          photo_plural: 'photos',
+          addPhoto: 'Add photo',
+          deletePhoto: 'Delete photo',
+          noPhotos: 'No photos yet',
+          clickToAdd: 'Click "Add photo" to add some.',
+          deleteTitle: 'Delete Photo',
+          deleteConfirm: 'Are you sure you want to delete this photo?',
+          loadError: 'Failed to load image'
         }
       }
     }
@@ -122,7 +135,7 @@ window.api = {
   },
   photos: {
     list: vi.fn(),
-    getPath: vi.fn(),
+    getPhotoData: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     reorder: vi.fn()
