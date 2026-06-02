@@ -48,7 +48,9 @@ const MIGRATIONS: string[] = [
     );
 
     INSERT OR IGNORE INTO preferences (key, value) VALUES ('currency', 'RUB');
-  `
+  `,
+  // V3: Country text field
+  `ALTER TABLE coins ADD COLUMN country TEXT;`
 ]
 
 export function runMigrations(db: Database.Database): void {

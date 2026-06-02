@@ -38,4 +38,11 @@ export function registerCoinHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.COIN.DELETE, async (_event, id: string): Promise<boolean> => {
     return coinRepo.deleteCoin(id)
   })
+
+  ipcMain.handle(
+    IPC_CHANNELS.COIN.LIST_COUNTRIES,
+    async (): Promise<string[]> => {
+      return coinRepo.listDistinctCountries()
+    }
+  )
 }

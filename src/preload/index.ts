@@ -15,7 +15,8 @@ const api = {
     get: (id: string) => ipcRenderer.invoke('coin:get', id),
     create: (data: Record<string, unknown>) => ipcRenderer.invoke('coin:create', data),
     update: (data: Record<string, unknown>) => ipcRenderer.invoke('coin:update', data),
-    delete: (id: string) => ipcRenderer.invoke('coin:delete', id)
+    delete: (id: string) => ipcRenderer.invoke('coin:delete', id),
+    listCountries: () => ipcRenderer.invoke('coin:listCountries')
   },
   photos: {
     list: (coinId: string) => ipcRenderer.invoke('photo:list', coinId),
@@ -29,6 +30,15 @@ const api = {
     getCurrency: () => ipcRenderer.invoke('pref:getCurrency'),
     setCurrency: (currency: string) => ipcRenderer.invoke('pref:setCurrency', currency),
     getCurrencies: () => ipcRenderer.invoke('pref:getCurrencies')
+  },
+  import: {
+    selectFile: () => ipcRenderer.invoke('import:select-file'),
+    preview: (filePath: string) => ipcRenderer.invoke('import:preview', filePath),
+    execute: (args: {
+      filePath: string
+      countryOverrides: Record<string, string>
+      downloadPhotos: boolean
+    }) => ipcRenderer.invoke('import:execute', args)
   }
 }
 

@@ -11,7 +11,8 @@ export const IPC_CHANNELS = {
     GET: 'coin:get',
     CREATE: 'coin:create',
     UPDATE: 'coin:update',
-    DELETE: 'coin:delete'
+    DELETE: 'coin:delete',
+    LIST_COUNTRIES: 'coin:listCountries'
   },
   PHOTO: {
     LIST: 'photo:list',
@@ -19,6 +20,11 @@ export const IPC_CHANNELS = {
     CREATE: 'photo:create',
     DELETE: 'photo:delete',
     REORDER: 'photo:reorder'
+  },
+  IMPORT: {
+    SELECT_FILE: 'import:select-file',
+    PREVIEW: 'import:preview',
+    EXECUTE: 'import:execute'
   }
 } as const
 

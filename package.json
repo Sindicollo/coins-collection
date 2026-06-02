@@ -31,7 +31,8 @@
     "i18next": "^26.3.0",
     "i18next-browser-languagedetector": "^8.2.1",
     "react-i18next": "^17.0.8",
-    "react-router-dom": "^7.16.0"
+    "react-router-dom": "^7.16.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.1",

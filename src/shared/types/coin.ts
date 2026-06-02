@@ -10,15 +10,16 @@ export interface Coin {
   price: number | null
   shippingCost: number | null
   currency: string | null
+  country: string | null
   notes: string | null
   extraData: Record<string, unknown> | null
   createdAt: number
   updatedAt: number
 }
 
-export type CoinCondition = 'UNC' | 'XF' | 'VF' | 'F' | 'VG' | 'G' | 'F-2' | 'F-1'
+export type CoinCondition = 'UNC' | 'XF+' | 'XF' | 'VF+' | 'VF' | 'F' | 'VG' | 'G' | 'F-2' | 'F-1' | 'AUNC'
 
-export const COIN_CONDITIONS: CoinCondition[] = ['UNC', 'XF', 'VF', 'F', 'VG', 'G', 'F-2', 'F-1']
+export const COIN_CONDITIONS: CoinCondition[] = ['UNC', 'AUNC', 'XF+', 'XF', 'VF+', 'VF', 'F', 'VG', 'G', 'F-2', 'F-1']
 
 export interface CreateCoinInput {
   countryId: string
@@ -30,6 +31,7 @@ export interface CreateCoinInput {
   price?: number | null
   shippingCost?: number | null
   currency?: string | null
+  country?: string | null
   notes?: string | null
   extraData?: Record<string, unknown> | null
 }

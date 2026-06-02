@@ -13,7 +13,7 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 z-10">
+      <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 z-10 max-h-[85vh] flex flex-col">
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -27,7 +27,7 @@ export function Modal({ open, onClose, title, children }: ModalProps): React.Rea
             </button>
           </div>
         )}
-        {children}
+        <div className="overflow-y-auto flex-1 min-h-0">{children}</div>
       </div>
     </div>
   )

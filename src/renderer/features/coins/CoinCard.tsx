@@ -70,6 +70,9 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
               {conditionLabel}
             </span>
           )}
+          {coin.country && (
+            <span className="text-xs text-gray-400 shrink-0">{coin.country}</span>
+          )}
           {coin.price !== null && (
             <span className="text-xs font-medium text-gray-600 shrink-0">
               {currencySymbol(coin.currency)}

@@ -11,7 +11,7 @@ import { useCountryManager } from './features/countries/useCountries'
 function HomeView(): React.ReactElement {
   const { t } = useTranslation()
   const { countries, selectedId } = useCountryManager()
-  const selectedCountry = selectedId ? countries.find((c) => c.id === selectedId) : null
+  const selectedCollection = selectedId ? countries.find((c) => c.id === selectedId) : null
 
   const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
 
@@ -19,12 +19,13 @@ function HomeView(): React.ReactElement {
     window.api.preferences.getCurrency().then(setDefaultCurrency)
   }, [])
 
-  if (selectedCountry) {
+  if (selectedCollection) {
     return (
       <CoinView
-        countryId={selectedCountry.id}
-        countryName={selectedCountry.name}
+        countryId={selectedCollection.id}
+        countryName={selectedCollection.name}
         defaultCurrency={defaultCurrency}
+        collections={countries}
       />
     )
   }

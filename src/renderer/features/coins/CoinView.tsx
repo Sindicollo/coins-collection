@@ -11,15 +11,23 @@ interface CoinViewProps {
   countryId: string
   countryName: string
   defaultCurrency: string
+  collections: Array<{ id: string; name: string }>
+  onCollectionChange?: () => void
 }
 
-export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewProps): React.ReactElement {
+export function CoinView({ countryId, countryName, defaultCurrency, collections, onCollectionChange }: CoinViewProps): React.ReactElement {
   const { t } = useTranslation()
   const store = useCoinStore()
 
   const [showForm, setShowForm] = React.useState(false)
   const [editCoin, setEditCoin] = React.useState<Coin | undefined>(undefined)
   const [coinToDelete, setCoinToDelete] = React.useState<Coin | null>(null)
+  const [countrySuggestions, setCountrySuggestions] = React.useState<string[]>([])
+
+  // Load country suggestions
+  React.useEffect(() => {
+    window.api.coins.listCountries().then(setCountrySuggestions)
+  }, [])
 
   // Load/reload coins when country changes
   React.useEffect(() => {
@@ -39,7 +47,9 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
   }
 
   const handleSave = (data: {
+    countryId: string
     denomination: string
+    country: string | null
     year: number | null
     condition: CoinCondition | null
     purchaseDate: number | null
@@ -49,13 +59,20 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
     currency: string | null
     notes: string | null
   }): void => {
+    const collectionChanged = editCoin && data.countryId !== editCoin.countryId
+
     if (editCoin) {
       store.updateCoin({ id: editCoin.id, ...data })
     } else {
-      store.addCoin({ countryId, ...data })
+      store.addCoin(data)
     }
     setShowForm(false)
     setEditCoin(undefined)
+
+    // If collection changed, notify parent to refresh
+    if (collectionChanged && onCollectionChange) {
+      onCollectionChange()
+    }
   }
 
   const handleDeleteConfirm = (): void => {
@@ -101,6 +118,8 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
         open={showForm}
         coin={editCoin}
         defaultCurrency={defaultCurrency}
+        collections={collections}
+        countrySuggestions={countrySuggestions}
         onSave={handleSave}
         onClose={() => {
           setShowForm(false)

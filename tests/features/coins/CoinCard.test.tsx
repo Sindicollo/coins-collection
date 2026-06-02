@@ -15,6 +15,7 @@ const mockCoin: Coin = {
   price: 50.5,
   shippingCost: 5,
   currency: 'RUB',
+  country: 'Russia',
   notes: 'Nice coin',
   extraData: null,
   createdAt: 1000,
