@@ -2,19 +2,19 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 
-interface CountryFormProps {
+interface CollectionFormProps {
   initialName?: string
   onSubmit: (name: string) => void
   onCancel: () => void
   submitLabel?: string
 }
 
-export function CountryForm({
+export function CollectionForm({
   initialName = '',
   onSubmit,
   onCancel,
   submitLabel
-}: CountryFormProps): React.ReactElement {
+}: CollectionFormProps): React.ReactElement {
   const { t } = useTranslation()
   const [name, setName] = React.useState(initialName)
   const [error, setError] = React.useState<string | null>(null)
@@ -40,11 +40,11 @@ export function CountryForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label htmlFor="country-name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="collection-name" className="block text-sm font-medium text-gray-700 mb-1">
           {t('form.countryName')}
         </label>
         <input
-          id="country-name"
+          id="collection-name"
           type="text"
           value={name}
           onChange={(e) => {

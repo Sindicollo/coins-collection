@@ -12,7 +12,7 @@ interface PhotoGalleryProps {
 }
 
 export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.ReactElement {
-  const { coinId } = useParams<{ coinId: string; countryId: string }>()
+  const { coinId } = useParams<{ coinId: string; collectionId: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation()
   const store = usePhotoStore()

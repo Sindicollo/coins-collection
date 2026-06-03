@@ -1,7 +1,7 @@
 // Coin types shared between main and renderer processes
 export interface Coin {
   id: string
-  countryId: string
+  collectionId: string
   denomination: string
   year: number | null
   condition: CoinCondition | null
@@ -22,7 +22,7 @@ export type CoinCondition = 'UNC' | 'XF+' | 'XF' | 'VF+' | 'VF' | 'F' | 'VG' | '
 export const COIN_CONDITIONS: CoinCondition[] = ['UNC', 'AUNC', 'XF+', 'XF', 'VF+', 'VF', 'F', 'VG', 'G', 'F-2', 'F-1']
 
 export interface CreateCoinInput {
-  countryId: string
+  collectionId: string
   denomination: string
   year?: number | null
   condition?: CoinCondition | null

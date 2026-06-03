@@ -150,5 +150,9 @@ window.api = {
     selectFile: vi.fn(),
     preview: vi.fn(),
     execute: vi.fn()
+  },
+  prices: {
+    exportAll: vi.fn(),
+    importPrices: vi.fn()
   }
 }

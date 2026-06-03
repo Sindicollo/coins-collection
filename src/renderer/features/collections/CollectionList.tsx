@@ -1,27 +1,27 @@
 import React from 'react'
-import type { Country } from '@shared/types'
+import type { Collection } from '@shared/types'
 import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/Skeleton'
 
-interface CountryListProps {
-  countries: Country[]
+interface CollectionListProps {
+  collections: Collection[]
   selectedId: string | null
   loading: boolean
   error: string | null
   onSelect: (id: string) => void
-  onEdit: (country: Country) => void
-  onDelete: (country: Country) => void
+  onEdit: (collection: Collection) => void
+  onDelete: (collection: Collection) => void
 }
 
-export function CountryList({
-  countries,
+export function CollectionList({
+  collections,
   selectedId,
   loading,
   error,
   onSelect,
   onEdit,
   onDelete
-}: CountryListProps): React.ReactElement {
+}: CollectionListProps): React.ReactElement {
   const { t } = useTranslation()
 
   if (loading) {
@@ -44,7 +44,7 @@ export function CountryList({
     )
   }
 
-  if (countries.length === 0) {
+  if (collections.length === 0) {
     return (
       <div className="p-4">
         <p className="text-sm text-gray-400 text-center">{t('countries.noCountries')}</p>
@@ -57,24 +57,24 @@ export function CountryList({
 
   return (
     <ul className="space-y-0.5">
-      {countries.map((country) => (
-        <li key={country.id}>
+      {collections.map((collection) => (
+        <li key={collection.id}>
           <div
             className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm
               cursor-pointer transition-colors
               ${
-                selectedId === country.id
+                selectedId === collection.id
                   ? 'bg-primary-100 text-primary-800 font-medium'
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
-            onClick={() => onSelect(country.id)}
+            onClick={() => onSelect(collection.id)}
           >
-            <span className="truncate flex-1">{country.name}</span>
+            <span className="truncate flex-1">{collection.name}</span>
             <div className="hidden group-hover:flex items-center gap-0.5 ml-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  onEdit(country)
+                  onEdit(collection)
                 }}
                 className="p-1 text-gray-400 hover:text-primary-600 rounded"
                 title={t('countries.rename')}
@@ -87,7 +87,7 @@ export function CountryList({
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  onDelete(country)
+                  onDelete(collection)
                 }}
                 className="p-1 text-gray-400 hover:text-red-600 rounded"
                 title={t('countries.delete')}

@@ -9,7 +9,7 @@ import type { Coin, CoinCondition } from '@shared/types'
 import { COIN_CONDITIONS } from '@shared/types'
 
 interface CoinFormData {
-  countryId: string
+  collectionId: string
   denomination: string
   country: string
   year: string
@@ -25,7 +25,7 @@ interface CoinFormData {
 function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
   if (!coin) {
     return {
-      countryId: '',
+      collectionId: '',
       denomination: '',
       country: '',
       year: '',
@@ -39,7 +39,7 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     }
   }
   return {
-    countryId: coin.countryId,
+    collectionId: coin.collectionId,
     denomination: coin.denomination,
     country: coin.country ?? '',
     year: coin.year?.toString() ?? '',
@@ -62,7 +62,7 @@ interface CoinFormProps {
   collections: Array<{ id: string; name: string }>
   countrySuggestions: string[]
   onSave: (data: {
-    countryId: string
+    collectionId: string
     denomination: string
     country: string | null
     year: number | null
@@ -99,13 +99,13 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       setError(t('coins.errors.denominationRequired'))
       return
     }
-    if (!data.countryId) {
+    if (!data.collectionId) {
       setError(t('coins.selectCountry'))
       return
     }
 
     onSave({
-      countryId: data.countryId,
+      collectionId: data.collectionId,
       denomination: data.denomination.trim(),
       country: data.country.trim() || null,
       year: data.year ? parseInt(data.year, 10) : null,
@@ -132,8 +132,8 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             {t('countries.title')}
           </label>
           <select
-            value={data.countryId}
-            onChange={(e) => handleChange('countryId', e.target.value)}
+            value={data.collectionId}
+            onChange={(e) => handleChange('collectionId', e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md text-sm
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >

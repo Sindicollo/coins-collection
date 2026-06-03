@@ -49,8 +49,8 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
 
   const goToGallery = (e: React.MouseEvent): void => {
     e.stopPropagation()
-    if (coin.countryId && coin.id) {
-      navigate(`/coins/${coin.countryId}/photo/${coin.id}`)
+    if (coin.collectionId && coin.id) {
+      navigate(`/coins/${coin.collectionId}/photo/${coin.id}`)
     }
   }
 

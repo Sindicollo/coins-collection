@@ -1,4 +1,4 @@
-export * from './country'
+export * from './collection'
 export * from './coin'
 export * from './photo'
 

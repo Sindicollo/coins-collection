@@ -7,7 +7,7 @@ declare global {
 }
 
 export interface ElectronAPI {
-  countries: {
+  collections: {
     list: () => Promise<Array<Record<string, unknown>>>
     get: (id: string) => Promise<Record<string, unknown> | null>
     create: (name: string) => Promise<Record<string, unknown>>
@@ -16,7 +16,7 @@ export interface ElectronAPI {
   }
   coins: {
     list: (
-      countryId: string,
+      collectionId: string,
       cursor: string | null,
       limit?: number
     ) => Promise<{ items: Array<Record<string, unknown>>; nextCursor: string | null; hasMore: boolean }>
@@ -75,5 +75,13 @@ export interface ElectronAPI {
       photosImported: number
       errors: string[]
     }>
+  }
+  prices: {
+    exportAll: (collectionId: string) => Promise<string | null>
+    importPrices: () => Promise<{
+      updated: number
+      skipped: number
+      filePath: string
+    } | null>
   }
 }

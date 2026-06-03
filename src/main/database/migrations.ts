@@ -50,7 +50,14 @@ const MIGRATIONS: string[] = [
     INSERT OR IGNORE INTO preferences (key, value) VALUES ('currency', 'RUB');
   `,
   // V3: Country text field
-  `ALTER TABLE coins ADD COLUMN country TEXT;`
+  `ALTER TABLE coins ADD COLUMN country TEXT;`,
+  // V4: Rename countries → collections, country_id → collection_id
+  `
+    ALTER TABLE countries RENAME TO collections;
+    ALTER TABLE coins RENAME COLUMN country_id TO collection_id;
+    DROP INDEX IF EXISTS idx_coins_country;
+    CREATE INDEX IF NOT EXISTS idx_coins_collection ON coins(collection_id, denomination, year, id);
+  `
 ]
 
 export function runMigrations(db: Database.Database): void {

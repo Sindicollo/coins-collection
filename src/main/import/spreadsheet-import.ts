@@ -8,12 +8,12 @@ import {
   parseCoinRow,
   type CoinData
 } from './xlsx-parser'
-import * as countryRepo from '../database/repositories/countries'
+import * as collectionRepo from '../database/repositories/collections'
 import * as coinRepo from '../database/repositories/coins'
 import * as photoRepo from '../database/repositories/photos'
 import { getDatabase } from '../database'
 import { uuidv4 } from '../database/repositories/uuid'
-import type { Country } from '@shared/types'
+import type { Collection } from '@shared/types'
 
 // --- Types ---
 
@@ -107,20 +107,20 @@ export async function importSpreadsheet(
   const photosDir = getPhotosDir()
 
   for (const sheet of data.sheets) {
-    const countryName = countryOverrides[sheet.name] ?? sheet.name
-    onProgress?.(`Обработка "${countryName}"...`)
+    const collectionName = countryOverrides[sheet.name] ?? sheet.name
+    onProgress?.(`Обработка "${collectionName}"...`)
 
-    // Get or create country
-    let country: Country
+    // Get or create collection
+    let collection: Collection
     const existing = db
-      .prepare('SELECT * FROM countries WHERE name = ?')
-      .get(countryName) as { id: string; name: string } | undefined
+      .prepare('SELECT * FROM collections WHERE name = ?')
+      .get(collectionName) as { id: string; name: string } | undefined
 
     if (existing) {
-      country = { id: existing.id, name: existing.name, createdAt: 0, updatedAt: 0 }
+      collection = { id: existing.id, name: existing.name, createdAt: 0, updatedAt: 0 }
       result.countriesSkipped++
     } else {
-      country = countryRepo.createCountry({ name: countryName })
+      collection = collectionRepo.createCollection({ name: collectionName })
       result.countriesCreated++
     }
 
@@ -160,7 +160,7 @@ export async function importSpreadsheet(
       for (const coin of importableCoins) {
         try {
           const created = coinRepo.createCoin({
-            countryId: country.id,
+            collectionId: collection.id,
             denomination: coin.denomination,
             year: coin.year,
             price: coin.price,

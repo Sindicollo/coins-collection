@@ -3,15 +3,15 @@ import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AppLayout } from './components/layout/AppLayout'
 import { SettingsModal } from './components/common/SettingsModal'
-import { CountrySidebar } from './features/countries/CountrySidebar'
+import { CollectionSidebar } from './features/collections/CollectionSidebar'
 import { CoinView } from './features/coins/CoinView'
 import { PhotoGallery } from './features/photos/PhotoGallery'
-import { useCountryManager } from './features/countries/useCountries'
+import { useCollectionManager } from './features/collections/useCollections'
 
 function HomeView(): React.ReactElement {
   const { t } = useTranslation()
-  const { countries, selectedId } = useCountryManager()
-  const selectedCollection = selectedId ? countries.find((c) => c.id === selectedId) : null
+  const { collections, selectedId } = useCollectionManager()
+  const selectedCollection = selectedId ? collections.find((c) => c.id === selectedId) : null
 
   const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
 
@@ -22,10 +22,10 @@ function HomeView(): React.ReactElement {
   if (selectedCollection) {
     return (
       <CoinView
-        countryId={selectedCollection.id}
-        countryName={selectedCollection.name}
+        collectionId={selectedCollection.id}
+        collectionName={selectedCollection.name}
         defaultCurrency={defaultCurrency}
-        collections={countries}
+        collections={collections}
       />
     )
   }
@@ -70,14 +70,14 @@ function App(): React.ReactElement {
     <>
       <Routes>
         <Route
-          path="/coins/:countryId/photo/:coinId"
+          path="/coins/:collectionId/photo/:coinId"
           element={<PhotoGallery onOpenSettings={() => setShowSettings(true)} />}
         />
         <Route
           path="*"
           element={
             <AppLayout
-              sidebar={<CountrySidebar />}
+              sidebar={<CollectionSidebar />}
               onOpenSettings={() => setShowSettings(true)}
             >
               <HomeView />

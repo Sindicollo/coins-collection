@@ -4,7 +4,7 @@ import * as coinRepo from '../database/repositories/coins'
 import type { CreateCoinInput, UpdateCoinInput, PaginatedResult, Coin } from '@shared/types'
 
 interface CoinListArgs {
-  countryId: string
+  collectionId: string
   cursor: string | null
   limit?: number
 }
@@ -13,7 +13,7 @@ export function registerCoinHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.COIN.LIST,
     async (_event, args: CoinListArgs): Promise<PaginatedResult<Coin>> => {
-      return coinRepo.listCoins(args.countryId, args.cursor, args.limit)
+      return coinRepo.listCoins(args.collectionId, args.cursor, args.limit)
     }
   )
 
@@ -40,7 +40,7 @@ export function registerCoinHandlers(): void {
   })
 
   ipcMain.handle(
-    IPC_CHANNELS.COIN.LIST_COUNTRIES,
+    IPC_CHANNELS.COIN.LIST_DISTINCT_COUNTRIES,
     async (): Promise<string[]> => {
       return coinRepo.listDistinctCountries()
     }

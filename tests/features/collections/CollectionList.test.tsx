@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { CountryList } from '@/features/countries/CountryList'
-import type { Country } from '@shared/types'
+import { CollectionList } from '@/features/collections/CollectionList'
+import type { Collection } from '@shared/types'
 
-const mockCountries: Country[] = [
+const mockCollections: Collection[] = [
   { id: '1', name: 'Russia', createdAt: 1000, updatedAt: 1000 },
   { id: '2', name: 'USA', createdAt: 2000, updatedAt: 2000 },
   { id: '3', name: 'Germany', createdAt: 3000, updatedAt: 3000 }
 ]
 
-describe('CountryList', () => {
-  it('should render all countries', () => {
+describe('CollectionList', () => {
+  it('should render all collections', () => {
     render(
-      <CountryList
-        countries={mockCountries}
+      <CollectionList
+        collections={mockCollections}
         selectedId={null}
         loading={false}
         error={null}
@@ -30,8 +30,8 @@ describe('CountryList', () => {
 
   it('should show loading skeletons', () => {
     render(
-      <CountryList
-        countries={[]}
+      <CollectionList
+        collections={[]}
         selectedId={null}
         loading={true}
         error={null}
@@ -47,8 +47,8 @@ describe('CountryList', () => {
 
   it('should show error message', () => {
     render(
-      <CountryList
-        countries={[]}
+      <CollectionList
+        collections={[]}
         selectedId={null}
         loading={false}
         error="countries.errors.loadFailed"
@@ -61,10 +61,10 @@ describe('CountryList', () => {
     expect(screen.getByText('Failed to load countries')).toBeDefined()
   })
 
-  it('should show empty state when no countries', () => {
+  it('should show empty state when no collections', () => {
     render(
-      <CountryList
-        countries={[]}
+      <CollectionList
+        collections={[]}
         selectedId={null}
         loading={false}
         error={null}
@@ -77,10 +77,10 @@ describe('CountryList', () => {
     expect(screen.getByText('No countries yet.')).toBeDefined()
   })
 
-  it('should highlight selected country', () => {
+  it('should highlight selected collection', () => {
     render(
-      <CountryList
-        countries={mockCountries}
+      <CollectionList
+        collections={mockCollections}
         selectedId="2"
         loading={false}
         error={null}
@@ -94,12 +94,12 @@ describe('CountryList', () => {
     expect(usaItem?.className).toContain('bg-primary-100')
   })
 
-  it('should call onSelect when clicking a country', () => {
+  it('should call onSelect when clicking a collection', () => {
     const onSelect = vi.fn()
 
     render(
-      <CountryList
-        countries={mockCountries}
+      <CollectionList
+        collections={mockCollections}
         selectedId={null}
         loading={false}
         error={null}

@@ -6,7 +6,7 @@ import type { Coin } from '@shared/types'
 
 const mockCoin: Coin = {
   id: 'c1',
-  countryId: 'ru',
+  collectionId: 'ru',
   denomination: '1 рубль',
   year: 1999,
   condition: 'UNC',
