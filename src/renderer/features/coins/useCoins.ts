@@ -136,5 +136,5 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
   },
 
-  reset: () => set({ coins: [], cursors: [], hasMore: false, loading: false, error: null, loadedCollectionId: null, scrollPositions: {} })
+  reset: () => set({ coins: [], cursors: [], hasMore: false, loading: false, error: null, loadedCollectionId: null })
 }))

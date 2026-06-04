@@ -31,8 +31,19 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
     window.api.coins.listCountries().then(setCountrySuggestions)
   }, [])
 
+  // Save scroll before collection changes or unmount
+  React.useEffect(() => {
+    return () => {
+      const main = mainRef.current
+      if (main) {
+        useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
+      }
+    }
+  }, [collectionId])
+
   // Load/reload coins when collection changes
   React.useEffect(() => {
+    restoredRef.current = false
     if (!store.loadedCollectionId || store.loadedCollectionId !== collectionId) {
       store.reset()
       store.loadCoins(collectionId)
@@ -43,25 +54,33 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
   }, [collectionId])
 
   // Save scroll position before navigating to gallery
+  const mainRef = React.useRef<HTMLElement | null>(null)
+  const restoredRef = React.useRef(false)
+
   const handleNavigateToGallery = React.useCallback(() => {
-    const main = document.querySelector<HTMLElement>('main')
+    const main = mainRef.current
     if (main) {
       useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
     }
   }, [collectionId])
 
   // Restore scroll position immediately before paint
+  const { loading, coins } = store
   React.useLayoutEffect(() => {
-    if (!store.loading && store.coins.length > 0) {
-      const saved = store.scrollPositions[collectionId]
+    if (!mainRef.current) {
+      mainRef.current = document.querySelector<HTMLElement>('main')
+    }
+    if (!loading && coins.length > 0 && !restoredRef.current) {
+      const saved = useCoinStore.getState().scrollPositions[collectionId]
       if (saved) {
-        const main = document.querySelector<HTMLElement>('main')
+        const main = mainRef.current
         if (main) {
           main.scrollTop = saved
+          restoredRef.current = true
         }
       }
     }
-  }, [store.loading, store.coins.length, collectionId, store.scrollPositions])
+  }, [loading, coins.length, collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
