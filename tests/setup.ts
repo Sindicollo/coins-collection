@@ -71,6 +71,7 @@ i18n.use(initReactI18next).init({
           shippingCost: 'Shipping',
           currency: 'Currency',
           notes: 'Notes',
+          sold: 'Sold',
           save: 'Save',
           cancel: 'Cancel',
           edit: 'Edit',

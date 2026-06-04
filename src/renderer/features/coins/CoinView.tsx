@@ -33,10 +33,42 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
 
   // Load/reload coins when collection changes
   React.useEffect(() => {
-    store.reset()
-    store.loadCoins(collectionId)
+    if (!store.loadedCollectionId || store.loadedCollectionId !== collectionId) {
+      store.reset()
+      store.loadCoins(collectionId)
+    } else {
+      // Collection hasn't changed — restore scroll position
+      store.loadCoins(collectionId)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionId])
+
+  // Save/restore scroll position on the <main> element (the real scroll container)
+  const getScrollContainer = React.useCallback((): HTMLElement | null => {
+    return document.querySelector<HTMLElement>('main')
+  }, [])
+
+  const handleNavigateToGallery = React.useCallback(() => {
+    const main = getScrollContainer()
+    if (main) {
+      useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
+    }
+  }, [collectionId, getScrollContainer])
+
+  // Restore scroll position after data loads
+  React.useEffect(() => {
+    if (!store.loading && store.coins.length > 0) {
+      const saved = store.scrollPositions[collectionId]
+      if (saved) {
+        const main = getScrollContainer()
+        if (main) {
+          requestAnimationFrame(() => {
+            main.scrollTop = saved
+          })
+        }
+      }
+    }
+  }, [store.loading, store.coins.length, collectionId, getScrollContainer, store.scrollPositions])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
@@ -60,6 +92,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
     shippingCost: number | null
     currency: string | null
     notes: string | null
+    sold: boolean
   }): void => {
     const collectionChanged = editCoin && data.collectionId !== editCoin.collectionId
 
@@ -107,7 +140,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin -mx-6 px-6">
+      <div className="flex-1 min-h-0 -mx-6 px-6">
         <CoinList
           coins={store.coins}
           loading={store.loading}
@@ -118,6 +151,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
           onEdit={handleOpenEdit}
           onDelete={setCoinToDelete}
           onSelect={handleOpenEdit}
+          onNavigateToGallery={handleNavigateToGallery}
         />
       </div>
 

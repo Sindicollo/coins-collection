@@ -15,6 +15,7 @@ interface CoinListProps {
   onEdit: (coin: Coin) => void
   onDelete: (coin: Coin) => void
   onSelect: (coin: Coin) => void
+  onNavigateToGallery?: () => void
 }
 
 export function CoinList({
@@ -26,7 +27,8 @@ export function CoinList({
   onLoadMore,
   onEdit,
   onDelete,
-  onSelect
+  onSelect,
+  onNavigateToGallery
 }: CoinListProps): React.ReactElement {
   const { t } = useTranslation()
   const sentinelRef = useIntersectionObserver(onLoadMore, hasMore && !loadingMore)
@@ -67,6 +69,7 @@ export function CoinList({
           onEdit={onEdit}
           onDelete={onDelete}
           onSelect={onSelect}
+          onNavigateToGallery={onNavigateToGallery}
         />
       ))}
 

@@ -18,6 +18,7 @@ const mockCoin: Coin = {
   country: 'Russia',
   notes: 'Nice coin',
   extraData: null,
+  sold: false,
   createdAt: 1000,
   updatedAt: 1000
 }

@@ -57,7 +57,9 @@ const MIGRATIONS: string[] = [
     ALTER TABLE coins RENAME COLUMN country_id TO collection_id;
     DROP INDEX IF EXISTS idx_coins_country;
     CREATE INDEX IF NOT EXISTS idx_coins_collection ON coins(collection_id, denomination, year, id);
-  `
+  `,
+  // V5: Sold flag
+  `ALTER TABLE coins ADD COLUMN sold INTEGER NOT NULL DEFAULT 0;`
 ]
 
 export function runMigrations(db: Database.Database): void {

@@ -20,6 +20,7 @@ interface CoinFormData {
   shippingCost: string
   currency: string
   notes: string
+  sold: boolean
 }
 
 function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
@@ -35,7 +36,8 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
       price: '',
       shippingCost: '',
       currency: defaultCurrency,
-      notes: ''
+      notes: '',
+      sold: false
     }
   }
   return {
@@ -51,7 +53,8 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     price: coin.price?.toString() ?? '',
     shippingCost: coin.shippingCost?.toString() ?? '',
     currency: coin.currency ?? defaultCurrency,
-    notes: coin.notes ?? ''
+    notes: coin.notes ?? '',
+    sold: coin.sold
   }
 }
 
@@ -73,6 +76,7 @@ interface CoinFormProps {
     shippingCost: number | null
     currency: string | null
     notes: string | null
+    sold: boolean
   }) => void
   onClose: () => void
 }
@@ -89,6 +93,11 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
   }, [coin, open, defaultCurrency])
 
   const handleChange = (field: keyof CoinFormData, value: string): void => {
+    setData((prev) => ({ ...prev, [field]: value }))
+    if (error) setError(null)
+  }
+
+  const handleCheckboxChange = (field: 'sold', value: boolean): void => {
     setData((prev) => ({ ...prev, [field]: value }))
     if (error) setError(null)
   }
@@ -115,7 +124,8 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       price: data.price ? parseFloat(data.price) : null,
       shippingCost: data.shippingCost ? parseFloat(data.shippingCost) : null,
       currency: data.currency || null,
-      notes: data.notes.trim() || null
+      notes: data.notes.trim() || null,
+      sold: data.sold
     })
   }
 
@@ -241,6 +251,17 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
           onChange={(e) => handleChange('purchasePlace', e.target.value)}
           placeholder="eBay, Мешок, аукцион..."
         />
+
+        {/* Sold checkbox */}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={data.sold}
+            onChange={(e) => handleCheckboxChange('sold', e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm font-medium text-gray-700">{t('coins.sold')}</span>
+        </label>
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">
