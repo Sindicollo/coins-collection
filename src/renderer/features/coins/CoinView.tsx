@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCoinStore } from './useCoins'
+import { useScrollRestoration } from './useScrollRestoration'
 import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
@@ -17,7 +18,28 @@ interface CoinViewProps {
   onCollectionChange?: () => void
 }
 
-export function CoinView({ collectionId, collectionName, defaultCurrency, collections, onCollectionChange }: CoinViewProps): React.ReactElement {
+type CoinSaveData = {
+  collectionId: string
+  denomination: string
+  country: string | null
+  year: number | null
+  condition: CoinCondition | null
+  purchaseDate: number | null
+  purchasePlace: string | null
+  price: number | null
+  shippingCost: number | null
+  currency: string | null
+  notes: string | null
+  sold: boolean
+}
+
+export function CoinView({
+  collectionId,
+  collectionName,
+  defaultCurrency,
+  collections,
+  onCollectionChange
+}: CoinViewProps): React.ReactElement {
   const { t } = useTranslation()
   const store = useCoinStore()
 
@@ -26,61 +48,22 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
   const [coinToDelete, setCoinToDelete] = React.useState<Coin | null>(null)
   const [countrySuggestions, setCountrySuggestions] = React.useState<string[]>([])
 
-  // Load country suggestions
+  // Scroll persistence across collection switches and gallery navigation
+  useScrollRestoration(collectionId)
+
+  // Load country name suggestions for autocomplete
   React.useEffect(() => {
     window.api.coins.listCountries().then(setCountrySuggestions)
   }, [])
 
-  // Save scroll before collection changes or unmount
+  // Load coins when collection changes (or on first mount)
+  const { loadedCollectionId, reset, loadCoins: load } = store
   React.useEffect(() => {
-    return () => {
-      const main = mainRef.current
-      if (main) {
-        useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
-      }
+    if (!loadedCollectionId || loadedCollectionId !== collectionId) {
+      reset()
+      load(collectionId)
     }
-  }, [collectionId])
-
-  // Load/reload coins when collection changes
-  React.useEffect(() => {
-    restoredRef.current = false
-    if (!store.loadedCollectionId || store.loadedCollectionId !== collectionId) {
-      store.reset()
-      store.loadCoins(collectionId)
-    } else {
-      // Same collection — data already in store, skip re-fetch
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collectionId])
-
-  // Save scroll position before navigating to gallery
-  const mainRef = React.useRef<HTMLElement | null>(null)
-  const restoredRef = React.useRef(false)
-
-  const handleNavigateToGallery = React.useCallback(() => {
-    const main = mainRef.current
-    if (main) {
-      useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
-    }
-  }, [collectionId])
-
-  // Restore scroll position immediately before paint
-  const { loading, coins } = store
-  React.useLayoutEffect(() => {
-    if (!mainRef.current) {
-      mainRef.current = document.querySelector<HTMLElement>('main')
-    }
-    if (!loading && coins.length > 0 && !restoredRef.current) {
-      const saved = useCoinStore.getState().scrollPositions[collectionId]
-      if (saved) {
-        const main = mainRef.current
-        if (main) {
-          main.scrollTop = saved
-          restoredRef.current = true
-        }
-      }
-    }
-  }, [loading, coins.length, collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [collectionId, loadedCollectionId, reset, load])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
@@ -92,20 +75,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
     setShowForm(true)
   }
 
-  const handleSave = (data: {
-    collectionId: string
-    denomination: string
-    country: string | null
-    year: number | null
-    condition: CoinCondition | null
-    purchaseDate: number | null
-    purchasePlace: string | null
-    price: number | null
-    shippingCost: number | null
-    currency: string | null
-    notes: string | null
-    sold: boolean
-  }): void => {
+  const handleSave = (data: CoinSaveData): void => {
     const collectionChanged = editCoin && data.collectionId !== editCoin.collectionId
 
     if (editCoin) {
@@ -116,7 +86,6 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
     setShowForm(false)
     setEditCoin(undefined)
 
-    // If collection changed, notify parent to refresh
     if (collectionChanged && onCollectionChange) {
       onCollectionChange()
     }
@@ -163,7 +132,6 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
           onEdit={handleOpenEdit}
           onDelete={setCoinToDelete}
           onSelect={handleOpenEdit}
-          onNavigateToGallery={handleNavigateToGallery}
         />
       </div>
 
@@ -187,9 +155,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
         onClose={() => setCoinToDelete(null)}
         title={t('coins.deleteTitle')}
       >
-        <p className="text-sm text-gray-600 mb-4">
-          {t('coins.deleteConfirm')}
-        </p>
+        <p className="text-sm text-gray-600 mb-4">{t('coins.deleteConfirm')}</p>
         <div className="flex gap-2 justify-end">
           <Button variant="ghost" size="sm" onClick={() => setCoinToDelete(null)}>
             {t('coins.cancel')}

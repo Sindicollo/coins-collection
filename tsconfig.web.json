@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "outDir": "out-tsc",
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
@@ -12,8 +13,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
     "paths": {
       "@/*": ["./src/renderer/*"],
       "@shared/*": ["./src/shared/*"]
@@ -24,6 +23,6 @@
     "src/renderer/**/*.tsx",
     "src/renderer/**/*.d.ts",
     "src/shared/**/*.ts",
-    "src/preload/index.d.ts"
+    "src/renderer/locales/*.json"
   ]
 }

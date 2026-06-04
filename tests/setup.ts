@@ -120,7 +120,7 @@ i18n.use(initReactI18next).init({
 
 // Mock window.api (Electron preload bridge) for all tests
 window.api = {
-  countries: {
+  collections: {
     list: vi.fn(),
     get: vi.fn(),
     create: vi.fn(),

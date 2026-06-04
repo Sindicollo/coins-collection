@@ -1,6 +1,21 @@
 {
-  "extends": "./tsconfig.web.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/renderer/*"],
+      "@shared/*": ["./src/shared/*"]
+    },
     "types": ["vitest/globals"]
   },
   "include": [
@@ -8,7 +23,6 @@
     "tests/**/*.tsx",
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
-    "src/renderer/**/*.d.ts",
     "src/shared/**/*.ts",
     "src/preload/index.d.ts"
   ]

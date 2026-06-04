@@ -14,10 +14,9 @@ interface CoinCardProps {
   onEdit: (coin: Coin) => void
   onDelete: (coin: Coin) => void
   onSelect: (coin: Coin) => void
-  onNavigateToGallery?: () => void
 }
 
-export function CoinCard({ coin, onEdit, onDelete, onSelect, onNavigateToGallery }: CoinCardProps): React.ReactElement {
+export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [thumbs, setThumbs] = React.useState<string[]>([])
@@ -54,7 +53,6 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect, onNavigateToGallery
 
   const goToGallery = (e: React.MouseEvent): void => {
     e.stopPropagation()
-    onNavigateToGallery?.()
     if (coin.collectionId && coin.id) {
       navigate(`/coins/${coin.collectionId}/photo/${coin.id}`)
     }
