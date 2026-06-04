@@ -1,15 +1,15 @@
-export interface Country {
+export interface Collection {
   id: string
   name: string
   createdAt: number
   updatedAt: number
 }
 
-export interface CreateCountryInput {
+export interface CreateCollectionInput {
   name: string
 }
 
-export interface UpdateCountryInput {
+export interface UpdateCollectionInput {
   id: string
   name: string
 }

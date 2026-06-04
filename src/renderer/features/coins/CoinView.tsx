@@ -5,28 +5,38 @@ import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { LlmPrices } from './LlmPrices'
+import { Plus } from '@/components/ui/icons/Plus'
 import type { Coin, CoinCondition } from '@shared/types'
 
 interface CoinViewProps {
-  countryId: string
-  countryName: string
+  collectionId: string
+  collectionName: string
   defaultCurrency: string
+  collections: Array<{ id: string; name: string }>
+  onCollectionChange?: () => void
 }
 
-export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewProps): React.ReactElement {
+export function CoinView({ collectionId, collectionName, defaultCurrency, collections, onCollectionChange }: CoinViewProps): React.ReactElement {
   const { t } = useTranslation()
   const store = useCoinStore()
 
   const [showForm, setShowForm] = React.useState(false)
   const [editCoin, setEditCoin] = React.useState<Coin | undefined>(undefined)
   const [coinToDelete, setCoinToDelete] = React.useState<Coin | null>(null)
+  const [countrySuggestions, setCountrySuggestions] = React.useState<string[]>([])
 
-  // Load/reload coins when country changes
+  // Load country suggestions
+  React.useEffect(() => {
+    window.api.coins.listCountries().then(setCountrySuggestions)
+  }, [])
+
+  // Load/reload coins when collection changes
   React.useEffect(() => {
     store.reset()
-    store.loadCoins(countryId)
+    store.loadCoins(collectionId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryId])
+  }, [collectionId])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
@@ -39,7 +49,9 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
   }
 
   const handleSave = (data: {
+    collectionId: string
     denomination: string
+    country: string | null
     year: number | null
     condition: CoinCondition | null
     purchaseDate: number | null
@@ -49,13 +61,20 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
     currency: string | null
     notes: string | null
   }): void => {
+    const collectionChanged = editCoin && data.collectionId !== editCoin.collectionId
+
     if (editCoin) {
       store.updateCoin({ id: editCoin.id, ...data })
     } else {
-      store.addCoin({ countryId, ...data })
+      store.addCoin(data)
     }
     setShowForm(false)
     setEditCoin(undefined)
+
+    // If collection changed, notify parent to refresh
+    if (collectionChanged && onCollectionChange) {
+      onCollectionChange()
+    }
   }
 
   const handleDeleteConfirm = (): void => {
@@ -65,20 +84,26 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
     }
   }
 
+  const handleRefresh = (): void => {
+    store.reset()
+    store.loadCoins(collectionId)
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary-800">{countryName}</h1>
+          <h1 className="text-2xl font-bold text-primary-800">{collectionName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{t('coins.title')}</p>
         </div>
-        <Button size="sm" onClick={handleOpenCreate}>
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          {t('coins.addButton')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <LlmPrices collectionId={collectionId} onImported={handleRefresh} />
+          <Button size="sm" onClick={handleOpenCreate}>
+            <Plus className="w-4 h-4 mr-1" />
+            {t('coins.addButton')}
+          </Button>
+        </div>
       </div>
 
       {/* List */}
@@ -89,7 +114,7 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
           loadingMore={store.loadingMore}
           hasMore={store.hasMore}
           error={store.error}
-          onLoadMore={() => store.loadMore(countryId)}
+          onLoadMore={() => store.loadMore(collectionId)}
           onEdit={handleOpenEdit}
           onDelete={setCoinToDelete}
           onSelect={handleOpenEdit}
@@ -101,6 +126,8 @@ export function CoinView({ countryId, countryName, defaultCurrency }: CoinViewPr
         open={showForm}
         coin={editCoin}
         defaultCurrency={defaultCurrency}
+        collections={collections}
+        countrySuggestions={countrySuggestions}
         onSave={handleSave}
         onClose={() => {
           setShowForm(false)

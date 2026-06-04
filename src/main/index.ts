@@ -2,10 +2,12 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { getDatabase, closeDatabase } from './database'
-import { registerCountryHandlers } from './ipc/countries'
+import { registerCollectionHandlers } from './ipc/collections'
 import { registerCoinHandlers } from './ipc/coins'
 import { registerPhotoHandlers } from './ipc/photos'
 import { registerPreferenceHandlers } from './ipc/preferences'
+import { registerImportHandlers } from './ipc/import'
+import { registerPriceHandlers } from './ipc/prices'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -49,10 +51,12 @@ app.whenReady().then(() => {
   getDatabase()
 
   // Register IPC handlers
-  registerCountryHandlers()
+  registerCollectionHandlers()
   registerCoinHandlers()
   registerPhotoHandlers()
   registerPreferenceHandlers()
+  registerImportHandlers()
+  registerPriceHandlers()
 
   createWindow()
 

@@ -1,17 +1,18 @@
 export const IPC_CHANNELS = {
-  COUNTRY: {
-    LIST: 'country:list',
-    GET: 'country:get',
-    CREATE: 'country:create',
-    UPDATE: 'country:update',
-    DELETE: 'country:delete'
+  COLLECTION: {
+    LIST: 'collection:list',
+    GET: 'collection:get',
+    CREATE: 'collection:create',
+    UPDATE: 'collection:update',
+    DELETE: 'collection:delete'
   },
   COIN: {
     LIST: 'coin:list',
     GET: 'coin:get',
     CREATE: 'coin:create',
     UPDATE: 'coin:update',
-    DELETE: 'coin:delete'
+    DELETE: 'coin:delete',
+    LIST_DISTINCT_COUNTRIES: 'coin:listCountries'
   },
   PHOTO: {
     LIST: 'photo:list',
@@ -19,6 +20,15 @@ export const IPC_CHANNELS = {
     CREATE: 'photo:create',
     DELETE: 'photo:delete',
     REORDER: 'photo:reorder'
+  },
+  IMPORT: {
+    SELECT_FILE: 'import:select-file',
+    PREVIEW: 'import:preview',
+    EXECUTE: 'import:execute'
+  },
+  PRICE: {
+    EXPORT_ALL: 'price:exportAll',
+    IMPORT_PRICES: 'price:importPrices'
   }
 } as const
 

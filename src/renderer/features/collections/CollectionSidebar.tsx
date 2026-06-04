@@ -1,69 +1,70 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { CountryList } from './CountryList'
+import { CollectionList } from './CollectionList'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useCountryManager } from './useCountries'
-import type { Country } from '@shared/types'
+import { Plus } from '@/components/ui/icons/Plus'
+import { useCollectionManager } from './useCollections'
+import type { Collection } from '@shared/types'
 
-export function CountrySidebar(): React.ReactElement {
+export function CollectionSidebar(): React.ReactElement {
   const { t } = useTranslation()
   const {
-    countries,
+    collections,
     selectedId,
     loading,
     error,
-    selectCountry,
-    addCountry,
-    updateCountry,
-    deleteCountry,
-    loadCountries
-  } = useCountryManager()
+    selectCollection,
+    addCollection,
+    updateCollection,
+    deleteCollection,
+    loadCollections
+  } = useCollectionManager()
 
   const [showAddForm, setShowAddForm] = React.useState(false)
   const [newName, setNewName] = React.useState('')
-  const [countryToDelete, setCountryToDelete] = React.useState<Country | null>(null)
+  const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null)
 
-  const [editingCountry, setEditingCountry] = React.useState<Country | null>(null)
+  const [editingCollection, setEditingCollection] = React.useState<Collection | null>(null)
   const [editName, setEditName] = React.useState('')
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
-    loadCountries()
-  }, [loadCountries])
+    loadCollections()
+  }, [loadCollections])
 
   React.useEffect(() => {
-    if (editingCountry && inputRef.current) {
+    if (editingCollection && inputRef.current) {
       inputRef.current.focus()
       inputRef.current.select()
     }
-  }, [editingCountry])
+  }, [editingCollection])
 
   const handleAdd = (): void => {
     if (newName.trim()) {
-      addCountry(newName.trim())
+      addCollection(newName.trim())
       setNewName('')
       setShowAddForm(false)
     }
   }
 
-  const handleStartEdit = (country: Country): void => {
-    setEditingCountry(country)
-    setEditName(country.name)
+  const handleStartEdit = (collection: Collection): void => {
+    setEditingCollection(collection)
+    setEditName(collection.name)
   }
 
   const handleSaveEdit = (): void => {
     const trimmed = editName.trim()
-    if (trimmed && editingCountry && trimmed !== editingCountry.name) {
-      updateCountry(editingCountry.id, trimmed)
+    if (trimmed && editingCollection && trimmed !== editingCollection.name) {
+      updateCollection(editingCollection.id, trimmed)
     }
-    setEditingCountry(null)
+    setEditingCollection(null)
     setEditName('')
   }
 
   const handleCancelEdit = (): void => {
-    setEditingCountry(null)
+    setEditingCollection(null)
     setEditName('')
   }
 
@@ -83,9 +84,9 @@ export function CountrySidebar(): React.ReactElement {
   }
 
   const handleDeleteConfirm = (): void => {
-    if (countryToDelete) {
-      deleteCountry(countryToDelete.id)
-      setCountryToDelete(null)
+    if (collectionToDelete) {
+      deleteCollection(collectionToDelete.id)
+      setCollectionToDelete(null)
     }
   }
 
@@ -104,9 +105,7 @@ export function CountrySidebar(): React.ReactElement {
             className="w-full"
             onClick={() => setShowAddForm(true)}
           >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4 mr-1" />
             {t('countries.addButton')}
           </Button>
         ) : (
@@ -144,19 +143,19 @@ export function CountrySidebar(): React.ReactElement {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        <CountryList
-          countries={countries}
+        <CollectionList
+          collections={collections}
           selectedId={selectedId}
           loading={loading}
           error={error}
-          onSelect={selectCountry}
+          onSelect={selectCollection}
           onEdit={handleStartEdit}
-          onDelete={setCountryToDelete}
+          onDelete={setCollectionToDelete}
         />
       </div>
 
       {/* Edit panel */}
-      {editingCountry && (
+      {editingCollection && (
         <div className="p-3 border-t border-gray-200 bg-primary-50">
           <label className="text-xs font-medium text-primary-600 mb-1 block">
             {t('countries.rename')}
@@ -182,17 +181,17 @@ export function CountrySidebar(): React.ReactElement {
 
       {/* Delete confirmation modal */}
       <Modal
-        open={countryToDelete !== null}
-        onClose={() => setCountryToDelete(null)}
+        open={collectionToDelete !== null}
+        onClose={() => setCollectionToDelete(null)}
         title={t('countries.deleteTitle')}
       >
         <p className="text-sm text-gray-600 mb-4">
           {t('countries.deleteConfirm')}{' '}
-          <strong>{countryToDelete?.name}</strong>
+          <strong>{collectionToDelete?.name}</strong>
           ? {t('countries.deleteWarning')}
         </p>
         <div className="flex gap-2 justify-end">
-          <Button variant="ghost" size="sm" onClick={() => setCountryToDelete(null)}>
+          <Button variant="ghost" size="sm" onClick={() => setCollectionToDelete(null)}>
             {t('countries.cancel')}
           </Button>
           <Button variant="danger" size="sm" onClick={handleDeleteConfirm}>

@@ -14,7 +14,7 @@ vi.mock('@/features/coins/api', () => ({
 
 const mockCoin: Coin = {
   id: 'c1',
-  countryId: 'ru',
+  collectionId: 'ru',
   denomination: '1 рубль',
   year: 1999,
   condition: 'UNC',
@@ -44,7 +44,7 @@ describe('useCoinStore', () => {
   })
 
   describe('loadCoins', () => {
-    it('should load coins for a country', async () => {
+    it('should load coins for a collection', async () => {
       vi.mocked(coinApi.fetchCoins).mockResolvedValue(mockResult)
 
       await act(async () => {
@@ -82,7 +82,7 @@ describe('useCoinStore', () => {
 
       await act(async () => {
         const result = await useCoinStore.getState().addCoin({
-          countryId: 'ru',
+          collectionId: 'ru',
           denomination: '5 рублей',
           year: 1999
         })
@@ -114,6 +114,47 @@ describe('useCoinStore', () => {
       })
 
       expect(useCoinStore.getState().coins[0].denomination).toBe('2 рубля')
+      expect(useCoinStore.getState().coins).toHaveLength(1)
+    })
+
+    it('should remove coin from list when collectionId changes', async () => {
+      vi.mocked(coinApi.fetchCoins).mockResolvedValue(mockResult)
+      const movedCoin = { ...mockCoin, collectionId: 'us' }
+      vi.mocked(coinApi.updateCoin).mockResolvedValue(movedCoin)
+
+      await act(async () => {
+        await useCoinStore.getState().loadCoins('ru')
+      })
+
+      await act(async () => {
+        const result = await useCoinStore.getState().updateCoin({
+          id: 'c1',
+          collectionId: 'us'
+        })
+        expect(result).toEqual(movedCoin)
+      })
+
+      // Coin should be removed from the current list since it moved to another collection
+      expect(useCoinStore.getState().coins).toHaveLength(0)
+    })
+
+    it('should handle update error', async () => {
+      vi.mocked(coinApi.fetchCoins).mockResolvedValue(mockResult)
+      vi.mocked(coinApi.updateCoin).mockRejectedValue(new Error('fail'))
+
+      await act(async () => {
+        await useCoinStore.getState().loadCoins('ru')
+      })
+
+      await act(async () => {
+        const result = await useCoinStore.getState().updateCoin({
+          id: 'c1',
+          denomination: 'test'
+        })
+        expect(result).toBeNull()
+      })
+
+      expect(useCoinStore.getState().error).toBe('coins.errors.updateFailed')
     })
   })
 

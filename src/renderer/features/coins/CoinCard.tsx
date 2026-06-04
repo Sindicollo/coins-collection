@@ -1,9 +1,13 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import type { Coin } from '@shared/types'
+import type { Coin, Photo } from '@shared/types'
 import { Card } from '@/components/ui/Card'
 import { currencySymbol } from '@/utils/currency'
+import { Edit } from '@/components/ui/icons/Edit'
+import { Delete } from '@/components/ui/icons/Delete'
+import { Coin as CoinIcon } from '@/components/ui/icons/Coin'
+import { Plus } from '@/components/ui/icons/Plus'
 
 interface CoinCardProps {
   coin: Coin
@@ -15,61 +19,77 @@ interface CoinCardProps {
 export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [thumbs, setThumbs] = React.useState<string[]>([])
+  const [photosLoaded, setPhotosLoaded] = React.useState(false)
+  const mountedRef = React.useRef(true)
 
-  const conditionLabel = coin.condition
-    ? t(`coins.conditions.${coin.condition}`)
-    : null
+  const conditionLabel = coin.condition ? t(`coins.conditions.${coin.condition}`) : null
 
-  const handlePhotoClick = (e: React.MouseEvent): void => {
+  // Load photo thumbnails
+  React.useEffect(() => {
+    mountedRef.current = true
+    setPhotosLoaded(false)
+    setThumbs([])
+
+    window.api.photos.list(coin.id).then(async (photos: Photo[]) => {
+      if (!mountedRef.current) return
+
+      const thumbnails = (await Promise.all(
+        photos.slice(0, 4).map((p) => window.api.photos.getPhotoData(p.id))
+      )).filter((d: string | null): d is string => d !== null)
+
+      if (mountedRef.current) {
+        setThumbs(thumbnails)
+        setPhotosLoaded(true)
+      }
+    }).catch(() => {
+      if (mountedRef.current) setPhotosLoaded(true)
+    })
+
+    return () => {
+      mountedRef.current = false
+    }
+  }, [coin.id])
+
+  const goToGallery = (e: React.MouseEvent): void => {
     e.stopPropagation()
-    navigate(`/coins/${coin.countryId}/photo/${coin.id}`)
+    if (coin.collectionId && coin.id) {
+      navigate(`/coins/${coin.collectionId}/photo/${coin.id}`)
+    }
   }
 
   return (
     <Card className="p-3 cursor-pointer hover:shadow-md transition-shadow group" onClick={() => onSelect(coin)}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-gray-800">{coin.denomination}</span>
-            {coin.year && (
-              <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                {coin.year}
-              </span>
-            )}
-            {conditionLabel && (
-              <span className="text-xs text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">
-                {conditionLabel}
-              </span>
-            )}
-          </div>
-
-          {(coin.price !== null || coin.purchasePlace) && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-              {coin.price !== null && (
-                <span>
-                  {currencySymbol(coin.currency)}{coin.price.toFixed(2)}
-                </span>
-              )}
-              {coin.purchasePlace && <span>· {coin.purchasePlace}</span>}
-            </div>
+      {/* Top row: denomination, year, condition, price, actions */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="font-semibold text-gray-800 truncate">{coin.denomination}</span>
+          {coin.year && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+              {coin.year}
+            </span>
           )}
-
-          {coin.notes && (
-            <p className="text-xs text-gray-400 truncate">{coin.notes}</p>
+          {conditionLabel && (
+            <span className="text-xs text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded shrink-0">
+              {conditionLabel}
+            </span>
+          )}
+          {coin.country && (
+            <span className="text-xs text-gray-400 shrink-0">{coin.country}</span>
+          )}
+          {coin.price !== null && (
+            <span className="text-xs font-medium text-gray-600 shrink-0">
+              {currencySymbol(coin.currency)}
+              {coin.price.toFixed(2)}
+            </span>
+          )}
+          {coin.purchasePlace && (
+            <span className="text-xs text-gray-400 truncate hidden sm:inline">· {coin.purchasePlace}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={handlePhotoClick}
-            className="p-1 text-gray-400 hover:text-primary-600 rounded"
-            title={t('photos.title')}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </button>
+        {/* Action buttons — show on hover */}
+        <div className="flex items-center gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -78,10 +98,7 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
             className="p-1 text-gray-400 hover:text-primary-600 rounded"
             title={t('coins.edit')}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
+            <Edit className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={(e) => {
@@ -91,12 +108,54 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
             className="p-1 text-gray-400 hover:text-red-600 rounded"
             title={t('coins.delete')}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Delete className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
+
+      {/* Bottom row: thumbnails — height 64px */}
+      <div className="h-16 flex items-center gap-1.5">
+        {!photosLoaded ? (
+          /* Loading skeleton for thumbnails */
+          <>
+            {[56, 56, 56, 56].map((w, i) => (
+              <div
+                key={i}
+                className="h-16 rounded bg-gray-100 animate-pulse shrink-0"
+                style={{ width: w }}
+              />
+            ))}
+          </>
+        ) : thumbs.length > 0 ? (
+          /* Photo thumbnails */
+          thumbs.map((dataUrl, i) => (
+            <img
+              key={i}
+              src={dataUrl}
+              alt=""
+              className="h-16 w-14 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+              onClick={goToGallery}
+            />
+          ))
+        ) : (
+          /* Placeholder — generic coin icon */
+          <div
+            className="h-16 w-14 rounded border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors shrink-0"
+            onClick={goToGallery}
+          >
+            <CoinIcon className="w-6 h-6 text-gray-300" />
+          </div>
+        )}
+
+        {/* + button to add photos — always visible in thumb row */}
+        <button
+          onClick={goToGallery}
+          className="h-16 w-14 rounded border-2 border-dashed border-gray-200 hover:border-primary-300 shrink-0
+            flex items-center justify-center text-gray-300 hover:text-primary-400 transition-colors"
+          title={t('photos.addPhoto')}
+        >
+          <Plus className="w-5 h-5" />
+        </button>
       </div>
     </Card>
   )

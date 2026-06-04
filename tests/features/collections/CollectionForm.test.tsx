@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { CountryForm } from '@/features/countries/CountryForm'
+import { CollectionForm } from '@/features/collections/CollectionForm'
 
-describe('CountryForm', () => {
+describe('CollectionForm', () => {
   it('should render with empty input initially', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     const input = screen.getByLabelText('Country name') as HTMLInputElement
     expect(input.value).toBe('')
@@ -17,7 +17,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm initialName="Russia" onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm initialName="Russia" onSubmit={onSubmit} onCancel={onCancel} />)
 
     const input = screen.getByLabelText('Country name') as HTMLInputElement
     expect(input.value).toBe('Russia')
@@ -27,7 +27,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     const input = screen.getByLabelText('Country name')
     fireEvent.change(input, { target: { value: '  France  ' } })
@@ -42,7 +42,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     fireEvent.click(screen.getByText('Create'))
 
@@ -54,7 +54,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     const input = screen.getByLabelText('Country name')
     fireEvent.change(input, { target: { value: 'A' } })
@@ -68,7 +68,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     fireEvent.click(screen.getByText('Cancel'))
     expect(onCancel).toHaveBeenCalledTimes(1)
@@ -79,7 +79,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     fireEvent.click(screen.getByText('Create'))
     expect(screen.getByText('Country name is required')).toBeDefined()
@@ -94,7 +94,7 @@ describe('CountryForm', () => {
     const onSubmit = vi.fn()
     const onCancel = vi.fn()
 
-    render(<CountryForm onSubmit={onSubmit} onCancel={onCancel} submitLabel="Save" />)
+    render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} submitLabel="Save" />)
 
     expect(screen.getByText('Save')).toBeDefined()
   })

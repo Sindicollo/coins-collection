@@ -131,7 +131,8 @@ window.api = {
     get: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    delete: vi.fn()
+    delete: vi.fn(),
+    listCountries: vi.fn()
   },
   photos: {
     list: vi.fn(),
@@ -144,5 +145,14 @@ window.api = {
     getCurrency: vi.fn(),
     setCurrency: vi.fn(),
     getCurrencies: vi.fn()
+  },
+  import: {
+    selectFile: vi.fn(),
+    preview: vi.fn(),
+    execute: vi.fn()
+  },
+  prices: {
+    exportAll: vi.fn(),
+    importPrices: vi.fn()
   }
 }

@@ -12,8 +12,8 @@ interface CoinState {
 }
 
 interface CoinActions {
-  loadCoins: (countryId: string) => Promise<void>
-  loadMore: (countryId: string) => Promise<void>
+  loadCoins: (collectionId: string) => Promise<void>
+  loadMore: (collectionId: string) => Promise<void>
   addCoin: (input: CreateCoinInput) => Promise<Coin | null>
   updateCoin: (input: UpdateCoinInput) => Promise<Coin | null>
   deleteCoin: (id: string) => Promise<boolean>
@@ -30,10 +30,10 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
   loadingMore: false,
   error: null,
 
-  loadCoins: async (countryId: string) => {
+  loadCoins: async (collectionId: string) => {
     set({ loading: true, error: null, coins: [], cursors: [], hasMore: false })
     try {
-      const result = await coinApi.fetchCoins({ countryId, cursor: null })
+      const result = await coinApi.fetchCoins({ collectionId, cursor: null })
       set({
         coins: result.items,
         cursors: result.nextCursor ? [result.nextCursor] : [],
@@ -45,7 +45,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
   },
 
-  loadMore: async (countryId: string) => {
+  loadMore: async (collectionId: string) => {
     const { cursors, loadingMore, hasMore } = get()
     if (loadingMore || !hasMore || cursors.length === 0) return
 
@@ -53,7 +53,7 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     set({ loadingMore: true })
 
     try {
-      const result = await coinApi.fetchCoins({ countryId, cursor })
+      const result = await coinApi.fetchCoins({ collectionId, cursor })
       set((state) => ({
         coins: [...state.coins, ...result.items],
         cursors: result.nextCursor
@@ -86,9 +86,14 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     try {
       const updated = await coinApi.updateCoin(input)
       if (updated) {
-        set((state) => ({
-          coins: state.coins.map((c) => (c.id === input.id ? updated : c))
-        }))
+        set((state) => {
+          const oldCoin = state.coins.find((c) => c.id === input.id)
+          // If the collection changed, remove the coin from the current list
+          if (oldCoin && oldCoin.collectionId !== updated.collectionId) {
+            return { coins: state.coins.filter((c) => c.id !== input.id) }
+          }
+          return { coins: state.coins.map((c) => (c.id === input.id ? updated : c)) }
+        })
       }
       return updated
     } catch {

@@ -37,9 +37,9 @@ export const usePhotoStore = create<PhotoState & PhotoActions>((set) => ({
   uploadPhoto: async (coinId: string) => {
     set({ error: null })
     try {
-      const photo = await photoApi.uploadPhoto(coinId)
-      if (photo) {
-        set((state) => ({ photos: [...state.photos, photo] }))
+      const photos = await photoApi.uploadPhoto(coinId)
+      if (photos.length > 0) {
+        set((state) => ({ photos: [...state.photos, ...photos] }))
       }
     } catch (err) {
       set({ error: String(err) })
@@ -49,7 +49,11 @@ export const usePhotoStore = create<PhotoState & PhotoActions>((set) => ({
   deletePhoto: async (id: string) => {
     set({ error: null })
     try {
-      await photoApi.deletePhoto(id)
+      const deleted = await photoApi.deletePhoto(id)
+      if (!deleted) {
+        set({ error: 'Не удалось удалить фото' })
+        return
+      }
       set((state) => ({ photos: state.photos.filter((p) => p.id !== id) }))
     } catch (err) {
       set({ error: String(err) })
