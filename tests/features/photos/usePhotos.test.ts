@@ -70,7 +70,7 @@ describe('usePhotos store', () => {
   })
 
   it('uploadPhoto adds photo on success', async () => {
-    window.api.photos.create = vi.fn().mockResolvedValue(mockPhoto)
+    vi.mocked(window.api.photos.create).mockResolvedValue([mockPhoto])
     // Start with existing photo
     usePhotoStore.setState({ photos: [] })
 
@@ -83,7 +83,7 @@ describe('usePhotos store', () => {
   })
 
   it('uploadPhoto does nothing when cancelled', async () => {
-    window.api.photos.create = vi.fn().mockResolvedValue(null)
+    vi.mocked(window.api.photos.create).mockResolvedValue([])
 
     await usePhotoStore.getState().uploadPhoto('c1')
 
@@ -91,11 +91,21 @@ describe('usePhotos store', () => {
   })
 
   it('uploadPhoto sets error on failure', async () => {
-    window.api.photos.create = vi.fn().mockRejectedValue(new Error('Upload error'))
+    vi.mocked(window.api.photos.create).mockRejectedValue(new Error('Upload error'))
 
     await usePhotoStore.getState().uploadPhoto('c1')
 
     expect(usePhotoStore.getState().error).toBe('Error: Upload error')
+  })
+
+  it('uploadPhoto adds multiple photos', async () => {
+    vi.mocked(window.api.photos.create).mockResolvedValue([mockPhoto, mockPhoto2])
+    usePhotoStore.setState({ photos: [] })
+
+    await usePhotoStore.getState().uploadPhoto('c1')
+
+    const state = usePhotoStore.getState()
+    expect(state.photos).toEqual([mockPhoto, mockPhoto2])
   })
 
   it('deletePhoto removes photo from state', async () => {

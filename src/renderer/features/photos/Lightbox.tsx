@@ -27,6 +27,16 @@ export function Lightbox({
 
   const photo = photos[currentIndex]
 
+  // Stable refs for keydown handler to avoid re-registering listener
+  const onCloseRef = React.useRef(onClose)
+  onCloseRef.current = onClose
+  const onNavigateRef = React.useRef(onNavigate)
+  onNavigateRef.current = onNavigate
+  const indexRef = React.useRef(currentIndex)
+  indexRef.current = currentIndex
+  const totalRef = React.useRef(photos.length)
+  totalRef.current = photos.length
+
   React.useEffect(() => {
     setImgSrc('')
     setImgError(false)
@@ -37,7 +47,7 @@ export function Lightbox({
         if (dataUrl) {
           setImgSrc(dataUrl)
         }
-      })
+      }).catch(() => setImgError(true))
     }
   }, [photo, currentIndex])
 
@@ -45,20 +55,20 @@ export function Lightbox({
     const handleKeyDown = (e: KeyboardEvent): void => {
       switch (e.key) {
         case 'Escape':
-          onClose()
+          onCloseRef.current()
           break
         case 'ArrowLeft':
-          if (currentIndex > 0) onNavigate(-1)
+          if (indexRef.current > 0) onNavigateRef.current(-1)
           break
         case 'ArrowRight':
-          if (currentIndex < photos.length - 1) onNavigate(1)
+          if (indexRef.current < totalRef.current - 1) onNavigateRef.current(1)
           break
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, photos.length, onClose, onNavigate])
+  }, [])
 
   const handleDeleteConfirm = (): void => {
     onDelete(photo.id)

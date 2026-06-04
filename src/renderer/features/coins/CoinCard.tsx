@@ -30,16 +30,16 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
     window.api.photos.list(coin.id).then(async (photos: Photo[]) => {
       if (!mountedRef.current) return
 
-      const thumbnails: string[] = []
-      for (const photo of photos.slice(0, 4)) {
-        const dataUrl = await window.api.photos.getPhotoData(photo.id)
-        if (dataUrl) thumbnails.push(dataUrl)
-      }
+      const thumbnails = (await Promise.all(
+        photos.slice(0, 4).map((p) => window.api.photos.getPhotoData(p.id))
+      )).filter((d: string | null): d is string => d !== null)
 
       if (mountedRef.current) {
         setThumbs(thumbnails)
         setPhotosLoaded(true)
       }
+    }).catch(() => {
+      if (mountedRef.current) setPhotosLoaded(true)
     })
 
     return () => {
