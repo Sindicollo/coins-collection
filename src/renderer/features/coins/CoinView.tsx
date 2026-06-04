@@ -37,38 +37,31 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
       store.reset()
       store.loadCoins(collectionId)
     } else {
-      // Collection hasn't changed — restore scroll position
-      store.loadCoins(collectionId)
+      // Same collection — data already in store, skip re-fetch
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionId])
 
-  // Save/restore scroll position on the <main> element (the real scroll container)
-  const getScrollContainer = React.useCallback((): HTMLElement | null => {
-    return document.querySelector<HTMLElement>('main')
-  }, [])
-
+  // Save scroll position before navigating to gallery
   const handleNavigateToGallery = React.useCallback(() => {
-    const main = getScrollContainer()
+    const main = document.querySelector<HTMLElement>('main')
     if (main) {
       useCoinStore.getState().saveScrollPosition(collectionId, main.scrollTop)
     }
-  }, [collectionId, getScrollContainer])
+  }, [collectionId])
 
-  // Restore scroll position after data loads
-  React.useEffect(() => {
+  // Restore scroll position immediately before paint
+  React.useLayoutEffect(() => {
     if (!store.loading && store.coins.length > 0) {
       const saved = store.scrollPositions[collectionId]
       if (saved) {
-        const main = getScrollContainer()
+        const main = document.querySelector<HTMLElement>('main')
         if (main) {
-          requestAnimationFrame(() => {
-            main.scrollTop = saved
-          })
+          main.scrollTop = saved
         }
       }
     }
-  }, [store.loading, store.coins.length, collectionId, getScrollContainer, store.scrollPositions])
+  }, [store.loading, store.coins.length, collectionId, store.scrollPositions])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
