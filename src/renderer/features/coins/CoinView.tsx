@@ -6,6 +6,7 @@ import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LlmPrices } from './LlmPrices'
+import { Plus } from '@/components/ui/icons/Plus'
 import type { Coin, CoinCondition } from '@shared/types'
 
 interface CoinViewProps {
@@ -99,9 +100,7 @@ export function CoinView({ collectionId, collectionName, defaultCurrency, collec
         <div className="flex items-center gap-2">
           <LlmPrices collectionId={collectionId} onImported={handleRefresh} />
           <Button size="sm" onClick={handleOpenCreate}>
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4 mr-1" />
             {t('coins.addButton')}
           </Button>
         </div>

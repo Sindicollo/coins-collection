@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { usePhotoStore } from './usePhotos'
 import { Lightbox } from './Lightbox'
+import { ArrowLeft } from '@/components/ui/icons/ArrowLeft'
+import { Settings } from '@/components/ui/icons/Settings'
+import { Photo as PhotoIcon } from '@/components/ui/icons/Photo'
+import { Delete } from '@/components/ui/icons/Delete'
+import { Plus } from '@/components/ui/icons/Plus'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Photo } from '@shared/types'
@@ -65,11 +70,9 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="text-gray-300 hover:text-white">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Button>
+           <Button variant="ghost" size="sm" onClick={handleBack} className="text-gray-300 hover:text-white">
+             <ArrowLeft className="w-5 h-5" />
+           </Button>
           <h1 className="text-lg font-semibold text-white">{t('photos.title')}</h1>
           <span className="text-sm text-gray-400">
             {store.photos.length > 0 && `${store.photos.length} ${t('photos.photo', { count: store.photos.length })}`}
@@ -78,10 +81,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
         <div className="flex items-center gap-2">
           {onOpenSettings && (
             <Button variant="ghost" size="sm" onClick={onOpenSettings} className="text-gray-400 hover:text-white">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <Settings className="w-5 h-5" />
             </Button>
           )}
         </div>
@@ -120,9 +120,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
 
         {!store.loading && !store.error && store.photos.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <svg className="w-16 h-16 mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <PhotoIcon className="w-16 h-16 mb-4 text-gray-600" />
             <p className="text-lg">{t('photos.noPhotos')}</p>
             <p className="text-sm mt-1">{t('photos.clickToAdd')}</p>
           </div>
@@ -177,11 +175,9 @@ function PhotoThumbnail({ photo, onClick, onDelete }: PhotoThumbnailProps): Reac
       onMouseLeave={() => setShowDelete(false)}
     >
       {imgError || !imgSrc ? (
-        <div className="w-full h-full flex items-center justify-center text-gray-600">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
+          <div className="w-full h-full flex items-center justify-center text-gray-600">
+            <PhotoIcon className="w-8 h-8" />
+          </div>
       ) : (
         <img
           src={imgSrc}
@@ -199,9 +195,7 @@ function PhotoThumbnail({ photo, onClick, onDelete }: PhotoThumbnailProps): Reac
             transition-opacity text-xs"
           title={t('photos.deletePhoto')}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
+          <Delete className="w-4 h-4" />
         </button>
       )}
     </div>
@@ -223,9 +217,7 @@ function AddPhotoButton({ onClick }: AddPhotoButtonProps): React.ReactElement {
         text-gray-500 hover:text-gray-300 gap-1"
       title={t('photos.addPhoto')}
     >
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
+      <Plus className="w-8 h-8" />
       <span className="text-xs">{t('photos.addPhoto')}</span>
     </button>
   )

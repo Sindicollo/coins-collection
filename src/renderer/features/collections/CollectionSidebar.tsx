@@ -4,6 +4,7 @@ import { CollectionList } from './CollectionList'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Plus } from '@/components/ui/icons/Plus'
 import { useCollectionManager } from './useCollections'
 import type { Collection } from '@shared/types'
 
@@ -104,9 +105,7 @@ export function CollectionSidebar(): React.ReactElement {
             className="w-full"
             onClick={() => setShowAddForm(true)}
           >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4 mr-1" />
             {t('countries.addButton')}
           </Button>
         ) : (

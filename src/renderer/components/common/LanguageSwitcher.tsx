@@ -1,5 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { Globe } from '@/components/ui/icons/Globe'
+import { ChevronDown } from '@/components/ui/icons/ChevronDown'
 
 const LANGS = [
   { code: 'en', key: 'lang.en' },
@@ -41,19 +43,11 @@ export function LanguageSwitcher(): React.ReactElement {
           hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
         aria-expanded={open}
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+        <Globe className="w-3.5 h-3.5" />
         <span>{label}</span>
-        <svg
+        <ChevronDown
           className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
       </button>
 
       {open && (
