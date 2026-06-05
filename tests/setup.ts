@@ -150,7 +150,8 @@ window.api = {
   import: {
     selectFile: vi.fn(),
     preview: vi.fn(),
-    execute: vi.fn()
+    execute: vi.fn(),
+    executeNoYear: vi.fn()
   },
   prices: {
     exportAll: vi.fn(),

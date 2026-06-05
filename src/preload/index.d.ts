@@ -75,6 +75,17 @@ export interface ElectronAPI {
       photosImported: number
       errors: string[]
     }>
+    executeNoYear: (args: {
+      filePath: string
+      countryOverrides: Record<string, string>
+      downloadPhotos: boolean
+    }) => Promise<{
+      countriesCreated: number
+      countriesSkipped: number
+      coinsCreated: number
+      photosImported: number
+      errors: string[]
+    }>
   }
   prices: {
     exportAll: (collectionId: string) => Promise<string | null>

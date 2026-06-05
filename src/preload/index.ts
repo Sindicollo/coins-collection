@@ -38,7 +38,12 @@ const api = {
       filePath: string
       countryOverrides: Record<string, string>
       downloadPhotos: boolean
-    }) => ipcRenderer.invoke('import:execute', args)
+    }) => ipcRenderer.invoke('import:execute', args),
+    executeNoYear: (args: {
+      filePath: string
+      countryOverrides: Record<string, string>
+      downloadPhotos: boolean
+    }) => ipcRenderer.invoke('import:execute-no-year', args)
   },
   prices: {
     exportAll: (collectionId: string) => ipcRenderer.invoke('price:exportAll', collectionId),

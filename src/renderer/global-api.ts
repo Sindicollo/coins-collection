@@ -33,6 +33,7 @@ interface ElectronAPI {
     selectFile: () => Promise<string | null>
     preview: (filePath: string) => Promise<any>
     execute: (args: Record<string, unknown>) => Promise<any>
+    executeNoYear: (args: Record<string, unknown>) => Promise<any>
   }
   prices: {
     exportAll: (collectionId: string) => Promise<string | null>

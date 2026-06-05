@@ -24,7 +24,8 @@ export const IPC_CHANNELS = {
   IMPORT: {
     SELECT_FILE: 'import:select-file',
     PREVIEW: 'import:preview',
-    EXECUTE: 'import:execute'
+    EXECUTE: 'import:execute',
+    EXECUTE_NO_YEAR: 'import:execute-no-year'
   },
   PRICE: {
     EXPORT_ALL: 'price:exportAll',
