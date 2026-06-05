@@ -109,7 +109,7 @@ export function CollectionSidebar(): React.ReactElement {
             {t('countries.addButton')}
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <Input
               placeholder={t('countries.placeholder')}
               value={newName}
@@ -122,21 +122,22 @@ export function CollectionSidebar(): React.ReactElement {
                 }
               }}
               autoFocus
-              className="flex-1"
             />
-            <Button size="sm" onClick={handleAdd} disabled={!newName.trim()}>
-              {t('countries.add')}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setShowAddForm(false)
-                setNewName('')
-              }}
-            >
-              ✕
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleAdd} disabled={!newName.trim()} className="flex-1">
+                {t('countries.add')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowAddForm(false)
+                  setNewName('')
+                }}
+              >
+                ✕
+              </Button>
+            </div>
           </div>
         )}
       </div>
