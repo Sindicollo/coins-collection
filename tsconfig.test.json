@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "composite": true,
+    "outDir": "out-tsc",
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
@@ -11,7 +13,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "paths": {
       "@/*": ["./src/renderer/*"],
       "@shared/*": ["./src/shared/*"]
@@ -24,6 +25,7 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
     "src/shared/**/*.ts",
-    "src/preload/index.d.ts"
+    "src/renderer/locales/*.json",
+    "src/main/import/xlsx-parser.ts"
   ]
 }
