@@ -77,7 +77,7 @@ export function CoinView({
   React.useEffect(() => {
     const promise = window.api.coins.totalCost(collectionId)
     if (promise) {
-      promise.then(setTotals).catch(() => { /* ignore */ })
+      promise.then(setTotals).catch((err) => console.warn('Failed to load totals:', err))
     }
   }, [collectionId, store.coins.length])
 
@@ -127,9 +127,11 @@ export function CoinView({
           <h1 className="text-2xl font-bold text-primary-800">{collectionName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {totals.length > 0
-              ? `Общая стоимость покупки: ${totals
-                  .map((t) => `${t.total.toLocaleString('ru-RU')} ${currencySymbol(t.currency)}`)
-                  .join(', ')}`
+              ? t('coins.totalCost', {
+                  cost: totals
+                    .map((t) => `${t.total.toLocaleString('ru-RU')} ${currencySymbol(t.currency)}`)
+                    .join(', ')
+                })
               : t('coins.title')}
           </p>
         </div>

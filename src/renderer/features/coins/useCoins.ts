@@ -45,6 +45,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
     try {
       const result = await coinApi.fetchCoins({ collectionId, cursor: null })
+      // Discard stale response when collection changed during fetch
+      if (get().loadedCollectionId !== collectionId) return
       set({
         coins: result.items,
         cursors: result.nextCursor ? [result.nextCursor] : [],
@@ -72,6 +74,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
 
     try {
       const result = await coinApi.fetchCoins({ collectionId, cursor })
+      // Discard stale response when collection changed during fetch
+      if (get().loadedCollectionId !== collectionId) return
       set((state) => ({
         coins: [...state.coins, ...result.items],
         cursors: result.nextCursor

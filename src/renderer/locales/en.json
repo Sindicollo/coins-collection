@@ -62,6 +62,7 @@
     "currency": "Currency",
     "notes": "Notes",
     "sold": "Sold",
+    "totalCost": "Total purchase cost: {{cost}}",
     "save": "Save",
     "cancel": "Cancel",
     "edit": "Edit",

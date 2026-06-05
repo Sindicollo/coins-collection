@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Plus } from '@/components/ui/icons/Plus'
+import { Close } from '@/components/ui/icons/Close'
 import { useCollectionManager } from './useCollections'
 import type { Collection } from '@shared/types'
 
@@ -135,7 +136,7 @@ export function CollectionSidebar(): React.ReactElement {
                   setNewName('')
                 }}
               >
-                ✕
+                <Close className="w-4 h-4" />
               </Button>
             </div>
           </div>
