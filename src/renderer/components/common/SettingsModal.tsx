@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { CURRENCIES } from '@/utils/currency'
-import { ImportView } from '@/features/import/ImportView'
-import { Download } from '@/components/ui/icons/Download'
+// ImportView и Download скрыты вместе с кнопкой импорта
+// import { ImportView } from '@/features/import/ImportView'
+// import { Download } from '@/components/ui/icons/Download'
 
 interface SettingsModalProps {
   open: boolean
@@ -21,7 +22,7 @@ export function SettingsModal({
 }: SettingsModalProps): React.ReactElement {
   const { t } = useTranslation()
   const [selected, setSelected] = React.useState(currency)
-  const [showImport, setShowImport] = React.useState(false)
+  // const [showImport, setShowImport] = React.useState(false) // скрыто вместе с кнопкой импорта
 
   React.useEffect(() => {
     setSelected(currency)
@@ -50,7 +51,7 @@ export function SettingsModal({
             <p className="text-xs text-gray-400 mt-1">{t('settings.currencyHint')}</p>
           </div>
 
-          {/* Import button */}
+{/* Import button — hidden, код оставлен на случай если понадобится
           <div className="border-t border-gray-200 pt-4">
             <Button
               variant="ghost"
@@ -64,6 +65,7 @@ export function SettingsModal({
               {t('import.button')}
             </Button>
           </div>
+         */}
 
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -82,12 +84,14 @@ export function SettingsModal({
         </div>
       </Modal>
 
+      {/* ImportView — hidden вместе с кнопкой импорта
       <ImportView
         open={showImport}
         onClose={() => {
           setShowImport(false)
         }}
       />
+      */}
     </>
   )
 }

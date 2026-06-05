@@ -71,6 +71,7 @@ i18n.use(initReactI18next).init({
           shippingCost: 'Shipping',
           currency: 'Currency',
           notes: 'Notes',
+          sold: 'Sold',
           save: 'Save',
           cancel: 'Cancel',
           edit: 'Edit',
@@ -119,7 +120,7 @@ i18n.use(initReactI18next).init({
 
 // Mock window.api (Electron preload bridge) for all tests
 window.api = {
-  countries: {
+  collections: {
     list: vi.fn(),
     get: vi.fn(),
     create: vi.fn(),
@@ -132,7 +133,8 @@ window.api = {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    listCountries: vi.fn()
+    listCountries: vi.fn(),
+    totalCost: vi.fn()
   },
   photos: {
     list: vi.fn(),
@@ -149,7 +151,8 @@ window.api = {
   import: {
     selectFile: vi.fn(),
     preview: vi.fn(),
-    execute: vi.fn()
+    execute: vi.fn(),
+    executeNoYear: vi.fn()
   },
   prices: {
     exportAll: vi.fn(),

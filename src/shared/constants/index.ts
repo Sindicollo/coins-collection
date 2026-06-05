@@ -12,7 +12,8 @@ export const IPC_CHANNELS = {
     CREATE: 'coin:create',
     UPDATE: 'coin:update',
     DELETE: 'coin:delete',
-    LIST_DISTINCT_COUNTRIES: 'coin:listCountries'
+    LIST_DISTINCT_COUNTRIES: 'coin:listCountries',
+    TOTAL_COST: 'coin:totalCost'
   },
   PHOTO: {
     LIST: 'photo:list',
@@ -24,7 +25,8 @@ export const IPC_CHANNELS = {
   IMPORT: {
     SELECT_FILE: 'import:select-file',
     PREVIEW: 'import:preview',
-    EXECUTE: 'import:execute'
+    EXECUTE: 'import:execute',
+    EXECUTE_NO_YEAR: 'import:execute-no-year'
   },
   PRICE: {
     EXPORT_ALL: 'price:exportAll',

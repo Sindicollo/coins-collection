@@ -109,6 +109,25 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
     }
   }
 
+  const handleImportNoYear = async (): Promise<void> => {
+    if (!preview) return
+    setStep('importing')
+    setError(null)
+
+    try {
+      const importResult = await window.api.import.executeNoYear({
+        filePath: preview.filePath,
+        countryOverrides,
+        downloadPhotos: importPhotos
+      })
+      setResult(importResult)
+      setStep('done')
+    } catch (err) {
+      setError(String(err))
+      setStep('preview')
+    }
+  }
+
   const getCountryName = (sheetName: string): string => {
     return countryOverrides[sheetName] ?? sheetName
   }
@@ -224,6 +243,9 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
               </Button>
               <Button size="sm" onClick={handleImport}>
                 {t('import.start')}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleImportNoYear}>
+                {t('import.importNoYear')}
               </Button>
             </div>
           </>

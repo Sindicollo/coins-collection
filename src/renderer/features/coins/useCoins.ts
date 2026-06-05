@@ -9,6 +9,8 @@ interface CoinState {
   loading: boolean
   loadingMore: boolean
   error: string | null
+  loadedCollectionId: string | null
+  scrollPositions: Record<string, number>
 }
 
 interface CoinActions {
@@ -17,6 +19,7 @@ interface CoinActions {
   addCoin: (input: CreateCoinInput) => Promise<Coin | null>
   updateCoin: (input: UpdateCoinInput) => Promise<Coin | null>
   deleteCoin: (id: string) => Promise<boolean>
+  saveScrollPosition: (collectionId: string, position: number) => void
   reset: () => void
 }
 
@@ -29,20 +32,37 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
   loading: false,
   loadingMore: false,
   error: null,
+  loadedCollectionId: null,
+  scrollPositions: {},
 
   loadCoins: async (collectionId: string) => {
-    set({ loading: true, error: null, coins: [], cursors: [], hasMore: false })
+    const { loadedCollectionId } = get()
+    // Don't clear coins if we already have them for this collection
+    if (loadedCollectionId !== collectionId) {
+      set({ loading: true, error: null, coins: [], cursors: [], hasMore: false, loadedCollectionId: collectionId })
+    } else {
+      set({ loading: true, error: null })
+    }
     try {
       const result = await coinApi.fetchCoins({ collectionId, cursor: null })
+      // Discard stale response when collection changed during fetch
+      if (get().loadedCollectionId !== collectionId) return
       set({
         coins: result.items,
         cursors: result.nextCursor ? [result.nextCursor] : [],
         hasMore: result.hasMore,
-        loading: false
+        loading: false,
+        loadedCollectionId: collectionId
       })
     } catch {
       set({ error: 'coins.errors.loadFailed', loading: false })
     }
+  },
+
+  saveScrollPosition: (collectionId: string, position: number) => {
+    set((state) => ({
+      scrollPositions: { ...state.scrollPositions, [collectionId]: position }
+    }))
   },
 
   loadMore: async (collectionId: string) => {
@@ -54,6 +74,8 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
 
     try {
       const result = await coinApi.fetchCoins({ collectionId, cursor })
+      // Discard stale response when collection changed during fetch
+      if (get().loadedCollectionId !== collectionId) return
       set((state) => ({
         coins: [...state.coins, ...result.items],
         cursors: result.nextCursor
@@ -118,5 +140,5 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     }
   },
 
-  reset: () => set({ coins: [], cursors: [], hasMore: false, loading: false, error: null })
+  reset: () => set({ coins: [], cursors: [], hasMore: false, loading: false, error: null, loadedCollectionId: null })
 }))

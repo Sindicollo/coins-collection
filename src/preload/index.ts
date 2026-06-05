@@ -16,7 +16,8 @@ const api = {
     create: (data: Record<string, unknown>) => ipcRenderer.invoke('coin:create', data),
     update: (data: Record<string, unknown>) => ipcRenderer.invoke('coin:update', data),
     delete: (id: string) => ipcRenderer.invoke('coin:delete', id),
-    listCountries: () => ipcRenderer.invoke('coin:listCountries')
+    listCountries: () => ipcRenderer.invoke('coin:listCountries'),
+    totalCost: (collectionId: string) => ipcRenderer.invoke('coin:totalCost', collectionId)
   },
   photos: {
     list: (coinId: string) => ipcRenderer.invoke('photo:list', coinId),
@@ -38,7 +39,12 @@ const api = {
       filePath: string
       countryOverrides: Record<string, string>
       downloadPhotos: boolean
-    }) => ipcRenderer.invoke('import:execute', args)
+    }) => ipcRenderer.invoke('import:execute', args),
+    executeNoYear: (args: {
+      filePath: string
+      countryOverrides: Record<string, string>
+      downloadPhotos: boolean
+    }) => ipcRenderer.invoke('import:execute-no-year', args)
   },
   prices: {
     exportAll: (collectionId: string) => ipcRenderer.invoke('price:exportAll', collectionId),

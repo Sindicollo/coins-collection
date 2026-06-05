@@ -59,11 +59,11 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
   }
 
   return (
-    <Card className="p-3 cursor-pointer hover:shadow-md transition-shadow group" onClick={() => onSelect(coin)}>
+    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group ${coin.sold ? 'opacity-60 grayscale' : ''}`} onClick={() => onSelect(coin)}>
       {/* Top row: denomination, year, condition, price, actions */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="font-semibold text-gray-800 truncate">{coin.denomination}</span>
+          <span className={`font-semibold truncate ${coin.sold ? 'text-gray-400' : 'text-gray-800'}`}>{coin.denomination}</span>
           {coin.year && (
             <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
               {coin.year}

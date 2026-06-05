@@ -1,6 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
-import { getImportPreview, importSpreadsheet, type ImportPreview, type ImportResult } from '../import/spreadsheet-import'
+import { getImportPreview, importSpreadsheet, importSpreadsheetNoYear, type ImportPreview, type ImportResult } from '../import/spreadsheet-import'
 
 interface ImportExecuteArgs {
   filePath: string
@@ -36,6 +36,18 @@ export function registerImportHandlers(): void {
         args.filePath,
         args.countryOverrides,
         args.downloadPhotos // maps to importPhotos param
+      )
+    }
+  )
+
+  // One-time import: only coins without year (ancient coins, etc.)
+  ipcMain.handle(
+    IPC_CHANNELS.IMPORT.EXECUTE_NO_YEAR,
+    async (_event, args: ImportExecuteArgs): Promise<ImportResult> => {
+      return importSpreadsheetNoYear(
+        args.filePath,
+        args.countryOverrides,
+        args.downloadPhotos
       )
     }
   )

@@ -179,7 +179,12 @@ export interface SpreadsheetData {
   sheets: ParsedSheet[]
 }
 
-export function parseSpreadsheet(filePath: string): SpreadsheetData {
+export interface ParseOptions {
+  /** When true, include rows even if they don't have a year value */
+  includeAllRows?: boolean
+}
+
+export function parseSpreadsheet(filePath: string, options?: ParseOptions): SpreadsheetData {
   const fileBuf = readFileSync(filePath)
   const wb = XLSX.read(fileBuf, { type: 'buffer', cellStyles: true, cellDates: false })
 
@@ -281,11 +286,19 @@ export function parseSpreadsheet(filePath: string): SpreadsheetData {
         }
       }
 
-      // Only add rows that have at least a year value
-      const yearCol = getYearColumn(sheet, headerRow)
-      const yearCell = cells[yearCol]
-      if (yearCell && (typeof yearCell.value === 'number' || yearCell.value)) {
+      // Skip completely empty rows (all cells null)
+      const hasAnyData = cells.some(c => c.value !== null && c.value !== undefined && c.value !== '')
+      if (!hasAnyData) continue
+
+      if (options?.includeAllRows) {
         rows.push({ rowIndex: r, cells, hyperlinks: rowHyperlinks })
+      } else {
+        // Original behavior: only add rows that have at least a year value
+        const yearCol = getYearColumn(sheet, headerRow)
+        const yearCell = cells[yearCol]
+        if (yearCell && (typeof yearCell.value === 'number' || yearCell.value)) {
+          rows.push({ rowIndex: r, cells, hyperlinks: rowHyperlinks })
+        }
       }
     }
 

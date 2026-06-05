@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { existsSync } from 'fs'
 import {
   parseSpreadsheet,
   detectColumns,
@@ -7,10 +8,13 @@ import {
 } from '../../src/main/import/xlsx-parser'
 
 const TEST_FILE = '/Users/alexey/Documents/coins photo/shillings.xlsx'
+const hasTestFile = existsSync(TEST_FILE)
+
+const itIf = hasTestFile ? it : it.skip
 
 describe('xlsx-parser', () => {
   describe('parseSpreadsheet', () => {
-    it('reads all sheets from the xlsx file', () => {
+    itIf('reads all sheets from the xlsx file', () => {
       const data = parseSpreadsheet(TEST_FILE)
       expect(data.sheets.length).toBe(3)
       expect(data.sheets[0].name).toBe('shillings')
@@ -18,7 +22,7 @@ describe('xlsx-parser', () => {
       expect(data.sheets[2].name).toBe('прочее')
     })
 
-    it('parses data rows from shillings sheet', () => {
+    itIf('parses data rows from shillings sheet', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       expect(sheet.rows.length).toBeGreaterThan(0)
@@ -27,7 +31,7 @@ describe('xlsx-parser', () => {
       expect(firstRow.cells[0].value).toBe(1696)
     })
 
-    it('extracts hyperlinks from shillings sheet', () => {
+    itIf('extracts hyperlinks from shillings sheet', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       // Should have hyperlinks
@@ -37,7 +41,7 @@ describe('xlsx-parser', () => {
       expect(firstLink).toContain('photos.google.com')
     })
 
-    it('associates hyperlinks with correct rows', () => {
+    itIf('associates hyperlinks with correct rows', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       // Row with year 1816 should have photo links in G and H
@@ -49,7 +53,7 @@ describe('xlsx-parser', () => {
   })
 
   describe('detectColumns', () => {
-    it('detects standard columns (shillings)', () => {
+    itIf('detects standard columns (shillings)', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const mapping = detectColumns(data.sheets[0])
       expect(mapping.year).toBe(0) // Col A = Год
@@ -62,7 +66,7 @@ describe('xlsx-parser', () => {
       expect(mapping.photoColumns.length).toBeGreaterThan(0) // Has photo columns
     })
 
-    it('detects columns with Номинал (прочее)', () => {
+    itIf('detects columns with Номинал (прочее)', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const mapping = detectColumns(data.sheets[2])
       expect(mapping.denomination).toBe(0) // Col A = Номинал
@@ -72,7 +76,7 @@ describe('xlsx-parser', () => {
   })
 
   describe('parseCoinRow', () => {
-    it('parses a row with full data', () => {
+    itIf('parses a row with full data', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       const mapping = detectColumns(sheet)
@@ -89,7 +93,7 @@ describe('xlsx-parser', () => {
       expect(coin.photoUrls.length).toBe(2)
     })
 
-    it('parses purchase place from comments', () => {
+    itIf('parses purchase place from comments', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       const mapping = detectColumns(sheet)
@@ -101,7 +105,7 @@ describe('xlsx-parser', () => {
       expect(coin.notes).toBe('GBP 9.95 + 4')
     })
 
-    it('handles rows without purchase data', () => {
+    itIf('handles rows without purchase data', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[0]
       const mapping = detectColumns(sheet)
@@ -114,7 +118,7 @@ describe('xlsx-parser', () => {
       expect(coin.purchaseDate).toBeNull()
     })
 
-    it('uses denomination from sheet if available (прочее)', () => {
+    itIf('uses denomination from sheet if available (прочее)', () => {
       const data = parseSpreadsheet(TEST_FILE)
       const sheet = data.sheets[2]
       const mapping = detectColumns(sheet)
@@ -127,7 +131,7 @@ describe('xlsx-parser', () => {
   })
 
   describe('extractSheetImages', () => {
-    it('extracts embedded images from shillings sheet', () => {
+    itIf('extracts embedded images from shillings sheet', () => {
       const images = extractSheetImages(TEST_FILE, 0, 2)
       // shillings has images in columns K and L
       expect(images.extractable.length).toBeGreaterThan(0)
@@ -136,7 +140,7 @@ describe('xlsx-parser', () => {
       expect(first.path).toMatch(/^xl\/media\/image\d+\.\w+$/)
     })
 
-    it('maps images to rows', () => {
+    itIf('maps images to rows', () => {
       const images = extractSheetImages(TEST_FILE, 0, 2)
       // At least one row should have images
       expect(images.imageMap.size).toBeGreaterThan(0)
