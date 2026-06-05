@@ -45,4 +45,11 @@ export function registerCoinHandlers(): void {
       return coinRepo.listDistinctCountries()
     }
   )
+
+  ipcMain.handle(
+    IPC_CHANNELS.COIN.TOTAL_COST,
+    async (_event, collectionId: string): Promise<Array<{ currency: string; total: number; coinCount: number }>> => {
+      return coinRepo.getCollectionTotalCost(collectionId)
+    }
+  )
 }

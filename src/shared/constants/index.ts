@@ -12,7 +12,8 @@ export const IPC_CHANNELS = {
     CREATE: 'coin:create',
     UPDATE: 'coin:update',
     DELETE: 'coin:delete',
-    LIST_DISTINCT_COUNTRIES: 'coin:listCountries'
+    LIST_DISTINCT_COUNTRIES: 'coin:listCountries',
+    TOTAL_COST: 'coin:totalCost'
   },
   PHOTO: {
     LIST: 'photo:list',

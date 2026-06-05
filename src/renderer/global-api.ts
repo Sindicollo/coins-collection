@@ -16,6 +16,7 @@ interface ElectronAPI {
     update: (data: Record<string, unknown>) => Promise<any>
     delete: (id: string) => Promise<boolean>
     listCountries: () => Promise<string[]>
+    totalCost: (collectionId: string) => Promise<Array<{ currency: string; total: number; coinCount: number }>>
   }
   photos: {
     list: (coinId: string) => Promise<any[]>

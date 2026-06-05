@@ -133,7 +133,8 @@ window.api = {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    listCountries: vi.fn()
+    listCountries: vi.fn(),
+    totalCost: vi.fn()
   },
   photos: {
     list: vi.fn(),

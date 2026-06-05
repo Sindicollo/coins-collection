@@ -8,7 +8,14 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LlmPrices } from './LlmPrices'
 import { Plus } from '@/components/ui/icons/Plus'
+import { currencySymbol } from '@/utils/currency'
 import type { Coin, CoinCondition } from '@shared/types'
+
+interface CurrencyTotal {
+  currency: string
+  total: number
+  coinCount: number
+}
 
 interface CoinViewProps {
   collectionId: string
@@ -47,6 +54,7 @@ export function CoinView({
   const [editCoin, setEditCoin] = React.useState<Coin | undefined>(undefined)
   const [coinToDelete, setCoinToDelete] = React.useState<Coin | null>(null)
   const [countrySuggestions, setCountrySuggestions] = React.useState<string[]>([])
+  const [totals, setTotals] = React.useState<CurrencyTotal[]>([])
 
   // Scroll persistence across collection switches and gallery navigation
   useScrollRestoration(collectionId)
@@ -64,6 +72,14 @@ export function CoinView({
       load(collectionId)
     }
   }, [collectionId, loadedCollectionId, reset, load])
+
+  // Load total purchase cost for the collection (re-load on coin list changes)
+  React.useEffect(() => {
+    const promise = window.api.coins.totalCost(collectionId)
+    if (promise) {
+      promise.then(setTotals).catch(() => { /* ignore */ })
+    }
+  }, [collectionId, store.coins.length])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
@@ -109,7 +125,13 @@ export function CoinView({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-primary-800">{collectionName}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t('coins.title')}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {totals.length > 0
+              ? `Общая стоимость покупки: ${totals
+                  .map((t) => `${t.total.toLocaleString('ru-RU')} ${currencySymbol(t.currency)}`)
+                  .join(', ')}`
+              : t('coins.title')}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <LlmPrices collectionId={collectionId} onImported={handleRefresh} />

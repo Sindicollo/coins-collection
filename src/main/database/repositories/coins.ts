@@ -352,3 +352,32 @@ export function bulkAppendNotes(updates: PriceUpdate[]): BulkAppendResult {
   tx(updates)
   return { updated, skipped }
 }
+
+export interface CurrencyTotal {
+  currency: string
+  total: number
+  coinCount: number
+}
+
+export function getCollectionTotalCost(collectionId: string): CurrencyTotal[] {
+  const db = getDatabase()
+  const rows = db
+    .prepare(
+      `SELECT currency,
+              SUM(COALESCE(price, 0) + COALESCE(shipping_cost, 0)) as total,
+              COUNT(*) as coin_count
+       FROM coins
+       WHERE collection_id = ? AND (sold IS NULL OR sold = 0)
+       GROUP BY currency
+       ORDER BY total DESC`
+    )
+    .all(collectionId) as Array<{ currency: string | null; total: number; coin_count: number }>
+
+  return rows
+    .filter((r) => r.total > 0)
+    .map((r) => ({
+      currency: r.currency ?? 'RUB',
+      total: r.total,
+      coinCount: r.coin_count
+    }))
+}
