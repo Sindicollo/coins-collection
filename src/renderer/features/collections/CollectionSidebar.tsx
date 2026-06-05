@@ -96,7 +96,7 @@ export function CollectionSidebar(): React.ReactElement {
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-base font-semibold text-primary-700 mb-3">
-          {t('countries.title')}
+          {t('collections.title')}
         </h2>
 
         {!showAddForm ? (
@@ -107,12 +107,12 @@ export function CollectionSidebar(): React.ReactElement {
             onClick={() => setShowAddForm(true)}
           >
             <Plus className="w-4 h-4 mr-1" />
-            {t('countries.addButton')}
+            {t('collections.addButton')}
           </Button>
         ) : (
           <div className="flex flex-col gap-2">
             <Input
-              placeholder={t('countries.placeholder')}
+              placeholder={t('collections.placeholder')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
@@ -126,7 +126,7 @@ export function CollectionSidebar(): React.ReactElement {
             />
             <div className="flex gap-2">
               <Button size="sm" onClick={handleAdd} disabled={!newName.trim()} className="flex-1">
-                {t('countries.add')}
+                {t('collections.add')}
               </Button>
               <Button
                 size="sm"
@@ -160,7 +160,7 @@ export function CollectionSidebar(): React.ReactElement {
       {editingCollection && (
         <div className="p-3 border-t border-gray-200 bg-primary-50">
           <label className="text-xs font-medium text-primary-600 mb-1 block">
-            {t('countries.rename')}
+            {t('collections.rename')}
           </label>
           <div className="flex gap-2">
             <Input
@@ -172,10 +172,10 @@ export function CollectionSidebar(): React.ReactElement {
               className="flex-1"
             />
             <Button size="sm" onMouseDown={handleSaveMouseDown} disabled={!editName.trim()}>
-              {t('countries.save')}
+              {t('collections.save')}
             </Button>
             <Button size="sm" variant="ghost" onMouseDown={handleCancelMouseDown}>
-              {t('countries.cancel')}
+              {t('collections.cancel')}
             </Button>
           </div>
         </div>
@@ -185,19 +185,19 @@ export function CollectionSidebar(): React.ReactElement {
       <Modal
         open={collectionToDelete !== null}
         onClose={() => setCollectionToDelete(null)}
-        title={t('countries.deleteTitle')}
+        title={t('collections.deleteTitle')}
       >
         <p className="text-sm text-gray-600 mb-4">
-          {t('countries.deleteConfirm')}{' '}
+          {t('collections.deleteConfirm')}{' '}
           <strong>{collectionToDelete?.name}</strong>
-          ? {t('countries.deleteWarning')}
+          ? {t('collections.deleteWarning')}
         </p>
         <div className="flex gap-2 justify-end">
           <Button variant="ghost" size="sm" onClick={() => setCollectionToDelete(null)}>
-            {t('countries.cancel')}
+            {t('collections.cancel')}
           </Button>
           <Button variant="danger" size="sm" onClick={handleDeleteConfirm}>
-            {t('countries.delete')}
+            {t('collections.delete')}
           </Button>
         </div>
       </Modal>

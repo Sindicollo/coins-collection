@@ -2,6 +2,7 @@ export * from './collection'
 export * from './coin'
 export * from './photo'
 export * from './electron-api'
+export * from './backup'
 
 export interface PaginatedResult<T> {
   items: T[]

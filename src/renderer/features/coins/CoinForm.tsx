@@ -109,7 +109,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       return
     }
     if (!data.collectionId) {
-      setError(t('coins.selectCountry'))
+      setError(t('coins.selectCollection'))
       return
     }
 
@@ -139,7 +139,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
         {/* Collection select */}
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">
-            {t('countries.title')}
+            {t('collections.title')}
           </label>
           <select
             value={data.collectionId}

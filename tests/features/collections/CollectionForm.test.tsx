@@ -9,7 +9,7 @@ describe('CollectionForm', () => {
 
     render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
-    const input = screen.getByLabelText('Country name') as HTMLInputElement
+    const input = screen.getByLabelText('Collection name') as HTMLInputElement
     expect(input.value).toBe('')
   })
 
@@ -19,7 +19,7 @@ describe('CollectionForm', () => {
 
     render(<CollectionForm initialName="Russia" onSubmit={onSubmit} onCancel={onCancel} />)
 
-    const input = screen.getByLabelText('Country name') as HTMLInputElement
+    const input = screen.getByLabelText('Collection name') as HTMLInputElement
     expect(input.value).toBe('Russia')
   })
 
@@ -29,7 +29,7 @@ describe('CollectionForm', () => {
 
     render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
-    const input = screen.getByLabelText('Country name')
+    const input = screen.getByLabelText('Collection name')
     fireEvent.change(input, { target: { value: '  France  ' } })
     fireEvent.click(screen.getByText('Create'))
 
@@ -46,7 +46,7 @@ describe('CollectionForm', () => {
 
     fireEvent.click(screen.getByText('Create'))
 
-    expect(screen.getByText('Country name is required')).toBeDefined()
+    expect(screen.getByText('Collection name is required')).toBeDefined()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -56,11 +56,11 @@ describe('CollectionForm', () => {
 
     render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
-    const input = screen.getByLabelText('Country name')
+    const input = screen.getByLabelText('Collection name')
     fireEvent.change(input, { target: { value: 'A' } })
     fireEvent.click(screen.getByText('Create'))
 
-    expect(screen.getByText('Country name must be at least 2 characters')).toBeDefined()
+    expect(screen.getByText('Collection name must be at least 2 characters')).toBeDefined()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -82,12 +82,12 @@ describe('CollectionForm', () => {
     render(<CollectionForm onSubmit={onSubmit} onCancel={onCancel} />)
 
     fireEvent.click(screen.getByText('Create'))
-    expect(screen.getByText('Country name is required')).toBeDefined()
+    expect(screen.getByText('Collection name is required')).toBeDefined()
 
-    const input = screen.getByLabelText('Country name')
+    const input = screen.getByLabelText('Collection name')
     fireEvent.change(input, { target: { value: 'Russia' } })
 
-    expect(screen.queryByText('Country name is required')).toBeNull()
+    expect(screen.queryByText('Collection name is required')).toBeNull()
   })
 
   it('should show custom submit label', () => {

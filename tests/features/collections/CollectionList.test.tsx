@@ -51,14 +51,14 @@ describe('CollectionList', () => {
         collections={[]}
         selectedId={null}
         loading={false}
-        error="countries.errors.loadFailed"
+        error="collections.errors.loadFailed"
         onSelect={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />
     )
 
-    expect(screen.getByText('Failed to load countries')).toBeDefined()
+    expect(screen.getByText('Failed to load collections')).toBeDefined()
   })
 
   it('should show empty state when no collections', () => {
@@ -74,7 +74,7 @@ describe('CollectionList', () => {
       />
     )
 
-    expect(screen.getByText('No countries yet.')).toBeDefined()
+    expect(screen.getByText('No collections yet.')).toBeDefined()
   })
 
   it('should highlight selected collection', () => {

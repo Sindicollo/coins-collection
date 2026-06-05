@@ -48,7 +48,7 @@ describe('useCollectionManager', () => {
         await result.current.loadCollections()
       })
 
-      expect(result.current.error).toBe('countries.errors.loadFailed')
+      expect(result.current.error).toBe('collections.errors.loadFailed')
       expect(result.current.loading).toBe(false)
     })
   })
@@ -89,7 +89,7 @@ describe('useCollectionManager', () => {
         expect(collection).toBeNull()
       })
 
-      expect(result.current.error).toBe('countries.errors.createFailed')
+      expect(result.current.error).toBe('collections.errors.createFailed')
     })
   })
 
@@ -128,7 +128,7 @@ describe('useCollectionManager', () => {
         expect(res).toBeNull()
       })
 
-      expect(result.current.error).toBe('countries.errors.updateFailed')
+      expect(result.current.error).toBe('collections.errors.updateFailed')
     })
   })
 

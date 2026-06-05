@@ -29,8 +29,8 @@ export interface ImportPreview {
 }
 
 export interface ImportResult {
-  countriesCreated: number
-  countriesSkipped: number
+  collectionsCreated: number
+  collectionsSkipped: number
   coinsCreated: number
   photosImported: number
   errors: string[]
@@ -90,15 +90,15 @@ export function getImportPreview(filePath: string, options?: { includeAllRows?: 
 
 export async function importSpreadsheet(
   filePath: string,
-  countryOverrides: Record<string, string> = {},
+  collectionOverrides: Record<string, string> = {},
   importPhotos = true,
   onProgress?: (message: string) => void,
   options?: { includeAllRows?: boolean }
 ): Promise<ImportResult> {
   const data = parseSpreadsheet(filePath, options)
   const result: ImportResult = {
-    countriesCreated: 0,
-    countriesSkipped: 0,
+    collectionsCreated: 0,
+    collectionsSkipped: 0,
     coinsCreated: 0,
     photosImported: 0,
     errors: []
@@ -108,7 +108,7 @@ export async function importSpreadsheet(
   const photosDir = getPhotosDir()
 
   for (const sheet of data.sheets) {
-    const collectionName = countryOverrides[sheet.name] ?? sheet.name
+    const collectionName = collectionOverrides[sheet.name] ?? sheet.name
     onProgress?.(`Обработка "${collectionName}"...`)
 
     // Get or create collection
@@ -119,10 +119,10 @@ export async function importSpreadsheet(
 
     if (existing) {
       collection = { id: existing.id, name: existing.name, createdAt: 0, updatedAt: 0 }
-      result.countriesSkipped++
+      result.collectionsSkipped++
     } else {
       collection = collectionRepo.createCollection({ name: collectionName })
-      result.countriesCreated++
+      result.collectionsCreated++
     }
 
     // Parse coins with embedded images
@@ -214,14 +214,14 @@ export async function importSpreadsheet(
 
 export async function importSpreadsheetNoYear(
   filePath: string,
-  countryOverrides: Record<string, string> = {},
+  collectionOverrides: Record<string, string> = {},
   importPhotos = true,
   onProgress?: (message: string) => void
 ): Promise<ImportResult> {
   const data = parseSpreadsheet(filePath, { includeAllRows: true })
   const result: ImportResult = {
-    countriesCreated: 0,
-    countriesSkipped: 0,
+    collectionsCreated: 0,
+    collectionsSkipped: 0,
     coinsCreated: 0,
     photosImported: 0,
     errors: []
@@ -231,7 +231,7 @@ export async function importSpreadsheetNoYear(
   const photosDir = getPhotosDir()
 
   for (const sheet of data.sheets) {
-    const collectionName = countryOverrides[sheet.name] ?? sheet.name
+    const collectionName = collectionOverrides[sheet.name] ?? sheet.name
     onProgress?.(`Обработка "${collectionName}" (только монеты без года)...`)
 
     // Get or create collection
@@ -242,10 +242,10 @@ export async function importSpreadsheetNoYear(
 
     if (existing) {
       collection = { id: existing.id, name: existing.name, createdAt: 0, updatedAt: 0 }
-      result.countriesSkipped++
+      result.collectionsSkipped++
     } else {
       collection = collectionRepo.createCollection({ name: collectionName })
-      result.countriesCreated++
+      result.collectionsCreated++
     }
 
     // Parse coins with embedded images

@@ -12,39 +12,39 @@ i18n.use(initReactI18next).init({
       translation: {
         app: {
           title: 'Coin Collection',
-          emptyState: 'Select a country from the sidebar to view its coins.',
+          emptyState: 'Select a collection from the sidebar to view its coins.',
           selected: 'Selected: {{name}}'
         },
-        countries: {
-          title: 'Countries',
-          addButton: 'Add Country',
-          placeholder: 'Country name...',
+        collections: {
+          title: 'Collections',
+          addButton: 'Add Collection',
+          placeholder: 'Collection name...',
           add: 'Add',
           rename: 'Rename',
           delete: 'Delete',
           save: 'Save',
           cancel: 'Cancel',
-          noCountries: 'No countries yet.',
-          noCountriesHint: 'Add your first country above.',
-          deleteTitle: 'Delete Country',
+          noCountries: 'No collections yet.',
+          noCountriesHint: 'Add your first collection above.',
+          deleteTitle: 'Delete Collection',
           deleteConfirm: 'Are you sure you want to delete',
-          deleteWarning: 'This will also delete all coins and photos in this country.',
+          deleteWarning: 'This will also delete all coins and photos in this collection.',
           errors: {
-            loadFailed: 'Failed to load countries',
-            createFailed: 'Failed to create country',
-            updateFailed: 'Failed to update country',
-            deleteFailed: 'Failed to delete country'
+            loadFailed: 'Failed to load collections',
+            createFailed: 'Failed to create collection',
+            updateFailed: 'Failed to update collection',
+            deleteFailed: 'Failed to delete collection'
           }
         },
         form: {
-          countryName: 'Country name',
+          collectionName: 'Collection name',
           placeholder: 'e.g. Russia, USA, Germany...',
           create: 'Create',
           cancel: 'Cancel',
           errors: {
-            required: 'Country name is required',
-            tooShort: 'Country name must be at least 2 characters',
-            tooLong: 'Country name must be less than 100 characters'
+            required: 'Collection name is required',
+            tooShort: 'Collection name must be at least 2 characters',
+            tooLong: 'Collection name must be less than 100 characters'
           }
         },
         lang: {
@@ -80,7 +80,7 @@ i18n.use(initReactI18next).init({
           deleteConfirm: 'Are you sure you want to delete this coin?',
           createTitle: 'New Coin',
           editTitle: 'Edit Coin',
-          selectCountry: 'Select a country first',
+          selectCollection: 'Select a collection first',
           conditions: {
             UNC: 'Uncirculated (UNC)',
             XF: 'Extremely Fine (XF)',
@@ -157,5 +157,13 @@ window.api = {
   prices: {
     exportAll: vi.fn(),
     importPrices: vi.fn()
+  },
+  backup: {
+    exportExecute: vi.fn(),
+    importSelect: vi.fn(),
+    importPreview: vi.fn(),
+    importExecute: vi.fn(),
+    onExportProgress: vi.fn(() => vi.fn()),
+    onImportProgress: vi.fn(() => vi.fn())
   }
 }

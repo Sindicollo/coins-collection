@@ -41,4 +41,12 @@ export interface ElectronAPI {
     exportAll: (collectionId: string) => Promise<string | null>
     importPrices: () => Promise<any>
   }
+  backup: {
+    exportExecute: () => Promise<string | null>
+    importSelect: () => Promise<string | null>
+    importPreview: (zipPath: string) => Promise<any>
+    importExecute: (zipPath: string) => Promise<any>
+    onExportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
+    onImportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
+  }
 }
