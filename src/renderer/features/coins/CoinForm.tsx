@@ -86,6 +86,20 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
   const isEdit = !!coin
   const [data, setData] = React.useState<CoinFormData>(coinToFormData(coin, defaultCurrency))
   const [error, setError] = React.useState<string | null>(null)
+  const notesRef = React.useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize notes textarea
+  const autoResizeNotes = React.useCallback(() => {
+    const el = notesRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(56, el.scrollHeight)}px`
+    }
+  }, [])
+
+  React.useEffect(() => {
+    autoResizeNotes()
+  }, [data.notes, autoResizeNotes])
 
   React.useEffect(() => {
     setData(coinToFormData(coin, defaultCurrency))
@@ -268,10 +282,11 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             {t('coins.notes')}
           </label>
           <textarea
+            ref={notesRef}
             value={data.notes}
             onChange={(e) => handleChange('notes', e.target.value)}
-            rows={2}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm resize-none
+            rows={1}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm resize-none min-h-[56px]
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
         </div>
