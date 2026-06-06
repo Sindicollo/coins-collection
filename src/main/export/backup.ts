@@ -1,6 +1,6 @@
-import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, copyFileSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
 import AdmZip from 'adm-zip'
 import {
   getAllCollections,
@@ -12,22 +12,36 @@ import {
 import type { BackupManifest } from '@shared/types'
 import { uuidv4 } from '../database/repositories/uuid'
 
-function getPhotosDir(): string {
+export interface ExportOptions {
+  /** Override the photos source directory. Defaults to app.getPath('userData')/photos. */
+  photosDir?: string
+  /** Override the temp directory for building the archive. Defaults to OS tmpdir. */
+  tmpBaseDir?: string
+  /** Override app version in manifest. Defaults to app.getVersion(). */
+  appVersion?: string
+  onProgress?: (stage: string, current: number, total: number, message: string) => void
+}
+
+function getDefaultPhotosDir(): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { app } = require('electron')
   return join(app.getPath('userData'), 'photos')
 }
 
-function createManifest(): BackupManifest {
+function getAppVersion(): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { app } = require('electron')
+  return app.getVersion()
+}
+
+function createManifest(appVersion: string): BackupManifest {
   const stats = getLocalStats()
   return {
     version: 1,
-    appVersion: app.getVersion(),
+    appVersion,
     exportedAt: Date.now(),
     stats
   }
-}
-
-export interface ExportCallbacks {
-  onProgress?: (stage: string, current: number, total: number, message: string) => void
 }
 
 /**
@@ -36,11 +50,13 @@ export interface ExportCallbacks {
  */
 export async function exportBackup(
   filePath: string,
-  callbacks?: ExportCallbacks
+  options?: ExportOptions
 ): Promise<string> {
-  const tmpDir = join(app.getPath('temp'), `coin-backup-${uuidv4()}`)
-  const photosDir = getPhotosDir()
-  const { onProgress } = callbacks ?? {}
+  const photosDir = options?.photosDir ?? getDefaultPhotosDir()
+  const tmpBase = options?.tmpBaseDir ?? tmpdir()
+  const ver = options?.appVersion ?? getAppVersion()
+  const tmpDir = join(tmpBase, `coin-backup-${uuidv4()}`)
+  const onProgress = options?.onProgress
 
   try {
     // Create temp directory
@@ -53,7 +69,7 @@ export async function exportBackup(
     const coins = getAllCoins()
     const photos = getAllPhotos()
     const preferences = getAllPreferences()
-    const manifest = createManifest()
+    const manifest = createManifest(ver)
 
     // Stage 2: Write JSON files
     writeFileSync(join(tmpDir, 'manifest.json'), JSON.stringify(manifest, null, 2))

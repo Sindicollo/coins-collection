@@ -119,51 +119,54 @@ i18n.use(initReactI18next).init({
 })
 
 // Mock window.api (Electron preload bridge) for all tests
-window.api = {
-  collections: {
-    list: vi.fn(),
-    get: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn()
-  },
-  coins: {
-    list: vi.fn(),
-    get: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    listCountries: vi.fn(),
-    totalCost: vi.fn()
-  },
-  photos: {
-    list: vi.fn(),
-    getPhotoData: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-    reorder: vi.fn()
-  },
-  preferences: {
-    getCurrency: vi.fn(),
-    setCurrency: vi.fn(),
-    getCurrencies: vi.fn()
-  },
-  import: {
-    selectFile: vi.fn(),
-    preview: vi.fn(),
-    execute: vi.fn(),
-    executeNoYear: vi.fn()
-  },
-  prices: {
-    exportAll: vi.fn(),
-    importPrices: vi.fn()
-  },
-  backup: {
-    exportExecute: vi.fn(),
-    importSelect: vi.fn(),
-    importPreview: vi.fn(),
-    importExecute: vi.fn(),
-    onExportProgress: vi.fn(() => vi.fn()),
-    onImportProgress: vi.fn(() => vi.fn())
+// Only available in jsdom environment
+if (typeof window !== 'undefined') {
+  window.api = {
+    collections: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
+    coins: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      listCountries: vi.fn(),
+      totalCost: vi.fn()
+    },
+    photos: {
+      list: vi.fn(),
+      getPhotoData: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      reorder: vi.fn()
+    },
+    preferences: {
+      getCurrency: vi.fn(),
+      setCurrency: vi.fn(),
+      getCurrencies: vi.fn()
+    },
+    import: {
+      selectFile: vi.fn(),
+      preview: vi.fn(),
+      execute: vi.fn(),
+      executeNoYear: vi.fn()
+    },
+    prices: {
+      exportAll: vi.fn(),
+      importPrices: vi.fn()
+    },
+    backup: {
+      exportExecute: vi.fn(),
+      importSelect: vi.fn(),
+      importPreview: vi.fn(),
+      importExecute: vi.fn(),
+      onExportProgress: vi.fn(() => vi.fn()),
+      onImportProgress: vi.fn(() => vi.fn())
+    }
   }
 }

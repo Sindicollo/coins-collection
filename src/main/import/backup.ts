@@ -1,18 +1,34 @@
-import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, copyFileSync, statSync, rmSync, readFileSync } from 'fs'
+import { tmpdir } from 'os'
 import AdmZip from 'adm-zip'
-import { getDatabase } from '../database'
+import { getDatabase, createDatabaseAt } from '../database'
 import { getLocalStats } from '../database/repositories/export'
 import type { BackupManifest, BackupPreview, ImportResult } from '@shared/types'
 import { uuidv4 } from '../database/repositories/uuid'
 
-function getPhotosDir(): string {
+export interface ImportOptions {
+  /** Override the photos destination directory. Defaults to app.getPath('userData')/photos. */
+  photosDir?: string
+  /** Override the database path to import into. Creates the DB if it doesn't exist. */
+  dbPath?: string
+  /** Override the temp directory for extraction. Defaults to OS tmpdir. */
+  tmpBaseDir?: string
+  onProgress?: (stage: string, current: number, total: number, message: string) => void
+}
+
+function getDefaultPhotosDir(): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { app } = require('electron')
   return join(app.getPath('userData'), 'photos')
 }
 
-export interface ImportCallbacks {
-  onProgress?: (stage: string, current: number, total: number, message: string) => void
+function getDb(options?: ImportOptions) {
+  if (options?.dbPath) {
+    // Create or open the database at the given path
+    return createDatabaseAt(options.dbPath)
+  }
+  return getDatabase()
 }
 
 /**
@@ -45,12 +61,13 @@ export function previewBackup(zipPath: string): BackupPreview {
  */
 export async function importBackup(
   zipPath: string,
-  callbacks?: ImportCallbacks
+  options?: ImportOptions
 ): Promise<ImportResult> {
-  const db = getDatabase()
-  const photosDir = getPhotosDir()
-  const tmpDir = join(app.getPath('temp'), `coin-import-${uuidv4()}`)
-  const { onProgress } = callbacks ?? {}
+  const db = getDb(options)
+  const photosDir = options?.photosDir ?? getDefaultPhotosDir()
+  const tmpBase = options?.tmpBaseDir ?? tmpdir()
+  const tmpDir = join(tmpBase, `coin-import-${uuidv4()}`)
+  const onProgress = options?.onProgress
 
   const result: ImportResult = {
     success: false,
@@ -106,11 +123,9 @@ export async function importBackup(
       for (const col of collections) {
         const existing = db.prepare('SELECT id FROM collections WHERE id = ?').get(col.id) as { id: string } | undefined
         if (existing) {
-          // Update existing
           updateCollection.run(col.name, col.updatedAt, col.id)
           result.updated.collections++
         } else {
-          // Insert new with original id
           insertCollection.run(col.id, col.name, col.createdAt, col.updatedAt)
           result.imported.collections++
         }
@@ -145,7 +160,6 @@ export async function importBackup(
           const existing = db.prepare('SELECT id FROM coins WHERE id = ?').get(coin.id) as { id: string } | undefined
           const sold = coin.sold ? 1 : 0
           if (existing) {
-            // Update existing
             updateCoin.run(
               coin.collectionId, coin.denomination, coin.year, coin.condition,
               coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
@@ -154,7 +168,6 @@ export async function importBackup(
             )
             result.updated.coins++
           } else {
-            // Insert new
             insertCoin.run(
               coin.id, coin.collectionId, coin.denomination, coin.year, coin.condition,
               coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
@@ -217,15 +230,12 @@ export async function importBackup(
         const destPath = join(photosDir, photo.filename)
 
         if (existsSync(destPath)) {
-          // Compare file size
           const srcSize = statSync(srcPath).size
           const destSize = statSync(destPath).size
           if (srcSize === destSize) {
-            // Same size — skip
             copied++
             continue
           }
-          // Different size — overwrite
         }
 
         copyFileSync(srcPath, destPath)
@@ -237,7 +247,6 @@ export async function importBackup(
       onProgress?.('copying-files', copied, photoFiles.length, 'Photo files done.')
     }
 
-    // Finalize
     onProgress?.('done', 1, 1, 'Import complete!')
     result.success = true
     return result
@@ -246,7 +255,6 @@ export async function importBackup(
     result.success = false
     return result
   } finally {
-    // Cleanup temp directory
     try {
       rmSync(tmpDir, { recursive: true, force: true })
     } catch {
