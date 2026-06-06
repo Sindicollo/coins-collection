@@ -7,6 +7,7 @@ import type { BackupPreview } from '@shared/types'
 export function BackupSection(): React.ReactElement {
   const [importDialogOpen, setImportDialogOpen] = React.useState(false)
   const [preview, setPreview] = React.useState<BackupPreview | null>(null)
+  const importZipPathRef = React.useRef<string | null>(null)
 
   const [progressOpen, setProgressOpen] = React.useState(false)
   const [progressTitle, setProgressTitle] = React.useState('')
@@ -54,7 +55,7 @@ export function BackupSection(): React.ReactElement {
       setPreview(previewData)
 
       // Store zipPath for later execution
-      ;(window as unknown as Record<string, unknown>).__backupImportZipPath = zipPath
+      importZipPathRef.current = zipPath
     } catch (err) {
       console.error('Import preview failed:', err)
       setImportDialogOpen(false)
@@ -63,7 +64,7 @@ export function BackupSection(): React.ReactElement {
 
   // Import: execute
   const handleImportExecute = React.useCallback(async () => {
-    const zipPath = (window as unknown as Record<string, unknown>).__backupImportZipPath as string | undefined
+    const zipPath = importZipPathRef.current
     if (!zipPath) return
 
     setImportDialogOpen(false)
@@ -77,12 +78,15 @@ export function BackupSection(): React.ReactElement {
     })
 
     try {
-      await window.api.backup.importExecute(zipPath)
+      const result = await window.api.backup.importExecute(zipPath)
+      if (!result.success || result.errors.length > 0) {
+        console.error('Import completed with errors:', result.errors)
+      }
     } catch (err) {
       console.error('Import failed:', err)
     } finally {
       unsubscribe()
-      delete (window as unknown as Record<string, unknown>).__backupImportZipPath
+      importZipPathRef.current = null
       setTimeout(() => {
         setProgressOpen(false)
         setProgress(null)
@@ -138,7 +142,7 @@ export function BackupSection(): React.ReactElement {
         onCancel={() => {
           setImportDialogOpen(false)
           setPreview(null)
-          delete (window as unknown as Record<string, unknown>).__backupImportZipPath
+          importZipPathRef.current = null
         }}
       />
 

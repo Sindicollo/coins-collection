@@ -20,6 +20,8 @@ export interface ExportOptions {
   /** Override app version in manifest. Defaults to app.getVersion(). */
   appVersion?: string
   onProgress?: (stage: string, current: number, total: number, message: string) => void
+  /** Called for each missing photo file so the caller can decide how to handle it */
+  onMissingPhoto?: (filename: string) => void
 }
 
 function getDefaultPhotosDir(): string {
@@ -91,6 +93,8 @@ export async function exportBackup(
       const destPath = join(photosOutDir, photo.filename)
       if (existsSync(srcPath)) {
         copyFileSync(srcPath, destPath)
+      } else {
+        options?.onMissingPhoto?.(photo.filename)
       }
       copied++
       if (copied % 10 === 0 || copied === totalPhotos) {
