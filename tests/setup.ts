@@ -12,39 +12,39 @@ i18n.use(initReactI18next).init({
       translation: {
         app: {
           title: 'Coin Collection',
-          emptyState: 'Select a country from the sidebar to view its coins.',
+          emptyState: 'Select a collection from the sidebar to view its coins.',
           selected: 'Selected: {{name}}'
         },
-        countries: {
-          title: 'Countries',
-          addButton: 'Add Country',
-          placeholder: 'Country name...',
+        collections: {
+          title: 'Collections',
+          addButton: 'Add Collection',
+          placeholder: 'Collection name...',
           add: 'Add',
           rename: 'Rename',
           delete: 'Delete',
           save: 'Save',
           cancel: 'Cancel',
-          noCountries: 'No countries yet.',
-          noCountriesHint: 'Add your first country above.',
-          deleteTitle: 'Delete Country',
+          noCountries: 'No collections yet.',
+          noCountriesHint: 'Add your first collection above.',
+          deleteTitle: 'Delete Collection',
           deleteConfirm: 'Are you sure you want to delete',
-          deleteWarning: 'This will also delete all coins and photos in this country.',
+          deleteWarning: 'This will also delete all coins and photos in this collection.',
           errors: {
-            loadFailed: 'Failed to load countries',
-            createFailed: 'Failed to create country',
-            updateFailed: 'Failed to update country',
-            deleteFailed: 'Failed to delete country'
+            loadFailed: 'Failed to load collections',
+            createFailed: 'Failed to create collection',
+            updateFailed: 'Failed to update collection',
+            deleteFailed: 'Failed to delete collection'
           }
         },
         form: {
-          countryName: 'Country name',
+          collectionName: 'Collection name',
           placeholder: 'e.g. Russia, USA, Germany...',
           create: 'Create',
           cancel: 'Cancel',
           errors: {
-            required: 'Country name is required',
-            tooShort: 'Country name must be at least 2 characters',
-            tooLong: 'Country name must be less than 100 characters'
+            required: 'Collection name is required',
+            tooShort: 'Collection name must be at least 2 characters',
+            tooLong: 'Collection name must be less than 100 characters'
           }
         },
         lang: {
@@ -80,7 +80,7 @@ i18n.use(initReactI18next).init({
           deleteConfirm: 'Are you sure you want to delete this coin?',
           createTitle: 'New Coin',
           editTitle: 'Edit Coin',
-          selectCountry: 'Select a country first',
+          selectCollection: 'Select a collection first',
           conditions: {
             UNC: 'Uncirculated (UNC)',
             XF: 'Extremely Fine (XF)',
@@ -106,11 +106,37 @@ i18n.use(initReactI18next).init({
           photo_plural: 'photos',
           addPhoto: 'Add photo',
           deletePhoto: 'Delete photo',
+          savePhoto: 'Save as file',
           noPhotos: 'No photos yet',
           clickToAdd: 'Click "Add photo" to add some.',
           deleteTitle: 'Delete Photo',
           deleteConfirm: 'Are you sure you want to delete this photo?',
           loadError: 'Failed to load image'
+        },
+        backup: {
+          title: 'Backup & Restore',
+          sectionBackup: 'Backup',
+          exportButton: 'Export Backup',
+          importButton: 'Import Backup',
+          exportFormats: 'Export Formats (coming soon)',
+          exportPdf: 'Export to PDF',
+          exportExcel: 'Export to Excel',
+          comingSoon: 'Coming soon',
+          importTitle: 'Import Backup',
+          loadingPreview: 'Loading preview…',
+          date: 'Date:',
+          appVersion: 'App version:',
+          columnBackup: 'Backup',
+          columnCurrent: 'Current',
+          rowCollections: 'Collections',
+          rowCoins: 'Coins',
+          rowPhotos: 'Photos',
+          mergeWarning: 'Existing records will be updated with data from the backup. New records will be added. No data will be deleted.',
+          importAction: 'Import',
+          cancel: 'Cancel',
+          close: 'Close',
+          exportProgress: 'Export Backup',
+          importProgress: 'Import Backup'
         }
       }
     }
@@ -119,43 +145,55 @@ i18n.use(initReactI18next).init({
 })
 
 // Mock window.api (Electron preload bridge) for all tests
-window.api = {
-  collections: {
-    list: vi.fn(),
-    get: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn()
-  },
-  coins: {
-    list: vi.fn(),
-    get: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    listCountries: vi.fn(),
-    totalCost: vi.fn()
-  },
-  photos: {
-    list: vi.fn(),
-    getPhotoData: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-    reorder: vi.fn()
-  },
-  preferences: {
-    getCurrency: vi.fn(),
-    setCurrency: vi.fn(),
-    getCurrencies: vi.fn()
-  },
-  import: {
-    selectFile: vi.fn(),
-    preview: vi.fn(),
-    execute: vi.fn(),
-    executeNoYear: vi.fn()
-  },
-  prices: {
-    exportAll: vi.fn(),
-    importPrices: vi.fn()
+// Only available in jsdom environment
+if (typeof window !== 'undefined') {
+  window.api = {
+    collections: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
+    coins: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      listCountries: vi.fn(),
+      totalCost: vi.fn()
+    },
+    photos: {
+      list: vi.fn(),
+      getPhotoData: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      reorder: vi.fn(),
+      save: vi.fn()
+    },
+    preferences: {
+      getCurrency: vi.fn(),
+      setCurrency: vi.fn(),
+      getCurrencies: vi.fn()
+    },
+    import: {
+      selectFile: vi.fn(),
+      preview: vi.fn(),
+      execute: vi.fn(),
+      executeNoYear: vi.fn()
+    },
+    prices: {
+      exportAll: vi.fn(),
+      importPrices: vi.fn()
+    },
+    backup: {
+      exportExecute: vi.fn(),
+      importSelect: vi.fn(),
+      importPreview: vi.fn(),
+      importExecute: vi.fn(),
+      onExportProgress: vi.fn(() => vi.fn()),
+      onImportProgress: vi.fn(() => vi.fn())
+    }
   }
 }

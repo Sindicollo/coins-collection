@@ -8,6 +8,7 @@ import { registerPhotoHandlers } from './ipc/photos'
 import { registerPreferenceHandlers } from './ipc/preferences'
 import { registerImportHandlers } from './ipc/import'
 import { registerPriceHandlers } from './ipc/prices'
+import { registerBackupHandlers } from './ipc/backup'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -57,6 +58,7 @@ app.whenReady().then(() => {
   registerPreferenceHandlers()
   registerImportHandlers()
   registerPriceHandlers()
+  registerBackupHandlers()
 
   createWindow()
 

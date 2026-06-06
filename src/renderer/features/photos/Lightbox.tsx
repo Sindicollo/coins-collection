@@ -5,6 +5,7 @@ import { Close } from '@/components/ui/icons/Close'
 import { ArrowLeft } from '@/components/ui/icons/ArrowLeft'
 import { ArrowRight } from '@/components/ui/icons/ArrowRight'
 import { Delete } from '@/components/ui/icons/Delete'
+import { Download } from '@/components/ui/icons/Download'
 import { Photo as PhotoIcon } from '@/components/ui/icons/Photo'
 import type { Photo } from '@shared/types'
 
@@ -99,6 +100,17 @@ export function Lightbox({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              if (photo) {
+                await window.api.photos.save(photo.id)
+              }
+            }}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            title={t('photos.savePhoto')}
+          >
+            <Download className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-2 text-gray-400 hover:text-red-400 transition-colors"

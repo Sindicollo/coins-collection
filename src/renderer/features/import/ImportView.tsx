@@ -31,8 +31,8 @@ interface PreviewData {
 }
 
 interface ImportResult {
-  countriesCreated: number
-  countriesSkipped: number
+  collectionsCreated: number
+  collectionsSkipped: number
   coinsCreated: number
   photosImported: number
   errors: string[]
@@ -49,7 +49,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
   const { t } = useTranslation()
   const [step, setStep] = React.useState<ImportStep>('select')
   const [preview, setPreview] = React.useState<PreviewData | null>(null)
-  const [countryOverrides, setCountryOverrides] = React.useState<Record<string, string>>({})
+  const [collectionOverrides, setCollectionOverrides] = React.useState<Record<string, string>>({})
   const [importPhotos, setImportPhotos] = React.useState(true)
   const [result, setResult] = React.useState<ImportResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -58,7 +58,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
   const reset = React.useCallback(() => {
     setStep('select')
     setPreview(null)
-    setCountryOverrides({})
+    setCollectionOverrides({})
     setImportPhotos(true)
     setResult(null)
     setError(null)
@@ -98,7 +98,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
     try {
       const importResult = await window.api.import.execute({
         filePath: preview.filePath,
-        countryOverrides,
+        collectionOverrides,
         downloadPhotos: importPhotos
       })
       setResult(importResult)
@@ -117,7 +117,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
     try {
       const importResult = await window.api.import.executeNoYear({
         filePath: preview.filePath,
-        countryOverrides,
+        collectionOverrides,
         downloadPhotos: importPhotos
       })
       setResult(importResult)
@@ -128,12 +128,12 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
     }
   }
 
-  const getCountryName = (sheetName: string): string => {
-    return countryOverrides[sheetName] ?? sheetName
+  const getCollectionName = (sheetName: string): string => {
+    return collectionOverrides[sheetName] ?? sheetName
   }
 
-  const handleCountryNameChange = (sheetName: string, newName: string): void => {
-    setCountryOverrides((prev) => ({ ...prev, [sheetName]: newName }))
+  const handleCollectionNameChange = (sheetName: string, newName: string): void => {
+    setCollectionOverrides((prev) => ({ ...prev, [sheetName]: newName }))
   }
 
   return (
@@ -145,7 +145,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
             <p className="text-sm text-gray-600">{t('import.selectHint')}</p>
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={handleClose}>
-                {t('countries.cancel')}
+                {t('collections.cancel')}
               </Button>
               <Button size="sm" onClick={handleSelectFile} disabled={loading}>
                 {loading ? t('import.loading') : t('import.selectFile')}
@@ -165,12 +165,12 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
               <div key={sheet.name} className="border border-gray-200 rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium text-gray-500">
-                    {t('import.countryName')}:
+                    {t('import.collectionName')}:
                   </label>
                   <input
                     type="text"
-                    value={getCountryName(sheet.name)}
-                    onChange={(e) => handleCountryNameChange(sheet.name, e.target.value)}
+                    value={getCollectionName(sheet.name)}
+                    onChange={(e) => handleCollectionNameChange(sheet.name, e.target.value)}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm
                       focus:outline-none focus:ring-1 focus:ring-primary-500"
                   />
@@ -239,7 +239,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
 
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={handleClose}>
-                {t('countries.cancel')}
+                {t('collections.cancel')}
               </Button>
               <Button size="sm" onClick={handleImport}>
                 {t('import.start')}
@@ -266,10 +266,10 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
               <p className="text-green-700 font-medium">{t('import.complete')}</p>
               <ul className="text-gray-600 space-y-1">
                 <li>
-                  {t('import.countriesCreated')}: {result.countriesCreated}
+                  {t('import.collectionsCreated')}: {result.collectionsCreated}
                 </li>
                 <li>
-                  {t('import.countriesSkipped')}: {result.countriesSkipped}
+                  {t('import.collectionsSkipped')}: {result.collectionsSkipped}
                 </li>
                 <li>
                   {t('import.coinsCreated')}: {result.coinsCreated}
@@ -295,7 +295,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
 
             <div className="flex gap-2 justify-end mt-4">
               <Button size="sm" onClick={handleClose}>
-                {t('countries.save')}
+                {t('collections.save')}
               </Button>
             </div>
           </>

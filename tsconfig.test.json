@@ -26,6 +26,9 @@
     "src/renderer/**/*.tsx",
     "src/shared/**/*.ts",
     "src/renderer/locales/*.json",
-    "src/main/import/xlsx-parser.ts"
+    "src/main/database/**/*.ts",
+    "src/main/import/backup.ts",
+    "src/main/import/spreadsheet-import.ts",
+    "src/main/export/**/*.ts"
   ]
 }

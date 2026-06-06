@@ -4,7 +4,7 @@
     "emptyState": "Select a collection from the sidebar to view its coins.",
     "selected": "Selected: {{name}}"
   },
-  "countries": {
+  "collections": {
     "title": "Collections",
     "addButton": "Add Collection",
     "placeholder": "Collection name...",
@@ -27,7 +27,7 @@
     }
   },
   "form": {
-    "countryName": "Collection name",
+    "collectionName": "Collection name",
     "placeholder": "e.g. British Shillings, Russian Coins...",
     "create": "Create",
     "cancel": "Cancel",
@@ -71,7 +71,7 @@
     "deleteConfirm": "Are you sure you want to delete this coin?",
     "createTitle": "New Coin",
     "editTitle": "Edit Coin",
-    "selectCountry": "Select a collection first",
+    "selectCollection": "Select a collection first",
     "country": "Country",
     "conditions": {
       "UNC": "Uncirculated (UNC)",
@@ -108,6 +108,7 @@
     "photo_plural": "photos",
     "addPhoto": "Add photo",
     "deletePhoto": "Delete photo",
+    "savePhoto": "Save as file",
     "noPhotos": "No photos yet",
     "clickToAdd": "Click \"Add photo\" to add some.",
     "deleteTitle": "Delete Photo",
@@ -117,10 +118,8 @@
   "import": {
     "title": "Import from Spreadsheet",
     "selectHint": "Select an .xlsx file exported from Google Sheets.",
-    "selectFile": "Select File",
-    "loading": "Loading...",
-    "previewHint": "Review the data below before importing. You can edit country names.",
-    "countryName": "Country name",
+    "previewHint": "Review the data below before importing. You can edit collection names.",
+    "collectionName": "Collection name",
     "coins": "Coins",
     "photos": "Photos",
     "importPhotos": "Import images embedded in Excel",
@@ -128,11 +127,36 @@
     "importNoYear": "Import (no year only)",
     "importing": "Importing... This may take a while for large files.",
     "complete": "Import complete!",
-    "countriesCreated": "Countries created",
-    "countriesSkipped": "Countries skipped (already exist)",
+    "collectionsCreated": "Collections created",
+    "collectionsSkipped": "Collections skipped (already exist)",
     "coinsCreated": "Coins imported",
     "photosImported": "Photos imported",
     "errors": "Errors",
     "button": "Import from Spreadsheet"
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "sectionBackup": "Backup",
+    "exportButton": "Export Backup",
+    "importButton": "Import Backup",
+    "exportFormats": "Export Formats (coming soon)",
+    "exportPdf": "Export to PDF",
+    "exportExcel": "Export to Excel",
+    "comingSoon": "Coming soon",
+    "importTitle": "Import Backup",
+    "loadingPreview": "Loading preview…",
+    "date": "Date:",
+    "appVersion": "App version:",
+    "columnBackup": "Backup",
+    "columnCurrent": "Current",
+    "rowCollections": "Collections",
+    "rowCoins": "Coins",
+    "rowPhotos": "Photos",
+    "mergeWarning": "Existing records will be updated with data from the backup. New records will be added. No data will be deleted.",
+    "importAction": "Import",
+    "cancel": "Cancel",
+    "close": "Close",
+    "exportProgress": "Export Backup",
+    "importProgress": "Import Backup"
   }
 }

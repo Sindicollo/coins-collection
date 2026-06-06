@@ -1,4 +1,4 @@
-import { ipcMain, app, dialog } from 'electron'
+import { ipcMain, app, dialog, BrowserWindow } from 'electron'
 import { join, extname } from 'path'
 import { copyFileSync, mkdirSync, existsSync, unlinkSync, readFileSync, openSync, readSync, closeSync } from 'fs'
 import { IPC_CHANNELS } from '@shared/constants'
@@ -128,6 +128,38 @@ export function registerPhotoHandlers(): void {
     IPC_CHANNELS.PHOTO.REORDER,
     async (_event, coinId: string, photoIds: string[]): Promise<void> => {
       photoRepo.reorderPhotos(coinId, photoIds)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.PHOTO.SAVE,
+    async (_event, id: string): Promise<string | null> => {
+      const filename = photoRepo.getPhotoPath(id)
+      if (!filename) return null
+
+      const srcPath = join(getPhotosDir(), filename)
+      if (!existsSync(srcPath)) return null
+
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return null
+
+      const result = await dialog.showSaveDialog(win, {
+        title: 'Save Photo',
+        defaultPath: filename,
+        filters: [
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }
+        ]
+      })
+
+      if (result.canceled || !result.filePath) return null
+
+      try {
+        copyFileSync(srcPath, result.filePath)
+        return result.filePath
+      } catch (err) {
+        console.error('[photos] Failed to save photo:', err)
+        return null
+      }
     }
   )
 }

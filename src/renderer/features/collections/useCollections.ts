@@ -34,7 +34,7 @@ const useCollectionStore = create<CollectionStore>((set) => ({
       const collections = await collectionApi.fetchCollections()
       set({ collections, loading: false })
     } catch {
-      set({ error: 'countries.errors.loadFailed', loading: false })
+      set({ error: 'collections.errors.loadFailed', loading: false })
     }
   },
 
@@ -48,7 +48,7 @@ const useCollectionStore = create<CollectionStore>((set) => ({
       }))
       return collection
     } catch {
-      set({ error: 'countries.errors.createFailed' })
+      set({ error: 'collections.errors.createFailed' })
       return null
     }
   },
@@ -64,7 +64,7 @@ const useCollectionStore = create<CollectionStore>((set) => ({
       }
       return updated
     } catch {
-      set({ error: 'countries.errors.updateFailed' })
+      set({ error: 'collections.errors.updateFailed' })
       return null
     }
   },
@@ -81,7 +81,7 @@ const useCollectionStore = create<CollectionStore>((set) => ({
       }
       return success
     } catch {
-      set({ error: 'countries.errors.deleteFailed' })
+      set({ error: 'collections.errors.deleteFailed' })
       return false
     }
   }

@@ -49,9 +49,9 @@ export function CollectionList({
   if (collections.length === 0) {
     return (
       <div className="p-4">
-        <p className="text-sm text-gray-400 text-center">{t('countries.noCountries')}</p>
+        <p className="text-sm text-gray-400 text-center">{t('collections.noCountries')}</p>
         <p className="text-xs text-gray-400 text-center mt-1">
-          {t('countries.noCountriesHint')}
+          {t('collections.noCountriesHint')}
         </p>
       </div>
     )
@@ -79,7 +79,7 @@ export function CollectionList({
                   onEdit(collection)
                 }}
                 className="p-1 text-gray-400 hover:text-primary-600 rounded"
-                title={t('countries.rename')}
+                title={t('collections.rename')}
               >
                 <Edit className="w-3.5 h-3.5" />
               </button>
@@ -89,7 +89,7 @@ export function CollectionList({
                   onDelete(collection)
                 }}
                 className="p-1 text-gray-400 hover:text-red-600 rounded"
-                title={t('countries.delete')}
+                title={t('collections.delete')}
               >
                 <Delete className="w-3.5 h-3.5" />
               </button>

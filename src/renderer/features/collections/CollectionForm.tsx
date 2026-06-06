@@ -41,7 +41,7 @@ export function CollectionForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label htmlFor="collection-name" className="block text-sm font-medium text-gray-700 mb-1">
-          {t('form.countryName')}
+          {t('form.collectionName')}
         </label>
         <input
           id="collection-name"

@@ -20,7 +20,8 @@ export const IPC_CHANNELS = {
     GET_PATH: 'photo:get-path',
     CREATE: 'photo:create',
     DELETE: 'photo:delete',
-    REORDER: 'photo:reorder'
+    REORDER: 'photo:reorder',
+    SAVE: 'photo:save'
   },
   IMPORT: {
     SELECT_FILE: 'import:select-file',
@@ -31,6 +32,12 @@ export const IPC_CHANNELS = {
   PRICE: {
     EXPORT_ALL: 'price:exportAll',
     IMPORT_PRICES: 'price:importPrices'
+  },
+  BACKUP: {
+    EXPORT_EXECUTE: 'backup:export-execute',
+    IMPORT_SELECT: 'backup:import-select',
+    IMPORT_PREVIEW: 'backup:import-preview',
+    IMPORT_EXECUTE: 'backup:import-execute'
   }
 } as const
 

@@ -4,7 +4,7 @@
     "emptyState": "Выберите коллекцию в боковой панели для просмотра монет.",
     "selected": "Выбрано: {{name}}"
   },
-  "countries": {
+  "collections": {
     "title": "Коллекции",
     "addButton": "Добавить коллекцию",
     "placeholder": "Название коллекции...",
@@ -27,7 +27,7 @@
     }
   },
   "form": {
-    "countryName": "Название коллекции",
+    "collectionName": "Название коллекции",
     "placeholder": "например, Британские шиллинги, Русские монеты...",
     "create": "Создать",
     "cancel": "Отмена",
@@ -71,7 +71,7 @@
     "deleteConfirm": "Вы уверены, что хотите удалить эту монету?",
     "createTitle": "Новая монета",
     "editTitle": "Редактировать монету",
-    "selectCountry": "Сначала выберите коллекцию",
+    "selectCollection": "Сначала выберите коллекцию",
     "country": "Страна",
     "conditions": {
       "UNC": "Uncirculated (UNC)",
@@ -108,6 +108,7 @@
     "photo_plural": "фото",
     "addPhoto": "Добавить фото",
     "deletePhoto": "Удалить фото",
+    "savePhoto": "Сохранить в файл",
     "noPhotos": "Фото пока нет",
     "clickToAdd": "Нажмите «Добавить фото», чтобы загрузить.",
     "deleteTitle": "Удалить фото",
@@ -116,11 +117,9 @@
   },
   "import": {
     "title": "Импорт из таблицы",
-    "selectHint": "Выберите .xlsx файл, экспортированный из Google Таблиц.",
-    "selectFile": "Выбрать файл",
-    "loading": "Загрузка...",
-    "previewHint": "Проверьте данные перед импортом. Вы можете изменить названия стран.",
-    "countryName": "Название страны",
+    "selectHint": "Выберите .xlsx файл, экспортированный из Google Sheets.",
+    "previewHint": "Проверьте данные перед импортом. Вы можете изменить названия коллекций.",
+    "collectionName": "Название коллекции",
     "coins": "Монет",
     "photos": "Фото",
     "importPhotos": "Импортировать изображения из Excel",
@@ -128,11 +127,36 @@
     "importNoYear": "Импорт (только без года)",
     "importing": "Импорт... Это может занять время для больших файлов.",
     "complete": "Импорт завершён!",
-    "countriesCreated": "Стран создано",
-    "countriesSkipped": "Стран пропущено (уже существуют)",
+    "collectionsCreated": "Коллекций создано",
+    "collectionsSkipped": "Коллекций пропущено (уже существуют)",
     "coinsCreated": "Монет импортировано",
     "photosImported": "Фото импортировано",
     "errors": "Ошибки",
     "button": "Импорт из таблицы"
+  },
+  "backup": {
+    "title": "Резервное копирование",
+    "sectionBackup": "Копия",
+    "exportButton": "Экспорт БД",
+    "importButton": "Импорт БД",
+    "exportFormats": "Форматы экспорта (скоро)",
+    "exportPdf": "Экспорт в PDF",
+    "exportExcel": "Экспорт в Excel",
+    "comingSoon": "Скоро",
+    "importTitle": "Импорт из резервной копии",
+    "loadingPreview": "Загрузка…",
+    "date": "Дата:",
+    "appVersion": "Версия приложения:",
+    "columnBackup": "Копия",
+    "columnCurrent": "Текущие",
+    "rowCollections": "Коллекции",
+    "rowCoins": "Монеты",
+    "rowPhotos": "Фото",
+    "mergeWarning": "Существующие записи будут обновлены данными из резервной копии. Новые записи будут добавлены. Данные не удаляются.",
+    "importAction": "Импортировать",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "exportProgress": "Экспорт БД",
+    "importProgress": "Импорт БД"
   }
 }

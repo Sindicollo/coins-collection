@@ -4,7 +4,7 @@ import { getImportPreview, importSpreadsheet, importSpreadsheetNoYear, type Impo
 
 interface ImportExecuteArgs {
   filePath: string
-  countryOverrides: Record<string, string>
+  collectionOverrides: Record<string, string>
   downloadPhotos: boolean
 }
 
@@ -34,7 +34,7 @@ export function registerImportHandlers(): void {
     async (_event, args: ImportExecuteArgs): Promise<ImportResult> => {
       return importSpreadsheet(
         args.filePath,
-        args.countryOverrides,
+        args.collectionOverrides,
         args.downloadPhotos // maps to importPhotos param
       )
     }
@@ -46,7 +46,7 @@ export function registerImportHandlers(): void {
     async (_event, args: ImportExecuteArgs): Promise<ImportResult> => {
       return importSpreadsheetNoYear(
         args.filePath,
-        args.countryOverrides,
+        args.collectionOverrides,
         args.downloadPhotos
       )
     }

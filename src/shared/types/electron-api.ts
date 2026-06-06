@@ -25,6 +25,7 @@ export interface ElectronAPI {
     create: (coinId: string) => Promise<any[]>
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>
+    save: (id: string) => Promise<string | null>
   }
   preferences: {
     getCurrency: () => Promise<string>
@@ -40,5 +41,13 @@ export interface ElectronAPI {
   prices: {
     exportAll: (collectionId: string) => Promise<string | null>
     importPrices: () => Promise<any>
+  }
+  backup: {
+    exportExecute: () => Promise<string | null>
+    importSelect: () => Promise<string | null>
+    importPreview: (zipPath: string) => Promise<any>
+    importExecute: (zipPath: string) => Promise<any>
+    onExportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
+    onImportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
   }
 }
