@@ -1,6 +1,7 @@
 # 🪙 Coin Collection
 
 A desktop app for managing your coin collection — built as a hobby project.
+English/russian interface.
 
 ![Coin Collection Screenshot](coin%20collection%20screenshot.png)
 
