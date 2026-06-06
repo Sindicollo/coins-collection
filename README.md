@@ -15,6 +15,12 @@ English/russian interface.
 - **i18n** — English and Russian UI
 - **Offline-first** — all data stored locally in SQLite, no cloud required
 
+## Download
+
+[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v1.0.0/Coin%20Collection-1.0.0-arm64.dmg) (macOS arm64, 105 MB)
+
+> See [Releases](https://github.com/Sindicollo/coins-collection/releases) for other versions.
+
 ## Tech Stack
 
 | Layer | Technology |
