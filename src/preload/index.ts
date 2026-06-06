@@ -25,7 +25,8 @@ const api = {
     create: (coinId: string) => ipcRenderer.invoke('photo:create', coinId) as Promise<unknown[]>,
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>
-      ipcRenderer.invoke('photo:reorder', coinId, photoIds)
+      ipcRenderer.invoke('photo:reorder', coinId, photoIds),
+    save: (id: string) => ipcRenderer.invoke('photo:save', id)
   },
   preferences: {
     getCurrency: () => ipcRenderer.invoke('pref:getCurrency'),

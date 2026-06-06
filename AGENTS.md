@@ -83,6 +83,7 @@ Run `npm run typecheck` to check both. They have different `lib` targets and JSX
 - **Prettier**: `semi: false`, `singleQuote: true`, `trailingComma: none`, `printWidth: 100`
 - Unused vars: `argsIgnorePattern: '^_'`, `caughtErrors: 'none'`
 - `no-explicit-any`: warn (not error)
+- **SVG icons**: never inline SVG markup in components. Always create a separate file in `src/renderer/components/ui/icons/` and import it.
 
 ## Build & distribution
 

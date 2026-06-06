@@ -108,6 +108,7 @@
     "photo_plural": "photos",
     "addPhoto": "Add photo",
     "deletePhoto": "Delete photo",
+    "savePhoto": "Save as file",
     "noPhotos": "No photos yet",
     "clickToAdd": "Click \"Add photo\" to add some.",
     "deleteTitle": "Delete Photo",

@@ -25,6 +25,7 @@ export interface ElectronAPI {
     create: (coinId: string) => Promise<any[]>
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>
+    save: (id: string) => Promise<string | null>
   }
   preferences: {
     getCurrency: () => Promise<string>

@@ -106,6 +106,7 @@ i18n.use(initReactI18next).init({
           photo_plural: 'photos',
           addPhoto: 'Add photo',
           deletePhoto: 'Delete photo',
+          savePhoto: 'Save as file',
           noPhotos: 'No photos yet',
           clickToAdd: 'Click "Add photo" to add some.',
           deleteTitle: 'Delete Photo',
@@ -143,7 +144,8 @@ if (typeof window !== 'undefined') {
       getPhotoData: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
-      reorder: vi.fn()
+      reorder: vi.fn(),
+      save: vi.fn()
     },
     preferences: {
       getCurrency: vi.fn(),
