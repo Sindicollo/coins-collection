@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 
@@ -30,6 +31,7 @@ const STAGE_LABELS: Record<string, string> = {
 }
 
 export function ProgressModal({ open, title, progress, onCancel }: ProgressModalProps): React.ReactElement {
+  const { t } = useTranslation()
   const stageLabel = progress ? STAGE_LABELS[progress.stage] ?? progress.stage : ''
   const percent = progress && progress.total > 0
     ? Math.min(100, Math.round((progress.current / progress.total) * 100))
@@ -59,7 +61,7 @@ export function ProgressModal({ open, title, progress, onCancel }: ProgressModal
         {!isDone && (
           <div className="flex justify-center pt-2">
             <Button variant="ghost" size="sm" onClick={onCancel}>
-              Cancel
+              {t('backup.cancel')}
             </Button>
           </div>
         )}
@@ -67,7 +69,7 @@ export function ProgressModal({ open, title, progress, onCancel }: ProgressModal
         {isDone && (
           <div className="flex justify-center pt-2">
             <Button size="sm" onClick={onCancel}>
-              Close
+              {t('backup.close')}
             </Button>
           </div>
         )}

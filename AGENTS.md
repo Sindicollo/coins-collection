@@ -84,6 +84,7 @@ Run `npm run typecheck` to check both. They have different `lib` targets and JSX
 - Unused vars: `argsIgnorePattern: '^_'`, `caughtErrors: 'none'`
 - `no-explicit-any`: warn (not error)
 - **SVG icons**: never inline SVG markup in components. Always create a separate file in `src/renderer/components/ui/icons/` and import it.
+- **i18n**: all user-facing strings must use `t()` from `react-i18next`. Never hardcode English text in components. Add keys to `en.json`, `ru.json`, and `tests/setup.ts`.
 
 ## Build & distribution
 

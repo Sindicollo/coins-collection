@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import type { BackupPreview } from '@shared/types'
@@ -15,10 +16,12 @@ function formatDate(timestamp: number): string {
 }
 
 export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialogProps): React.ReactElement {
+  const { t } = useTranslation()
+
   if (!preview) {
     return (
-      <Modal open={open} onClose={onCancel} title="Import Backup">
-        <div className="py-8 text-center text-sm text-gray-500">Loading preview...</div>
+      <Modal open={open} onClose={onCancel} title={t('backup.importTitle')}>
+        <div className="py-8 text-center text-sm text-gray-500">{t('backup.loadingPreview')}</div>
       </Modal>
     )
   }
@@ -26,16 +29,16 @@ export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialog
   const { manifest, localStats } = preview
 
   return (
-    <Modal open={open} onClose={onCancel} title="Import Backup">
+    <Modal open={open} onClose={onCancel} title={t('backup.importTitle')}>
       <div className="space-y-4 py-2">
         {/* Backup info */}
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
-            <span className="font-medium">Date:</span>
+            <span className="font-medium">{t('backup.date')}</span>
             <span>{formatDate(manifest.exportedAt)}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600">
-            <span className="font-medium">App version:</span>
+            <span className="font-medium">{t('backup.appVersion')}</span>
             <span>{manifest.appVersion}</span>
           </div>
         </div>
@@ -44,21 +47,21 @@ export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialog
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="grid grid-cols-3 text-xs font-medium text-gray-500 bg-gray-50">
             <div className="p-2"></div>
-            <div className="p-2 text-center">{'\uD83D\uDCC1'} Backup</div>
-            {localStats && <div className="p-2 text-center">{'\uD83D\uDCBB'} Current</div>}
+            <div className="p-2 text-center">{'\uD83D\uDCC1'} {t('backup.columnBackup')}</div>
+            {localStats && <div className="p-2 text-center">{'\uD83D\uDCBB'} {t('backup.columnCurrent')}</div>}
           </div>
           <div className="grid grid-cols-3 text-xs border-t border-gray-100">
-            <div className="p-2 text-gray-500">Collections</div>
+            <div className="p-2 text-gray-500">{t('backup.rowCollections')}</div>
             <div className="p-2 text-center font-medium">{manifest.stats.collections}</div>
             {localStats && <div className="p-2 text-center">{localStats.collections}</div>}
           </div>
           <div className="grid grid-cols-3 text-xs border-t border-gray-100">
-            <div className="p-2 text-gray-500">Coins</div>
+            <div className="p-2 text-gray-500">{t('backup.rowCoins')}</div>
             <div className="p-2 text-center font-medium">{manifest.stats.coins}</div>
             {localStats && <div className="p-2 text-center">{localStats.coins}</div>}
           </div>
           <div className="grid grid-cols-3 text-xs border-t border-gray-100">
-            <div className="p-2 text-gray-500">Photos</div>
+            <div className="p-2 text-gray-500">{t('backup.rowPhotos')}</div>
             <div className="p-2 text-center font-medium">{manifest.stats.photos}</div>
             {localStats && <div className="p-2 text-center">{localStats.photos}</div>}
           </div>
@@ -67,18 +70,17 @@ export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialog
         {/* Warning */}
         <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
           <p className="text-xs text-amber-700">
-            Existing records will be updated with data from the backup.
-            New records will be added. No data will be deleted.
+            {t('backup.mergeWarning')}
           </p>
         </div>
 
         {/* Actions */}
         <div className="flex gap-2 justify-end pt-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
+            {t('backup.cancel')}
           </Button>
           <Button size="sm" onClick={onImport}>
-            Import
+            {t('backup.importAction')}
           </Button>
         </div>
       </div>

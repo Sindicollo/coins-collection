@@ -112,6 +112,31 @@ i18n.use(initReactI18next).init({
           deleteTitle: 'Delete Photo',
           deleteConfirm: 'Are you sure you want to delete this photo?',
           loadError: 'Failed to load image'
+        },
+        backup: {
+          title: 'Backup & Restore',
+          sectionBackup: 'Backup',
+          exportButton: 'Export Backup',
+          importButton: 'Import Backup',
+          exportFormats: 'Export Formats (coming soon)',
+          exportPdf: 'Export to PDF',
+          exportExcel: 'Export to Excel',
+          comingSoon: 'Coming soon',
+          importTitle: 'Import Backup',
+          loadingPreview: 'Loading preview…',
+          date: 'Date:',
+          appVersion: 'App version:',
+          columnBackup: 'Backup',
+          columnCurrent: 'Current',
+          rowCollections: 'Collections',
+          rowCoins: 'Coins',
+          rowPhotos: 'Photos',
+          mergeWarning: 'Existing records will be updated with data from the backup. New records will be added. No data will be deleted.',
+          importAction: 'Import',
+          cancel: 'Cancel',
+          close: 'Close',
+          exportProgress: 'Export Backup',
+          importProgress: 'Import Backup'
         }
       }
     }

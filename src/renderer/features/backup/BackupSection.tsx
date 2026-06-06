@@ -1,10 +1,12 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { ImportDialog } from './ImportDialog'
 import { ProgressModal } from './ProgressModal'
 import type { BackupPreview } from '@shared/types'
 
 export function BackupSection(): React.ReactElement {
+  const { t } = useTranslation()
   const [importDialogOpen, setImportDialogOpen] = React.useState(false)
   const [preview, setPreview] = React.useState<BackupPreview | null>(null)
   const importZipPathRef = React.useRef<string | null>(null)
@@ -20,7 +22,7 @@ export function BackupSection(): React.ReactElement {
 
   // Export handler
   const handleExport = React.useCallback(async () => {
-    setProgressTitle('Export Backup')
+    setProgressTitle(t('backup.exportProgress'))
     setProgressOpen(true)
     setProgress(null)
 
@@ -41,7 +43,7 @@ export function BackupSection(): React.ReactElement {
         setProgress(null)
       }, 1500)
     }
-  }, [])
+  }, [t])
 
   // Import: select file
   const handleImportClick = React.useCallback(async () => {
@@ -69,7 +71,7 @@ export function BackupSection(): React.ReactElement {
 
     setImportDialogOpen(false)
     setPreview(null)
-    setProgressTitle('Import Backup')
+    setProgressTitle(t('backup.importProgress'))
     setProgressOpen(true)
     setProgress(null)
 
@@ -92,22 +94,22 @@ export function BackupSection(): React.ReactElement {
         setProgress(null)
       }, 1500)
     }
-  }, [])
+  }, [t])
 
   return (
     <>
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900">Backup {`&`} Restore</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t('backup.title')}</h3>
 
         {/* Backup subsection */}
         <div>
-          <h4 className="text-xs font-medium text-gray-500 mb-2">Backup</h4>
+          <h4 className="text-xs font-medium text-gray-500 mb-2">{t('backup.sectionBackup')}</h4>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleExport}>
-              Export Backup
+              {t('backup.exportButton')}
             </Button>
             <Button size="sm" variant="secondary" onClick={handleImportClick}>
-              Import Backup
+              {t('backup.importButton')}
             </Button>
           </div>
         </div>
@@ -115,19 +117,19 @@ export function BackupSection(): React.ReactElement {
         {/* Future export formats */}
         <div>
           <h4 className="text-xs font-medium text-gray-400 mb-2">
-            Export Formats (coming soon)
+            {t('backup.exportFormats')}
           </h4>
           <div className="flex gap-2">
-            <Button size="sm" variant="ghost" disabled title="Coming soon">
+            <Button size="sm" variant="ghost" disabled title={t('backup.comingSoon')}>
               <span className="flex items-center gap-1">
                 <span className="opacity-40">{'\uD83D\uDD12'}</span>
-                Export to PDF
+                {t('backup.exportPdf')}
               </span>
             </Button>
-            <Button size="sm" variant="ghost" disabled title="Coming soon">
+            <Button size="sm" variant="ghost" disabled title={t('backup.comingSoon')}>
               <span className="flex items-center gap-1">
                 <span className="opacity-40">{'\uD83D\uDD12'}</span>
-                Export to Excel
+                {t('backup.exportExcel')}
               </span>
             </Button>
           </div>
