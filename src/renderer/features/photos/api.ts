@@ -19,3 +19,10 @@ export async function deletePhoto(id: string): Promise<boolean> {
 export async function reorderPhotos(coinId: string, photoIds: string[]): Promise<void> {
   return window.api.photos.reorder(coinId, photoIds)
 }
+
+export async function uploadFromFiles(
+  coinId: string,
+  files: Array<{ originalName: string; dataUrl: string }>
+): Promise<Photo[]> {
+  return window.api.photos.createFromFiles(coinId, files) as Promise<Photo[]>
+}

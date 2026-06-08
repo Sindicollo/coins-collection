@@ -113,7 +113,8 @@
     "clickToAdd": "Click \"Add photo\" to add some.",
     "deleteTitle": "Delete Photo",
     "deleteConfirm": "Are you sure you want to delete this photo?",
-    "loadError": "Failed to load image"
+    "loadError": "Failed to load image",
+    "dropError": "Could not detect dropped files"
   },
   "import": {
     "title": "Import from Spreadsheet",

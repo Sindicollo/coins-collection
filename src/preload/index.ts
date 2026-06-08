@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose IPC methods to the renderer process
 const api = {
@@ -25,10 +25,13 @@ const api = {
     create: (coinId: string) => ipcRenderer.invoke('photo:create', coinId) as Promise<unknown[]>,
     createFromPaths: (coinId: string, filePaths: string[]) =>
       ipcRenderer.invoke('photo:create-from-paths', coinId, filePaths) as Promise<unknown[]>,
+    createFromFiles: (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) =>
+      ipcRenderer.invoke('photo:create-from-files', coinId, files) as Promise<unknown[]>,
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>
       ipcRenderer.invoke('photo:reorder', coinId, photoIds),
-    save: (id: string) => ipcRenderer.invoke('photo:save', id)
+    save: (id: string) => ipcRenderer.invoke('photo:save', id),
+    getFilePath: (file: File): string => webUtils.getPathForFile(file)
   },
   preferences: {
     getCurrency: () => ipcRenderer.invoke('pref:getCurrency'),

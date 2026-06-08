@@ -12,6 +12,7 @@ interface PhotoActions {
   loadPhotos: (coinId: string) => Promise<void>
   uploadPhoto: (coinId: string) => Promise<void>
   uploadPhotosFromPaths: (coinId: string, filePaths: string[]) => Promise<void>
+  uploadFromFiles: (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) => Promise<void>
   deletePhoto: (id: string) => Promise<void>
   reorderPhotos: (coinId: string, photoIds: string[]) => Promise<void>
   reset: () => void
@@ -52,6 +53,18 @@ export const usePhotoStore = create<PhotoState & PhotoActions>((set) => ({
     set({ error: null })
     try {
       const photos = await photoApi.uploadPhotosFromPaths(coinId, filePaths)
+      if (photos.length > 0) {
+        set((state) => ({ photos: [...state.photos, ...photos] }))
+      }
+    } catch (err) {
+      set({ error: String(err) })
+    }
+  },
+
+  uploadFromFiles: async (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) => {
+    set({ error: null })
+    try {
+      const photos = await photoApi.uploadFromFiles(coinId, files)
       if (photos.length > 0) {
         set((state) => ({ photos: [...state.photos, ...photos] }))
       }

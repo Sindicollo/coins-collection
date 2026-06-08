@@ -33,6 +33,13 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null)
   const [isDragOver, setIsDragOver] = React.useState(false)
   const dragOverCounter = React.useRef(0)
+  const dropZoneRef = React.useRef<HTMLDivElement>(null)
+  const coinIdRef = React.useRef(coinId)
+
+  // Keep coinId in a ref so the native event handler always has the latest value
+  React.useEffect(() => {
+    coinIdRef.current = coinId
+  }, [coinId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -48,6 +55,69 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinId])
+
+  // Native DOM event listeners for file drop from OS.
+  // We use native events because React's SyntheticEvent wrapping can strip
+  // Electron-specific properties like file.path from File objects.
+  React.useEffect(() => {
+    const el = dropZoneRef.current
+    if (!el) return
+
+    const onDragOver = (e: DragEvent): void => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const onDrop = async (e: DragEvent): Promise<void> => {
+      e.preventDefault()
+      e.stopPropagation()
+      dragOverCounter.current = 0
+      setIsDragOver(false)
+
+      const currentCoinId = coinIdRef.current
+      if (!currentCoinId) return
+
+      const files = e.dataTransfer?.files
+      if (!files || files.length === 0) return
+
+      // Read files as data URLs in the renderer (no file.path needed).
+      // This works reliably with contextIsolation because we never access
+      // Electron-specific properties on File objects.
+      const fileInfos: Array<{ originalName: string; dataUrl: string }> = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (!file.type.startsWith('image/')) continue
+
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = () => reject(reader.error)
+            reader.readAsDataURL(file)
+          })
+          fileInfos.push({ originalName: file.name, dataUrl })
+        } catch {
+          // Skip files that can't be read
+        }
+      }
+
+      if (fileInfos.length > 0) {
+        await store.uploadFromFiles(currentCoinId, fileInfos)
+      } else {
+        usePhotoStore.setState({ error: t('photos.dropError') })
+      }
+    }
+
+    el.addEventListener('dragover', onDragOver)
+    el.addEventListener('drop', onDrop)
+
+    return () => {
+      el.removeEventListener('dragover', onDragOver)
+      el.removeEventListener('drop', onDrop)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleAddPhoto = async (): Promise<void> => {
     if (coinId) {
@@ -67,11 +137,6 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
     }
   }
 
-  const handleDragOver = (e: React.DragEvent): void => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
   const handleDragEnter = (): void => {
     dragOverCounter.current += 1
     setIsDragOver(true)
@@ -82,30 +147,6 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
     if (dragOverCounter.current <= 0) {
       dragOverCounter.current = 0
       setIsDragOver(false)
-    }
-  }
-
-  const handleDrop = async (e: React.DragEvent): Promise<void> => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragOverCounter.current = 0
-    setIsDragOver(false)
-
-    const files = e.dataTransfer?.files
-    if (!files || files.length === 0 || !coinId) return
-
-    const filePaths: string[] = []
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      // Electron exposes the full path via file.path
-      const path = (file as File & { path?: string }).path
-      if (path) {
-        filePaths.push(path)
-      }
-    }
-
-    if (filePaths.length > 0) {
-      await store.uploadPhotosFromPaths(coinId, filePaths)
     }
   }
 
@@ -170,11 +211,10 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
 
       {/* Content */}
       <div
+        ref={dropZoneRef}
         className="flex-1 overflow-y-auto p-6 relative"
-        onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
       >
         {store.loading ? (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

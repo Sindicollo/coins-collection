@@ -179,4 +179,32 @@ describe('usePhotos store', () => {
     await usePhotoStore.getState().uploadPhotosFromPaths('c1', ['/path/a.jpg'])
     expect(usePhotoStore.getState().error).toBe('Error: Drop upload error')
   })
+
+  it('uploadFromFiles reads and adds photos on success', async () => {
+    vi.mocked(window.api.photos.createFromFiles).mockResolvedValue([mockPhoto, mockPhoto2])
+    usePhotoStore.setState({ photos: [] })
+
+    await usePhotoStore.getState().uploadFromFiles('c1', [
+      { originalName: 'a.jpg', dataUrl: 'data:image/jpeg;base64,/9j/4AAQ' },
+      { originalName: 'b.jpg', dataUrl: 'data:image/jpeg;base64,/9j/4AAQ' }
+    ])
+
+    const state = usePhotoStore.getState()
+    expect(state.photos).toEqual([mockPhoto, mockPhoto2])
+    expect(state.error).toBeNull()
+  })
+
+  it('uploadFromFiles does nothing when result is empty', async () => {
+    vi.mocked(window.api.photos.createFromFiles).mockResolvedValue([])
+
+    await usePhotoStore.getState().uploadFromFiles('c1', [])
+    expect(usePhotoStore.getState().photos).toEqual([])
+  })
+
+  it('uploadFromFiles sets error on failure', async () => {
+    vi.mocked(window.api.photos.createFromFiles).mockRejectedValue(new Error('File read error'))
+
+    await usePhotoStore.getState().uploadFromFiles('c1', [{ originalName: 'x.jpg', dataUrl: '' }])
+    expect(usePhotoStore.getState().error).toBe('Error: File read error')
+  })
 })

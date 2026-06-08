@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog, BrowserWindow } from 'electron'
 import { join, extname } from 'path'
-import { copyFileSync, mkdirSync, existsSync, unlinkSync, readFileSync, openSync, readSync, closeSync } from 'fs'
+import { copyFileSync, mkdirSync, existsSync, unlinkSync, readFileSync, writeFileSync, openSync, readSync, closeSync } from 'fs'
 import { IPC_CHANNELS } from '@shared/constants'
 import * as photoRepo from '../database/repositories/photos'
 import type { Photo } from '@shared/types'
@@ -27,19 +27,23 @@ function isValidImage(filePath: string): string | null {
     readSync(fd, buf, 0, 12, 0)
     closeSync(fd)
 
-    for (const magic of IMAGE_MAGIC) {
-      const match = buf.subarray(magic.offset, magic.offset + magic.bytes.length).equals(Buffer.from(magic.bytes))
-      if (!match) continue
-      // WebP needs extra check at offset 8
-      if (magic.ext === 'webp') {
-        return buf.subarray(8, 12).toString() === 'WEBP' ? 'webp' : null
-      }
-      return magic.ext
-    }
-    return null
+    return detectImageType(buf)
   } catch {
     return null
   }
+}
+
+function detectImageType(buf: Buffer): string | null {
+  for (const magic of IMAGE_MAGIC) {
+    const match = buf.subarray(magic.offset, magic.offset + magic.bytes.length).equals(Buffer.from(magic.bytes))
+    if (!match) continue
+    // WebP needs extra check at offset 8
+    if (magic.ext === 'webp') {
+      return buf.subarray(8, 12).toString() === 'WEBP' ? 'webp' : null
+    }
+    return magic.ext
+  }
+  return null
 }
 
 export function registerPhotoHandlers(): void {
@@ -129,6 +133,49 @@ export function registerPhotoHandlers(): void {
           coinId,
           filename,
           originalName: filePath.split('/').pop() ?? filePath
+        })
+        photos.push(photo)
+      }
+
+      return photos
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.PHOTO.CREATE_FROM_FILES,
+    async (
+      _event,
+      coinId: string,
+      files: Array<{ originalName: string; dataUrl: string }>
+    ): Promise<Photo[]> => {
+      const photosDir = getPhotosDir()
+      const photos: Photo[] = []
+
+      for (const { originalName, dataUrl } of files) {
+        // Extract base64 data from data URL
+        const match = dataUrl.match(/^data:image\/\w+;base64,(.+)$/)
+        if (!match) {
+          console.warn(`[photos] Skipping file without valid data URL: ${originalName}`)
+          continue
+        }
+        const b64 = match[1]
+        const buffer = Buffer.from(b64, 'base64')
+
+        const detected = detectImageType(buffer)
+        if (!detected) {
+          console.warn(`[photos] Skipping unsupported image format: ${originalName}`)
+          continue
+        }
+
+        const filename = `${uuidv4()}.${detected}`
+        const destPath = join(photosDir, filename)
+
+        writeFileSync(destPath, buffer)
+
+        const photo = photoRepo.createPhoto({
+          coinId,
+          filename,
+          originalName
         })
         photos.push(photo)
       }

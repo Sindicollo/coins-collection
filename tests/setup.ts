@@ -111,7 +111,8 @@ i18n.use(initReactI18next).init({
           clickToAdd: 'Click "Add photo" to add some.',
           deleteTitle: 'Delete Photo',
           deleteConfirm: 'Are you sure you want to delete this photo?',
-          loadError: 'Failed to load image'
+          loadError: 'Failed to load image',
+          dropError: 'Could not detect dropped files'
         },
         backup: {
           title: 'Backup & Restore',
@@ -169,9 +170,11 @@ if (typeof window !== 'undefined') {
       getPhotoData: vi.fn(),
       create: vi.fn(),
       createFromPaths: vi.fn(),
+      createFromFiles: vi.fn(),
       delete: vi.fn(),
       reorder: vi.fn(),
-      save: vi.fn()
+      save: vi.fn(),
+      getFilePath: vi.fn()
     },
     preferences: {
       getCurrency: vi.fn(),
