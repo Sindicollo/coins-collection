@@ -17,7 +17,7 @@ English/russian interface.
 
 ## Download
 
-[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v1.0.0/Coin.Collection-1.0.0-arm64.dmg) (macOS arm64, 105 MB)
+[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v1.1.0/Coin.Collection-1.1.0-arm64.dmg) (macOS arm64, 106 MB)
 
 > See [Releases](https://github.com/Sindicollo/coins-collection/releases) for other versions.
 
