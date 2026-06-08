@@ -108,6 +108,35 @@ export function registerPhotoHandlers(): void {
     }
   )
 
+  ipcMain.handle(
+    IPC_CHANNELS.PHOTO.CREATE_FROM_PATHS,
+    async (_event, coinId: string, filePaths: string[]): Promise<Photo[]> => {
+      const photosDir = getPhotosDir()
+      const photos: Photo[] = []
+
+      for (const filePath of filePaths) {
+        const detected = isValidImage(filePath)
+        if (!detected) {
+          console.warn(`[photos] Skipping non-image file: ${filePath}`)
+          continue
+        }
+        const filename = `${uuidv4()}.${detected}`
+        const destPath = join(photosDir, filename)
+
+        copyFileSync(filePath, destPath)
+
+        const photo = photoRepo.createPhoto({
+          coinId,
+          filename,
+          originalName: filePath.split('/').pop() ?? filePath
+        })
+        photos.push(photo)
+      }
+
+      return photos
+    }
+  )
+
   ipcMain.handle(IPC_CHANNELS.PHOTO.DELETE, async (_event, id: string): Promise<boolean> => {
     const filename = photoRepo.getPhotoPath(id)
     if (!filename) return false

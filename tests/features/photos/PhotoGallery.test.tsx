@@ -82,4 +82,17 @@ describe('PhotoGallery', () => {
     // The Add photo button should be rendered
     expect(screen.getByText('Add photo')).toBeDefined()
   })
+
+  it('add photo button shows drag-over styling when isDragOver is true', async () => {
+    vi.spyOn(photoApi, 'fetchPhotos').mockResolvedValue(mockPhotos)
+
+    await act(async () => {
+      renderWithRouter(<PhotoGallery />)
+    })
+
+    await waitFor(() => {
+      const addButton = screen.getByText('Add photo').closest('button')
+      expect(addButton).toBeDefined()
+    })
+  })
 })

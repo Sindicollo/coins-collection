@@ -168,6 +168,7 @@ if (typeof window !== 'undefined') {
       list: vi.fn(),
       getPhotoData: vi.fn(),
       create: vi.fn(),
+      createFromPaths: vi.fn(),
       delete: vi.fn(),
       reorder: vi.fn(),
       save: vi.fn()

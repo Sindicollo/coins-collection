@@ -19,6 +19,7 @@ export const IPC_CHANNELS = {
     LIST: 'photo:list',
     GET_PATH: 'photo:get-path',
     CREATE: 'photo:create',
+    CREATE_FROM_PATHS: 'photo:create-from-paths',
     DELETE: 'photo:delete',
     REORDER: 'photo:reorder',
     SAVE: 'photo:save'

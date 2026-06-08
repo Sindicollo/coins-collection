@@ -1,6 +1,14 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { usePhotoStore } from './usePhotos'
 import { Lightbox } from './Lightbox'
 import { ArrowLeft } from '@/components/ui/icons/ArrowLeft'
@@ -23,6 +31,16 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
   const store = usePhotoStore()
 
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null)
+  const [isDragOver, setIsDragOver] = React.useState(false)
+  const dragOverCounter = React.useRef(0)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8
+      }
+    })
+  )
 
   React.useEffect(() => {
     if (coinId) {
@@ -49,6 +67,67 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
     }
   }
 
+  const handleDragOver = (e: React.DragEvent): void => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (): void => {
+    dragOverCounter.current += 1
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (): void => {
+    dragOverCounter.current -= 1
+    if (dragOverCounter.current <= 0) {
+      dragOverCounter.current = 0
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent): Promise<void> => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragOverCounter.current = 0
+    setIsDragOver(false)
+
+    const files = e.dataTransfer?.files
+    if (!files || files.length === 0 || !coinId) return
+
+    const filePaths: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      // Electron exposes the full path via file.path
+      const path = (file as File & { path?: string }).path
+      if (path) {
+        filePaths.push(path)
+      }
+    }
+
+    if (filePaths.length > 0) {
+      await store.uploadPhotosFromPaths(coinId, filePaths)
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent): void => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) return
+
+    const oldIndex = store.photos.findIndex((p) => p.id === active.id)
+    const newIndex = store.photos.findIndex((p) => p.id === over.id)
+
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(store.photos, oldIndex, newIndex)
+    // Optimistic update
+    usePhotoStore.setState({ photos: reordered })
+
+    if (coinId) {
+      store.reorderPhotos(coinId, reordered.map((p) => p.id))
+    }
+  }
+
   const handleBack = (): void => {
     navigate(-1)
   }
@@ -64,6 +143,8 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       setLightboxIndex(newIndex)
     }
   }
+
+  const photoIds = store.photos.map((p) => p.id)
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
@@ -88,7 +169,13 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div
+        className="flex-1 overflow-y-auto p-6 relative"
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {store.loading ? (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(6)].map((_, i) => (
@@ -105,17 +192,21 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {store.photos.map((photo, index) => (
-              <PhotoThumbnail
-                key={photo.id}
-                photo={photo}
-                onClick={() => openLightbox(index)}
-                onDelete={() => handleDeletePhoto(photo.id)}
-              />
-            ))}
-            <AddPhotoButton onClick={handleAddPhoto} />
-          </div>
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <SortableContext items={photoIds} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {store.photos.map((photo, index) => (
+                  <SortablePhotoThumbnail
+                    key={photo.id}
+                    photo={photo}
+                    onClick={() => openLightbox(index)}
+                    onDelete={() => handleDeletePhoto(photo.id)}
+                  />
+                ))}
+                <AddPhotoButton onClick={handleAddPhoto} isDragOver={isDragOver} />
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {!store.loading && !store.error && store.photos.length === 0 && (
@@ -142,13 +233,49 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
   )
 }
 
-interface PhotoThumbnailProps {
+interface SortablePhotoThumbnailProps {
   photo: Photo
   onClick: () => void
   onDelete: () => void
 }
 
-function PhotoThumbnail({ photo, onClick, onDelete }: PhotoThumbnailProps): React.ReactElement {
+function SortablePhotoThumbnail({
+  photo,
+  onClick,
+  onDelete
+}: SortablePhotoThumbnailProps): React.ReactElement {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: photo.id
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 50 : undefined
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <PhotoThumbnailInner photo={photo} onClick={onClick} onDelete={onDelete} isDragging={isDragging} />
+    </div>
+  )
+}
+
+interface PhotoThumbnailInnerProps {
+  photo: Photo
+  onClick: () => void
+  onDelete: () => void
+  isDragging: boolean
+}
+
+function PhotoThumbnailInner({
+  photo,
+  onClick,
+  onDelete,
+  isDragging
+}: PhotoThumbnailInnerProps): React.ReactElement {
   const { t } = useTranslation()
   const [imgSrc, setImgSrc] = React.useState<string>('')
   const [imgError, setImgError] = React.useState(false)
@@ -167,10 +294,18 @@ function PhotoThumbnail({ photo, onClick, onDelete }: PhotoThumbnailProps): Reac
     onDelete()
   }
 
+  const handleClick = (e: React.MouseEvent): void => {
+    if (isDragging) return
+    e.stopPropagation()
+    onClick()
+  }
+
   return (
     <div
-      className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 cursor-pointer group"
-      onClick={onClick}
+      className={`relative aspect-square rounded-lg overflow-hidden bg-gray-800 cursor-pointer group ${
+        isDragging ? 'ring-2 ring-blue-400' : ''
+      }`}
+      onClick={handleClick}
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => setShowDelete(false)}
     >
@@ -204,17 +339,20 @@ function PhotoThumbnail({ photo, onClick, onDelete }: PhotoThumbnailProps): Reac
 
 interface AddPhotoButtonProps {
   onClick: () => void
+  isDragOver: boolean
 }
 
-function AddPhotoButton({ onClick }: AddPhotoButtonProps): React.ReactElement {
+function AddPhotoButton({ onClick, isDragOver }: AddPhotoButtonProps): React.ReactElement {
   const { t } = useTranslation()
 
   return (
     <button
       onClick={onClick}
-      className="aspect-square rounded-lg border-2 border-dashed border-gray-600
-        hover:border-gray-400 transition-colors flex flex-col items-center justify-center
-        text-gray-500 hover:text-gray-300 gap-1"
+      className={`aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1 ${
+        isDragOver
+          ? 'border-blue-400 text-blue-300 bg-blue-900/30'
+          : 'border-gray-600 hover:border-gray-400 text-gray-500 hover:text-gray-300'
+      }`}
       title={t('photos.addPhoto')}
     >
       <Plus className="w-8 h-8" />

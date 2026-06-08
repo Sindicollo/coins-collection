@@ -134,4 +134,49 @@ describe('usePhotos store', () => {
     expect(state.loading).toBe(false)
     expect(state.error).toBeNull()
   })
+
+  it('reorderPhotos updates photo order from new IDs', async () => {
+    window.api.photos.reorder = vi.fn().mockResolvedValue(undefined)
+    usePhotoStore.setState({ photos: [mockPhoto, mockPhoto2] })
+
+    await usePhotoStore.getState().reorderPhotos('c1', ['p2', 'p1'])
+
+    const state = usePhotoStore.getState()
+    expect(state.photos).toEqual([mockPhoto2, mockPhoto])
+    expect(state.error).toBeNull()
+    expect(window.api.photos.reorder).toHaveBeenCalledWith('c1', ['p2', 'p1'])
+  })
+
+  it('reorderPhotos sets error on failure', async () => {
+    window.api.photos.reorder = vi.fn().mockRejectedValue(new Error('Reorder error'))
+
+    await usePhotoStore.getState().reorderPhotos('c1', ['p1'])
+    expect(usePhotoStore.getState().error).toBe('Error: Reorder error')
+  })
+
+  it('uploadPhotosFromPaths adds photos on success', async () => {
+    vi.mocked(window.api.photos.createFromPaths).mockResolvedValue([mockPhoto, mockPhoto2])
+    usePhotoStore.setState({ photos: [] })
+
+    await usePhotoStore.getState().uploadPhotosFromPaths('c1', ['/path/a.jpg', '/path/b.jpg'])
+
+    const state = usePhotoStore.getState()
+    expect(state.photos).toEqual([mockPhoto, mockPhoto2])
+    expect(state.error).toBeNull()
+    expect(window.api.photos.createFromPaths).toHaveBeenCalledWith('c1', ['/path/a.jpg', '/path/b.jpg'])
+  })
+
+  it('uploadPhotosFromPaths does nothing when result is empty', async () => {
+    vi.mocked(window.api.photos.createFromPaths).mockResolvedValue([])
+
+    await usePhotoStore.getState().uploadPhotosFromPaths('c1', [])
+    expect(usePhotoStore.getState().photos).toEqual([])
+  })
+
+  it('uploadPhotosFromPaths sets error on failure', async () => {
+    vi.mocked(window.api.photos.createFromPaths).mockRejectedValue(new Error('Drop upload error'))
+
+    await usePhotoStore.getState().uploadPhotosFromPaths('c1', ['/path/a.jpg'])
+    expect(usePhotoStore.getState().error).toBe('Error: Drop upload error')
+  })
 })

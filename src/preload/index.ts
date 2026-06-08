@@ -23,6 +23,8 @@ const api = {
     list: (coinId: string) => ipcRenderer.invoke('photo:list', coinId),
     getPhotoData: (id: string) => ipcRenderer.invoke('photo:get-path', id),
     create: (coinId: string) => ipcRenderer.invoke('photo:create', coinId) as Promise<unknown[]>,
+    createFromPaths: (coinId: string, filePaths: string[]) =>
+      ipcRenderer.invoke('photo:create-from-paths', coinId, filePaths) as Promise<unknown[]>,
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>
       ipcRenderer.invoke('photo:reorder', coinId, photoIds),
