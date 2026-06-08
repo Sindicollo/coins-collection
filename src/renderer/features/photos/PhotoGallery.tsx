@@ -161,11 +161,16 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
     if (oldIndex === -1 || newIndex === -1) return
 
     const reordered = arrayMove(store.photos, oldIndex, newIndex)
+    const prevPhotos = store.photos
+
     // Optimistic update
     usePhotoStore.setState({ photos: reordered })
 
     if (coinId) {
-      store.reorderPhotos(coinId, reordered.map((p) => p.id))
+      store.reorderPhotos(coinId, reordered.map((p) => p.id)).catch(() => {
+        // Rollback on failure
+        usePhotoStore.setState({ photos: prevPhotos })
+      })
     }
   }
 
@@ -293,6 +298,7 @@ function SortablePhotoThumbnail({
     transition,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative',
+    touchAction: 'none',
     zIndex: isDragging ? 50 : undefined
   }
 
@@ -388,7 +394,7 @@ function AddPhotoButton({ onClick, isDragOver }: AddPhotoButtonProps): React.Rea
   return (
     <button
       onClick={onClick}
-      className={`aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1 ${
+      className={`aspect-square rounded-lg border-2 border-dashed transition flex flex-col items-center justify-center gap-1 ${
         isDragOver
           ? 'border-blue-400 text-blue-300 bg-blue-900/30'
           : 'border-gray-600 hover:border-gray-400 text-gray-500 hover:text-gray-300'

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose IPC methods to the renderer process
 const api = {
@@ -30,8 +30,7 @@ const api = {
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>
       ipcRenderer.invoke('photo:reorder', coinId, photoIds),
-    save: (id: string) => ipcRenderer.invoke('photo:save', id),
-    getFilePath: (file: File): string => webUtils.getPathForFile(file)
+    save: (id: string) => ipcRenderer.invoke('photo:save', id)
   },
   preferences: {
     getCurrency: () => ipcRenderer.invoke('pref:getCurrency'),

@@ -83,7 +83,7 @@ describe('PhotoGallery', () => {
     expect(screen.getByText('Add photo')).toBeDefined()
   })
 
-  it('add photo button shows drag-over styling when isDragOver is true', async () => {
+  it('renders add photo button alongside loaded photos', async () => {
     vi.spyOn(photoApi, 'fetchPhotos').mockResolvedValue(mockPhotos)
 
     await act(async () => {

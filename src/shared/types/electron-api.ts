@@ -28,7 +28,6 @@ export interface ElectronAPI {
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>
     save: (id: string) => Promise<string | null>
-    getFilePath: (file: File) => string
   }
   preferences: {
     getCurrency: () => Promise<string>

@@ -58,7 +58,7 @@ describe('usePhotos store', () => {
     const state = usePhotoStore.getState()
     expect(state.photos).toEqual([])
     expect(state.loading).toBe(false)
-    expect(state.error).toBe('Error: Test error')
+    expect(state.error).toBe('Test error')
   })
 
   it('loadPhotos sets loading to true while fetching', async () => {
@@ -95,7 +95,7 @@ describe('usePhotos store', () => {
 
     await usePhotoStore.getState().uploadPhoto('c1')
 
-    expect(usePhotoStore.getState().error).toBe('Error: Upload error')
+    expect(usePhotoStore.getState().error).toBe('Upload error')
   })
 
   it('uploadPhoto adds multiple photos', async () => {
@@ -151,7 +151,7 @@ describe('usePhotos store', () => {
     window.api.photos.reorder = vi.fn().mockRejectedValue(new Error('Reorder error'))
 
     await usePhotoStore.getState().reorderPhotos('c1', ['p1'])
-    expect(usePhotoStore.getState().error).toBe('Error: Reorder error')
+    expect(usePhotoStore.getState().error).toBe('Reorder error')
   })
 
   it('uploadPhotosFromPaths adds photos on success', async () => {
@@ -177,7 +177,7 @@ describe('usePhotos store', () => {
     vi.mocked(window.api.photos.createFromPaths).mockRejectedValue(new Error('Drop upload error'))
 
     await usePhotoStore.getState().uploadPhotosFromPaths('c1', ['/path/a.jpg'])
-    expect(usePhotoStore.getState().error).toBe('Error: Drop upload error')
+    expect(usePhotoStore.getState().error).toBe('Drop upload error')
   })
 
   it('uploadFromFiles reads and adds photos on success', async () => {
@@ -205,6 +205,6 @@ describe('usePhotos store', () => {
     vi.mocked(window.api.photos.createFromFiles).mockRejectedValue(new Error('File read error'))
 
     await usePhotoStore.getState().uploadFromFiles('c1', [{ originalName: 'x.jpg', dataUrl: '' }])
-    expect(usePhotoStore.getState().error).toBe('Error: File read error')
+    expect(usePhotoStore.getState().error).toBe('File read error')
   })
 })

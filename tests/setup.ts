@@ -173,8 +173,7 @@ if (typeof window !== 'undefined') {
       createFromFiles: vi.fn(),
       delete: vi.fn(),
       reorder: vi.fn(),
-      save: vi.fn(),
-      getFilePath: vi.fn()
+      save: vi.fn()
     },
     preferences: {
       getCurrency: vi.fn(),
