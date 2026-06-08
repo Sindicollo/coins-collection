@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Photo } from '@shared/types'
+import type { Photo, DropFileInput } from '@shared/types'
 import * as photoApi from './api'
 
 function toErrorMessage(err: unknown): string {
@@ -16,7 +16,7 @@ interface PhotoActions {
   loadPhotos: (coinId: string) => Promise<void>
   uploadPhoto: (coinId: string) => Promise<void>
   uploadPhotosFromPaths: (coinId: string, filePaths: string[]) => Promise<void>
-  uploadFromFiles: (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) => Promise<void>
+  uploadFromFiles: (coinId: string, files: DropFileInput[]) => Promise<void>
   deletePhoto: (id: string) => Promise<void>
   reorderPhotos: (coinId: string, photoIds: string[]) => Promise<void>
   reset: () => void
@@ -70,7 +70,7 @@ export const usePhotoStore = create<Store>((set) => {
       }
     },
 
-    uploadFromFiles: async (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) => {
+    uploadFromFiles: async (coinId: string, files: DropFileInput[]) => {
       set({ error: null })
       try {
         const photos = await photoApi.uploadFromFiles(coinId, files)

@@ -3,7 +3,7 @@ import { join, extname } from 'path'
 import { copyFileSync, mkdirSync, existsSync, unlinkSync, readFileSync, writeFileSync, openSync, readSync, closeSync } from 'fs'
 import { IPC_CHANNELS } from '@shared/constants'
 import * as photoRepo from '../database/repositories/photos'
-import type { Photo } from '@shared/types'
+import type { Photo, DropFileInput } from '@shared/types'
 import { uuidv4 } from '../database/repositories/uuid'
 
 function getPhotosDir(): string {
@@ -146,7 +146,7 @@ export function registerPhotoHandlers(): void {
     async (
       _event,
       coinId: string,
-      files: Array<{ originalName: string; dataUrl: string }>
+      files: DropFileInput[]
     ): Promise<Photo[]> => {
       const photosDir = getPhotosDir()
       const photos: Photo[] = []

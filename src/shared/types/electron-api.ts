@@ -2,6 +2,8 @@
 // Single source of truth for the preload bridge API shape.
 // Used by both renderer (global-api.ts) and preload (index.d.ts) type declarations.
 
+import type { DropFileInput } from './photo'
+
 export interface ElectronAPI {
   collections: {
     list: () => Promise<any[]>
@@ -24,7 +26,7 @@ export interface ElectronAPI {
     getPhotoData: (id: string) => Promise<string | null>
     create: (coinId: string) => Promise<any[]>
     createFromPaths: (coinId: string, filePaths: string[]) => Promise<any[]>
-    createFromFiles: (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) => Promise<any[]>
+    createFromFiles: (coinId: string, files: DropFileInput[]) => Promise<any[]>
     delete: (id: string) => Promise<boolean>
     reorder: (coinId: string, photoIds: string[]) => Promise<void>
     save: (id: string) => Promise<string | null>

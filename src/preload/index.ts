@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { DropFileInput } from '@shared/types/photo'
 
 // Expose IPC methods to the renderer process
 const api = {
@@ -25,7 +26,7 @@ const api = {
     create: (coinId: string) => ipcRenderer.invoke('photo:create', coinId) as Promise<unknown[]>,
     createFromPaths: (coinId: string, filePaths: string[]) =>
       ipcRenderer.invoke('photo:create-from-paths', coinId, filePaths) as Promise<unknown[]>,
-    createFromFiles: (coinId: string, files: Array<{ originalName: string; dataUrl: string }>) =>
+    createFromFiles: (coinId: string, files: DropFileInput[]) =>
       ipcRenderer.invoke('photo:create-from-files', coinId, files) as Promise<unknown[]>,
     delete: (id: string) => ipcRenderer.invoke('photo:delete', id),
     reorder: (coinId: string, photoIds: string[]) =>

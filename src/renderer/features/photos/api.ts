@@ -1,4 +1,4 @@
-import type { Photo } from '@shared/types'
+import type { Photo, DropFileInput } from '@shared/types'
 
 export async function fetchPhotos(coinId: string): Promise<Photo[]> {
   return window.api.photos.list(coinId)
@@ -22,7 +22,7 @@ export async function reorderPhotos(coinId: string, photoIds: string[]): Promise
 
 export async function uploadFromFiles(
   coinId: string,
-  files: Array<{ originalName: string; dataUrl: string }>
+  files: DropFileInput[]
 ): Promise<Photo[]> {
   return window.api.photos.createFromFiles(coinId, files) as Promise<Photo[]>
 }

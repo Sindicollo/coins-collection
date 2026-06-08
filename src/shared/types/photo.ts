@@ -13,3 +13,9 @@ export interface CreatePhotoInput {
   originalName?: string | null
   position?: number
 }
+
+/** Payload for drag-and-drop file upload from renderer to main process */
+export interface DropFileInput {
+  originalName: string
+  dataUrl: string
+}

@@ -18,7 +18,7 @@ import { Delete } from '@/components/ui/icons/Delete'
 import { Plus } from '@/components/ui/icons/Plus'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
-import type { Photo } from '@shared/types'
+import type { Photo, DropFileInput } from '@shared/types'
 
 interface PhotoGalleryProps {
   onOpenSettings?: () => void
@@ -83,7 +83,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       // Read files as data URLs in the renderer (no file.path needed).
       // This works reliably with contextIsolation because we never access
       // Electron-specific properties on File objects.
-      const fileInfos: Array<{ originalName: string; dataUrl: string }> = []
+      const fileInfos: DropFileInput[] = []
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
