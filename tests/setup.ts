@@ -117,9 +117,10 @@ i18n.use(initReactI18next).init({
         backup: {
           title: 'Backup & Restore',
           sectionBackup: 'Backup',
+          sectionBackupTooltip: 'ZIP file with a full copy of the database contents, including photos',
           exportButton: 'Export Backup',
           importButton: 'Import Backup',
-          exportFormats: 'Export Formats (coming soon)',
+          exportFormats: 'Export Formats',
           exportPdf: 'Export to PDF',
           exportExcel: 'Export to Excel',
           comingSoon: 'Coming soon',
@@ -138,6 +139,18 @@ i18n.use(initReactI18next).init({
           close: 'Close',
           exportProgress: 'Export Backup',
           importProgress: 'Import Backup'
+        },
+        export: {
+          title: 'Export to Excel',
+          selectCollections: 'Select collections',
+          noCollections: 'No collections found',
+          selectAll: 'Select all',
+          deselectAll: 'Deselect all',
+          includeImages: 'Include images (base64, max 400px height)',
+          includeSold: 'Include sold coins',
+          cancel: 'Cancel',
+          export: 'Export',
+          exporting: 'Exporting…'
         }
       }
     }
@@ -197,6 +210,10 @@ if (typeof window !== 'undefined') {
       importExecute: vi.fn(),
       onExportProgress: vi.fn(() => vi.fn()),
       onImportProgress: vi.fn(() => vi.fn())
+    },
+    export: {
+      excel: vi.fn(),
+      onProgress: vi.fn(() => vi.fn())
     }
   }
 }

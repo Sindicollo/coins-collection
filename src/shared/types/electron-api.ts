@@ -54,4 +54,8 @@ export interface ElectronAPI {
     onExportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
     onImportProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
   }
+  export: {
+    excel: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; locale: string }) => Promise<string | null>
+    onProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
+  }
 }

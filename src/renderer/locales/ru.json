@@ -136,11 +136,12 @@
     "button": "Импорт из таблицы"
   },
   "backup": {
-    "title": "Резервное копирование",
-    "sectionBackup": "Копия",
+    "title": "Действия с коллекциями",
+    "sectionBackup": "Бэкап",
+    "sectionBackupTooltip": "zip файл с полной копией содержимого базы данных, включая фото",
     "exportButton": "Экспорт БД",
     "importButton": "Импорт БД",
-    "exportFormats": "Форматы экспорта (скоро)",
+    "exportFormats": "Форматы экспорта",
     "exportPdf": "Экспорт в PDF",
     "exportExcel": "Экспорт в Excel",
     "comingSoon": "Скоро",
@@ -148,7 +149,7 @@
     "loadingPreview": "Загрузка…",
     "date": "Дата:",
     "appVersion": "Версия приложения:",
-    "columnBackup": "Копия",
+    "columnBackup": "Бэкап",
     "columnCurrent": "Текущие",
     "rowCollections": "Коллекции",
     "rowCoins": "Монеты",
@@ -159,5 +160,17 @@
     "close": "Закрыть",
     "exportProgress": "Экспорт БД",
     "importProgress": "Импорт БД"
+  },
+  "export": {
+    "title": "Экспорт в Excel",
+    "selectCollections": "Выберите коллекции",
+    "noCollections": "Коллекции не найдены",
+    "selectAll": "Выбрать всё",
+    "deselectAll": "Снять всё",
+    "includeImages": "Включить изображения (base64, макс. 400px)",
+    "includeSold": "Включить проданные монеты",
+    "cancel": "Отмена",
+    "export": "Экспорт",
+    "exporting": "Экспорт…"
   }
 }

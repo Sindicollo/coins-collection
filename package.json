@@ -21,8 +21,8 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run --coverage",
-    "postinstall": "electron-rebuild -f -w better-sqlite3 --arch arm64",
-    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 --arch arm64",
+    "postinstall": "electron-rebuild -f -w better-sqlite3,sharp --arch arm64",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3,sharp --arch arm64",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
     "dist:all": "npm run build && electron-builder --mac --win"
@@ -34,6 +34,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^11.7.0",
+    "exceljs": "^4.4.0",
     "i18next": "^26.3.0",
     "i18next-browser-languagedetector": "^8.2.1",
     "react-i18next": "^17.0.8",

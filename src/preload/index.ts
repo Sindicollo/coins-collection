@@ -71,6 +71,15 @@ const api = {
       ipcRenderer.on('backup:import-progress', handler)
       return () => ipcRenderer.removeListener('backup:import-progress', handler)
     }
+  },
+  export: {
+    excel: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean }) =>
+      ipcRenderer.invoke('export:excel', options) as Promise<string | null>,
+    onProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { stage: string; current: number; total: number; message: string }) => callback(data)
+      ipcRenderer.on('export:progress', handler)
+      return () => ipcRenderer.removeListener('export:progress', handler)
+    }
   }
 }
 

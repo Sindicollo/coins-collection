@@ -5,6 +5,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({ exclude: ['@electron-toolkit/utils', 'adm-zip', 'xlsx'] })],
+    build: {
+      rollupOptions: {
+        external: ['sharp', /^sharp\//]
+      }
+    },
     resolve: {
       alias: {
         '@shared': resolve('src/shared')
