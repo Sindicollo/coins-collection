@@ -7,6 +7,8 @@ import { Coin } from '@/components/ui/icons/Coin'
 import { CollectionSidebar } from './features/collections/CollectionSidebar'
 import { CoinView } from './features/coins/CoinView'
 import { PhotoGallery } from './features/photos/PhotoGallery'
+import { ExportDialog } from './features/export/ExportDialog'
+import { useExportStore } from './features/export/useExport'
 import { useCollectionManager } from './features/collections/useCollections'
 
 function HomeView(): React.ReactElement {
@@ -45,6 +47,17 @@ function HomeView(): React.ReactElement {
 function App(): React.ReactElement {
   const [showSettings, setShowSettings] = React.useState(false)
   const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
+  const exportOpen = useExportStore((s) => s.open)
+  const exportError = useExportStore((s) => s.error)
+
+  // Close settings after successful export (dialog closes)
+  const prevExportOpen = React.useRef(exportOpen)
+  React.useEffect(() => {
+    if (prevExportOpen.current && !exportOpen && !exportError) {
+      setShowSettings(false)
+    }
+    prevExportOpen.current = exportOpen
+  }, [exportOpen, exportError])
 
   React.useEffect(() => {
     window.api.preferences.getCurrency().then(setDefaultCurrency)
@@ -81,6 +94,8 @@ function App(): React.ReactElement {
         onSaveCurrency={handleSaveCurrency}
         onClose={() => setShowSettings(false)}
       />
+
+      <ExportDialog />
     </>
   )
 }

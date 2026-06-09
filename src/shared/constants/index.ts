@@ -40,6 +40,9 @@ export const IPC_CHANNELS = {
     IMPORT_SELECT: 'backup:import-select',
     IMPORT_PREVIEW: 'backup:import-preview',
     IMPORT_EXECUTE: 'backup:import-execute'
+  },
+  EXPORT: {
+    EXCEL: 'export:excel'
   }
 } as const
 

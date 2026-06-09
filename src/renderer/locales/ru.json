@@ -159,5 +159,17 @@
     "close": "Закрыть",
     "exportProgress": "Экспорт БД",
     "importProgress": "Импорт БД"
+  },
+  "export": {
+    "title": "Экспорт в Excel",
+    "selectCollections": "Выберите коллекции",
+    "noCollections": "Коллекции не найдены",
+    "selectAll": "Выбрать всё",
+    "deselectAll": "Снять всё",
+    "includeImages": "Включить изображения (base64, макс. 400px)",
+    "includeSold": "Включить проданные монеты",
+    "cancel": "Отмена",
+    "export": "Экспорт",
+    "exporting": "Экспорт…"
   }
 }

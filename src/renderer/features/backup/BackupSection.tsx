@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { ImportDialog } from './ImportDialog'
 import { ProgressModal } from './ProgressModal'
+import { useExportStore } from '@/features/export/useExport'
 import type { BackupPreview } from '@shared/types'
 
 export function BackupSection(): React.ReactElement {
   const { t } = useTranslation()
+  const openExportDialog = useExportStore((s) => s.openDialog)
   const [importDialogOpen, setImportDialogOpen] = React.useState(false)
   const [preview, setPreview] = React.useState<BackupPreview | null>(null)
   const importZipPathRef = React.useRef<string | null>(null)
@@ -126,9 +128,9 @@ export function BackupSection(): React.ReactElement {
                 {t('backup.exportPdf')}
               </span>
             </Button>
-            <Button size="sm" variant="ghost" disabled title={t('backup.comingSoon')}>
+            <Button size="sm" variant="ghost" onClick={openExportDialog} className="justify-start">
               <span className="flex items-center gap-1">
-                <span className="opacity-40">{'\uD83D\uDD12'}</span>
+                {'\uD83D\uDDC2'}
                 {t('backup.exportExcel')}
               </span>
             </Button>
