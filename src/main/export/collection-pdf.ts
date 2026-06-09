@@ -32,6 +32,7 @@ const MAX_PHOTO_HEIGHT = 150
 const PHOTO_BOTTOM_MARGIN = 12
 const SEPARATOR_COLOR = '#d4d4d4'
 const GRAY_COLOR = '#888888'
+const RED_COLOR = '#cc0000'
 
 const FONT = 'DejaVuSans'
 const FONT_BOLD = 'DejaVuSans-Bold'
@@ -78,7 +79,7 @@ function registerFonts(doc: PDFKit.PDFDocument): void {
 }
 
 // ── Coin text builders ──────────────────────────────────────
-function buildCoinMainLine(coin: Coin, locale: 'en' | 'ru'): string {
+export function buildCoinMainLine(coin: Coin, locale: 'en' | 'ru'): string {
   const parts: string[] = []
   parts.push(`${t(locale, 'denomination')}: ${coin.denomination}`)
   if (coin.year) parts.push(`${coin.year}`)
@@ -86,7 +87,7 @@ function buildCoinMainLine(coin: Coin, locale: 'en' | 'ru'): string {
   return parts.join('  \u00B7  ')
 }
 
-function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru'): string[] {
+export function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru'): string[] {
   const lines: string[] = []
   if (coin.country) lines.push(`${t(locale, 'country')}: ${coin.country}`)
   if (coin.condition) lines.push(`${t(locale, 'condition')}: ${coin.condition}`)
@@ -94,7 +95,7 @@ function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru'): string[] {
   return lines
 }
 
-function buildPurchaseLine(coin: Coin, locale: 'en' | 'ru'): string | null {
+export function buildPurchaseLine(coin: Coin, locale: 'en' | 'ru'): string | null {
   const parts: string[] = []
   if (coin.price !== null && coin.price !== undefined) {
     let s = `${t(locale, 'price')}: ${coin.price}`
@@ -357,10 +358,35 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
 
       // ── Main line ─────────────────────────────────────────
       doc.font(FONT_BOLD).fontSize(11)
-      doc.text(buildCoinMainLine(coin, locale), MARGIN + 8, doc.y, {
-        width: CONTENT_WIDTH - 8,
-        lineBreak: true
-      })
+      const lineY = doc.y
+
+      // Base line: Denomination + Year (black)
+      const baseParts: string[] = [`${t(locale, 'denomination')}: ${coin.denomination}`]
+      if (coin.year) baseParts.push(`${coin.year}`)
+      const baseLine = baseParts.join('  \u00B7  ')
+
+      doc.fillColor('#000000')
+      doc.text(baseLine, MARGIN + 8, lineY)
+
+      const cursorX = MARGIN + 8 + doc.widthOfString(baseLine)
+
+      // Sold label in red (inline)
+      if (coin.sold) {
+        const soldStr = `  \u00B7  ${t(locale, 'sold')}`
+        // If it fits on the same line, render inline; otherwise new line
+        if (cursorX + doc.widthOfString(soldStr) < PAGE_WIDTH - MARGIN) {
+          doc.fillColor(RED_COLOR)
+          doc.text(soldStr, cursorX, lineY)
+        } else {
+          doc.y = lineY + 14
+          doc.fillColor(RED_COLOR)
+          doc.text(soldStr, MARGIN + 8, doc.y)
+        }
+        doc.fillColor('#000000')
+      }
+
+      // Advance y past the line
+      doc.y = Math.max(doc.y, lineY + 14)
       doc.moveDown(0.2)
 
       // ── Detail lines ──────────────────────────────────────
