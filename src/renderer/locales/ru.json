@@ -137,7 +137,7 @@
   },
   "backup": {
     "title": "Резервное копирование",
-    "sectionBackup": "Копия",
+    "sectionBackup": "Бэкап",
     "exportButton": "Экспорт БД",
     "importButton": "Импорт БД",
     "exportFormats": "Форматы экспорта",
@@ -148,7 +148,7 @@
     "loadingPreview": "Загрузка…",
     "date": "Дата:",
     "appVersion": "Версия приложения:",
-    "columnBackup": "Копия",
+    "columnBackup": "Бэкап",
     "columnCurrent": "Текущие",
     "rowCollections": "Коллекции",
     "rowCoins": "Монеты",
