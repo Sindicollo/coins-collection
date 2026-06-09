@@ -119,7 +119,7 @@ i18n.use(initReactI18next).init({
           sectionBackup: 'Backup',
           exportButton: 'Export Backup',
           importButton: 'Import Backup',
-          exportFormats: 'Export Formats (coming soon)',
+          exportFormats: 'Export Formats',
           exportPdf: 'Export to PDF',
           exportExcel: 'Export to Excel',
           comingSoon: 'Coming soon',

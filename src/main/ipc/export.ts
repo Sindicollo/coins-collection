@@ -8,7 +8,7 @@ export function registerExportHandlers(): void {
     IPC_CHANNELS.EXPORT.EXCEL,
     async (
       event,
-      options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; locale: string }
+      options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; locale: 'en' | 'ru' }
     ): Promise<string | null> => {
       const win = BrowserWindow.fromWebContents(event.sender)
       if (!win) return null
@@ -36,7 +36,9 @@ export function registerExportHandlers(): void {
       // Show save dialog
       const result = await dialog.showSaveDialog(win, {
         title: 'Save Excel Export',
-        defaultPath: `coin-collection-export-${Date.now()}.xlsx`,
+        defaultPath: options.locale === 'ru'
+          ? `коллекция-монет-${Date.now()}.xlsx`
+          : `coin-collection-export-${Date.now()}.xlsx`,
         filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
       })
 

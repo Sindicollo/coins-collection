@@ -116,7 +116,7 @@ export function BackupSection(): React.ReactElement {
           </div>
         </div>
 
-        {/* Future export formats */}
+        {/* Export formats */}
         <div>
           <h4 className="text-xs font-medium text-gray-400 mb-2">
             {t('backup.exportFormats')}

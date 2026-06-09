@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import i18n from '@/lib/i18n'
 import type { Collection } from '@shared/types'
 
 interface ExportProgress {
@@ -99,13 +100,11 @@ export const useExportStore = create<ExportState & ExportActions>((set, get) => 
         collectionIds: state.selectedIds,
         includeSold: state.includeSold,
         includeImages: state.includeImages,
-        locale: navigator.language.startsWith('ru') ? 'ru' : 'en'
+        locale: i18n.language.startsWith('ru') ? 'ru' : 'en'
       })
 
       if (result) {
-        set({ exporting: false, progress: null })
-        // Close dialog on success
-        setTimeout(() => set(initialState), 500)
+        set({ exporting: false, progress: null, open: false })
       } else {
         // Cancelled by user
         set({ exporting: false, progress: null, error: null })

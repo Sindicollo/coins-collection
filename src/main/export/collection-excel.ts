@@ -34,7 +34,7 @@ export interface ExportOptions {
   collectionIds: string[]
   includeSold: boolean
   includeImages: boolean
-  locale: string
+  locale: 'en' | 'ru'
   onProgress?: (stage: string, current: number, total: number, message: string) => void
 }
 
@@ -73,7 +73,7 @@ const L10N: Record<string, Record<string, string>> = {
   }
 }
 
-function t(locale: string, key: string): string {
+function t(locale: 'en' | 'ru', key: string): string {
   return L10N[locale]?.[key] ?? L10N.en[key] ?? key
 }
 
@@ -191,8 +191,6 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
         }
 
         row.height = Math.max(110, notesHeight)
-      } else {
-        row.height = notesHeight
       }
 
       // Progress report every 10 photos
