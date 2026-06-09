@@ -113,7 +113,7 @@ export function BackupSection(): React.ReactElement {
               <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[10px] leading-none text-gray-400 border border-gray-300">
                 ?
               </span>
-              <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 pointer-events-none whitespace-nowrap z-50">
+              <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 max-w-[280px] min-w-[280px] pointer-events-none whitespace-normal z-50">
                 {t('backup.sectionBackupTooltip')}
               </span>
             </span>
@@ -130,8 +130,16 @@ export function BackupSection(): React.ReactElement {
 
         {/* Export formats */}
         <div>
-          <h4 className="text-xs font-medium text-gray-400 mb-2">
+          <h4 className="text-xs font-medium text-gray-400 mb-2 flex items-center gap-1">
             {t('backup.exportFormats')}
+            <span className="relative group cursor-help">
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[10px] leading-none text-gray-400 border border-gray-300">
+                ?
+              </span>
+              <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 pointer-events-none whitespace-normal max-w-[280px] min-w-[280px] z-50">
+                {t('backup.exportFormatsTooltip')}
+              </span>
+            </span>
           </h4>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={openExportPdfDialog} className="justify-start">

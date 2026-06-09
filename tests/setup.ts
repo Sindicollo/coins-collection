@@ -121,6 +121,7 @@ i18n.use(initReactI18next).init({
           exportButton: 'Export Backup',
           importButton: 'Import Backup',
           exportFormats: 'Export Formats',
+          exportFormatsTooltip: 'Export selected collections with coin metadata to PDF or .xslx (for Excel/Apple Numbers)',
           exportPdf: 'Export to PDF',
           exportExcel: 'Export to Excel',
           comingSoon: 'Coming soon',

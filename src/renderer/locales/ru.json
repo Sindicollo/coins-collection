@@ -142,6 +142,7 @@
     "exportButton": "Экспорт БД",
     "importButton": "Импорт БД",
     "exportFormats": "Форматы экспорта",
+    "exportFormatsTooltip": "Экспорт выбранных коллекций с метаинформацией о монетах в PDF или .xslx (для Excel/Apple Numbers)",
     "exportPdf": "Экспорт в PDF",
     "exportExcel": "Экспорт в Excel",
     "comingSoon": "Скоро",
