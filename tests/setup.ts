@@ -151,6 +151,21 @@ i18n.use(initReactI18next).init({
           cancel: 'Cancel',
           export: 'Export',
           exporting: 'Exporting…'
+        },
+        exportPdf: {
+          title: 'Export to PDF',
+          selectCollections: 'Select collections',
+          noCollections: 'No collections found',
+          selectAll: 'Select all',
+          deselectAll: 'Deselect all',
+          includeImages: 'Include photos',
+          includeSold: 'Include sold coins',
+          purchaseInfo: 'Purchase information',
+          purchaseInfoNo: 'Without purchase info (denomination, year, country, condition, notes)',
+          purchaseInfoYes: 'With purchase info (add price, date, place in gray text)',
+          cancel: 'Cancel',
+          export: 'Export PDF',
+          exporting: 'Exporting…'
         }
       }
     }
@@ -213,6 +228,7 @@ if (typeof window !== 'undefined') {
     },
     export: {
       excel: vi.fn(),
+      pdf: vi.fn(),
       onProgress: vi.fn(() => vi.fn())
     }
   }

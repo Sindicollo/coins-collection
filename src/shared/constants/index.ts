@@ -42,7 +42,8 @@ export const IPC_CHANNELS = {
     IMPORT_EXECUTE: 'backup:import-execute'
   },
   EXPORT: {
-    EXCEL: 'export:excel'
+    EXCEL: 'export:excel',
+    PDF: 'export:pdf'
   }
 } as const
 

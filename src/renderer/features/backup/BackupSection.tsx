@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/Button'
 import { ImportDialog } from './ImportDialog'
 import { ProgressModal } from './ProgressModal'
 import { useExportStore } from '@/features/export/useExport'
+import { useExportPdfStore } from '@/features/export-pdf/useExportPdf'
 import type { BackupPreview } from '@shared/types'
 
 export function BackupSection(): React.ReactElement {
   const { t } = useTranslation()
   const openExportDialog = useExportStore((s) => s.openDialog)
+  const openExportPdfDialog = useExportPdfStore((s) => s.openDialog)
   const [importDialogOpen, setImportDialogOpen] = React.useState(false)
   const [preview, setPreview] = React.useState<BackupPreview | null>(null)
   const importZipPathRef = React.useRef<string | null>(null)
@@ -132,9 +134,9 @@ export function BackupSection(): React.ReactElement {
             {t('backup.exportFormats')}
           </h4>
           <div className="flex gap-2">
-            <Button size="sm" variant="ghost" disabled title={t('backup.comingSoon')}>
+            <Button size="sm" variant="ghost" onClick={openExportPdfDialog} className="justify-start">
               <span className="flex items-center gap-1">
-                <span className="opacity-40">{'\uD83D\uDD12'}</span>
+                {'\uD83D\uDCC4'}
                 {t('backup.exportPdf')}
               </span>
             </Button>

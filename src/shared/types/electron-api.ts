@@ -56,6 +56,7 @@ export interface ElectronAPI {
   }
   export: {
     excel: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; locale: string }) => Promise<string | null>
+    pdf: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; includePurchaseInfo: boolean; locale: string }) => Promise<string | null>
     onProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => () => void
   }
 }
