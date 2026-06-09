@@ -7,6 +7,7 @@ import * as collectionRepo from '../database/repositories/collections'
 import * as coinRepo from '../database/repositories/coins'
 import * as photoRepo from '../database/repositories/photos'
 import type { Coin, Collection, Photo } from '@shared/types'
+import { t } from './l10n'
 
 // ── Paths ───────────────────────────────────────────────────
 function getPhotosDir(): string {
@@ -28,6 +29,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 const PHOTO_GAP = 8
 const MAX_PHOTOS = 4
 const MAX_PHOTO_HEIGHT = 150
+const PHOTO_BOTTOM_MARGIN = 12
 const SEPARATOR_COLOR = '#d4d4d4'
 const GRAY_COLOR = '#888888'
 
@@ -45,44 +47,7 @@ export interface ExportPdfOptions {
 }
 
 // ── i18n ────────────────────────────────────────────────────
-const L10N: Record<string, Record<string, string>> = {
-  en: {
-    title: 'Coin Collection',
-    exportDate: 'Exported',
-    tableOfContents: 'Contents',
-    denomination: 'Denomination',
-    year: 'Year',
-    country: 'Country',
-    condition: 'Condition',
-    notes: 'Notes',
-    sold: '(Sold)',
-    price: 'Price',
-    shipping: 'Shipping',
-    purchaseDate: 'Purchased',
-    purchasePlace: 'Place',
-    coins: 'coins'
-  },
-  ru: {
-    title: 'Коллекция монет',
-    exportDate: 'Экспортировано',
-    tableOfContents: 'Содержание',
-    denomination: 'Номинал',
-    year: 'Год',
-    country: 'Страна',
-    condition: 'Состояние',
-    notes: 'Заметки',
-    sold: '(Продано)',
-    price: 'Цена',
-    shipping: 'Доставка',
-    purchaseDate: 'Куплено',
-    purchasePlace: 'Место',
-    coins: 'монет'
-  }
-}
-
-function tl(locale: 'en' | 'ru', key: string): string {
-  return L10N[locale]?.[key] ?? L10N.en[key] ?? key
-}
+// All labels defined in ./l10n
 
 function formatDate(d: Date, locale: 'en' | 'ru'): string {
   return d.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
@@ -93,7 +58,7 @@ function formatDate(d: Date, locale: 'en' | 'ru'): string {
 }
 
 function coinsLabel(n: number, locale: 'en' | 'ru'): string {
-  return `${n} ${tl(locale, 'coins')}`
+  return `${n} ${t(locale, 'coins')}`
 }
 
 // ── Font registration ───────────────────────────────────────
@@ -101,51 +66,49 @@ function registerFonts(doc: PDFKit.PDFDocument): void {
   const regularPath = getFontPath('DejaVuSans.ttf')
   const boldPath = getFontPath('DejaVuSans-Bold.ttf')
 
-  if (existsSync(regularPath)) {
-    doc.registerFont(FONT, regularPath)
-  } else {
-    console.error('[pdf] Font not found:', regularPath)
+  if (!existsSync(regularPath)) {
+    throw new Error(`PDF font not found: ${regularPath}`)
+  }
+  if (!existsSync(boldPath)) {
+    throw new Error(`PDF bold font not found: ${boldPath}`)
   }
 
-  if (existsSync(boldPath)) {
-    doc.registerFont(FONT_BOLD, boldPath)
-  } else {
-    console.error('[pdf] Bold font not found:', boldPath)
-  }
+  doc.registerFont(FONT, regularPath)
+  doc.registerFont(FONT_BOLD, boldPath)
 }
 
 // ── Coin text builders ──────────────────────────────────────
 function buildCoinMainLine(coin: Coin, locale: 'en' | 'ru'): string {
   const parts: string[] = []
-  parts.push(`${tl(locale, 'denomination')}: ${coin.denomination}`)
+  parts.push(`${t(locale, 'denomination')}: ${coin.denomination}`)
   if (coin.year) parts.push(`${coin.year}`)
-  if (coin.sold) parts.push(tl(locale, 'sold'))
+  if (coin.sold) parts.push(t(locale, 'sold'))
   return parts.join('  \u00B7  ')
 }
 
 function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru'): string[] {
   const lines: string[] = []
-  if (coin.country) lines.push(`${tl(locale, 'country')}: ${coin.country}`)
-  if (coin.condition) lines.push(`${tl(locale, 'condition')}: ${coin.condition}`)
-  if (coin.notes) lines.push(`${tl(locale, 'notes')}: ${coin.notes}`)
+  if (coin.country) lines.push(`${t(locale, 'country')}: ${coin.country}`)
+  if (coin.condition) lines.push(`${t(locale, 'condition')}: ${coin.condition}`)
+  if (coin.notes) lines.push(`${t(locale, 'notes')}: ${coin.notes}`)
   return lines
 }
 
 function buildPurchaseLine(coin: Coin, locale: 'en' | 'ru'): string | null {
   const parts: string[] = []
   if (coin.price !== null && coin.price !== undefined) {
-    let s = `${tl(locale, 'price')}: ${coin.price}`
+    let s = `${t(locale, 'price')}: ${coin.price}`
     if (coin.currency) s += ` ${coin.currency}`
-    if (coin.shippingCost) s += `  + ${tl(locale, 'shipping')}: ${coin.shippingCost}`
+    if (coin.shippingCost) s += `  + ${t(locale, 'shipping')}: ${coin.shippingCost}`
     parts.push(s)
   }
   if (coin.purchaseDate) {
     parts.push(
-      `${tl(locale, 'purchaseDate')}: ${formatDate(new Date(coin.purchaseDate), locale)}`
+      `${t(locale, 'purchaseDate')}: ${formatDate(new Date(coin.purchaseDate), locale)}`
     )
   }
   if (coin.purchasePlace) {
-    parts.push(`${tl(locale, 'purchasePlace')}: ${coin.purchasePlace}`)
+    parts.push(`${t(locale, 'purchasePlace')}: ${coin.purchasePlace}`)
   }
   return parts.length > 0 ? parts.join('  \u00B7  ') : null
 }
@@ -170,7 +133,7 @@ async function renderCoinPhotos(
     const photoPath = join(photosDir, photo.filename)
 
     if (!existsSync(photoPath)) {
-      console.log('[pdf] Photo file not found:', photoPath)
+      console.error('[pdf] Photo file not found:', photoPath)
       continue
     }
 
@@ -191,7 +154,7 @@ async function renderCoinPhotos(
         .png()
         .toBuffer()
     } catch (err) {
-      console.log('[pdf] Failed to read/process photo:', photoPath, String(err))
+      console.error('[pdf] Failed to read/process photo:', photoPath, String(err))
       continue
     }
 
@@ -222,8 +185,9 @@ async function renderCoinPhotos(
     console.log(
       `[pdf] Rendered ${loaded}/${available.length} photos at y=${Math.round(startY)}`
     )
+    return maxRenderedHeight + PHOTO_BOTTOM_MARGIN
   }
-  return maxRenderedHeight + 12
+  return 0
 }
 
 // ── Main export function ────────────────────────────────────
@@ -290,7 +254,7 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
     size: 'A4',
     margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
     info: {
-      Title: tl(locale, 'title'),
+      Title: t(locale, 'title'),
       CreationDate: now
     }
   })
@@ -301,24 +265,28 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
   const chunks: Buffer[] = []
   doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
-  const pdfDone = new Promise<string>((resolve) => {
+  const pdfDone = new Promise<string>((resolve, reject) => {
     doc.on('end', () => {
       const pdfBuffer = Buffer.concat(chunks)
       writeFileSync(filePath, pdfBuffer)
       console.log('[pdf] Wrote', pdfBuffer.length, 'bytes to', filePath)
       resolve(filePath)
     })
+    doc.on('error', (err) => {
+      console.error('[pdf] Document error:', err)
+      reject(err)
+    })
   })
 
   // ── Title page ────────────────────────────────────────────
   doc.font(FONT_BOLD).fontSize(24)
-  doc.text(tl(locale, 'title'), MARGIN, MARGIN + 20, {
+  doc.text(t(locale, 'title'), MARGIN, MARGIN + 20, {
     width: CONTENT_WIDTH,
     align: 'center'
   })
   doc.moveDown(0.5)
   doc.font(FONT).fontSize(11).fillColor('#666666')
-  doc.text(`${tl(locale, 'exportDate')}: ${formatDate(now, locale)}`, MARGIN, doc.y, {
+  doc.text(`${t(locale, 'exportDate')}: ${formatDate(now, locale)}`, MARGIN, doc.y, {
     width: CONTENT_WIDTH,
     align: 'center'
   })
@@ -327,7 +295,7 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
 
   // ── Table of contents ─────────────────────────────────────
   doc.font(FONT_BOLD).fontSize(16)
-  doc.text(tl(locale, 'tableOfContents'), MARGIN, doc.y, { width: CONTENT_WIDTH })
+  doc.text(t(locale, 'tableOfContents'), MARGIN, doc.y, { width: CONTENT_WIDTH })
   doc.moveDown(0.8)
 
   doc.font(FONT).fontSize(11)
@@ -381,9 +349,10 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
       const coinStartY = doc.y
 
       // ── Photos ────────────────────────────────────────────
+      let coinPhotoHeight = 0
       if (includeImages && coinPhotos.length > 0) {
-        const photoHeight = await renderCoinPhotos(doc, coinPhotos, photosDir)
-        doc.y = coinStartY + photoHeight
+        coinPhotoHeight = await renderCoinPhotos(doc, coinPhotos, photosDir)
+        doc.y = coinStartY + coinPhotoHeight
       }
 
       // ── Main line ─────────────────────────────────────────

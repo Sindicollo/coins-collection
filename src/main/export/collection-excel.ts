@@ -6,6 +6,7 @@ import * as collectionRepo from '../database/repositories/collections'
 import * as coinRepo from '../database/repositories/coins'
 import * as photoRepo from '../database/repositories/photos'
 import { app } from 'electron'
+import { t } from './l10n'
 
 const IMAGE_MAX_HEIGHT = 400
 const SHEET_MAX_NAME = 31
@@ -36,45 +37,6 @@ export interface ExportOptions {
   includeImages: boolean
   locale: 'en' | 'ru'
   onProgress?: (stage: string, current: number, total: number, message: string) => void
-}
-
-const L10N: Record<string, Record<string, string>> = {
-  en: {
-    denomination: 'Denomination',
-    year: 'Year',
-    condition: 'Condition',
-    country: 'Country',
-    purchaseDate: 'Purchase Date',
-    purchasePlace: 'Purchase Place',
-    price: 'Price',
-    shipping: 'Shipping',
-    currency: 'Currency',
-    totalCost: 'Total Cost',
-    notes: 'Notes',
-    sold: 'Sold',
-    obverse: 'Obverse',
-    reverse: 'Reverse'
-  },
-  ru: {
-    denomination: 'Номинал',
-    year: 'Год',
-    condition: 'Состояние',
-    country: 'Страна',
-    purchaseDate: 'Дата покупки',
-    purchasePlace: 'Место покупки',
-    price: 'Цена',
-    shipping: 'Доставка',
-    currency: 'Валюта',
-    totalCost: 'Общая стоимость',
-    notes: 'Заметки',
-    sold: 'Продан',
-    obverse: 'Аверс',
-    reverse: 'Реверс'
-  }
-}
-
-function t(locale: 'en' | 'ru', key: string): string {
-  return L10N[locale]?.[key] ?? L10N.en[key] ?? key
 }
 
 export async function exportCollectionsToExcel(options: ExportOptions): Promise<string> {
