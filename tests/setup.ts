@@ -117,6 +117,7 @@ i18n.use(initReactI18next).init({
         backup: {
           title: 'Backup & Restore',
           sectionBackup: 'Backup',
+          sectionBackupTooltip: 'ZIP file with a full copy of the database contents, including photos',
           exportButton: 'Export Backup',
           importButton: 'Import Backup',
           exportFormats: 'Export Formats',

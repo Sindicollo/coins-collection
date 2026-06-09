@@ -105,7 +105,17 @@ export function BackupSection(): React.ReactElement {
 
         {/* Backup subsection */}
         <div>
-          <h4 className="text-xs font-medium text-gray-500 mb-2">{t('backup.sectionBackup')}</h4>
+          <h4 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+            {t('backup.sectionBackup')}
+            <span className="relative group cursor-help">
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[10px] leading-none text-gray-400 border border-gray-300">
+                ?
+              </span>
+              <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 pointer-events-none whitespace-nowrap z-50">
+                {t('backup.sectionBackupTooltip')}
+              </span>
+            </span>
+          </h4>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleExport}>
               {t('backup.exportButton')}

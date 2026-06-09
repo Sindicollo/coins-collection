@@ -386,10 +386,7 @@ describe('exportCollectionsToExcel', () => {
 
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.readFile(filePath!)
-    // Workbook should contain at least one embedded image
-    const media = (wb as unknown as { media: unknown[] }).media
-    // exceljs stores images internally in wb.media (or via getImages)
-    // Just verify the file is valid and has the right number of sheets
+    // Verify the file is valid with at least one sheet
     expect(wb.worksheets).toHaveLength(1)
   })
 })

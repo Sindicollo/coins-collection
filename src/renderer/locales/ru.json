@@ -136,8 +136,9 @@
     "button": "Импорт из таблицы"
   },
   "backup": {
-    "title": "Резервное копирование",
+    "title": "Действия с коллекциями",
     "sectionBackup": "Бэкап",
+    "sectionBackupTooltip": "zip файл с полной копией содержимого базы данных, включая фото",
     "exportButton": "Экспорт БД",
     "importButton": "Импорт БД",
     "exportFormats": "Форматы экспорта",
