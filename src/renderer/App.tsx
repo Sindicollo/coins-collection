@@ -10,6 +10,7 @@ import { PhotoGallery } from './features/photos/PhotoGallery'
 import { ExportDialog } from './features/export/ExportDialog'
 import { ExportPdfDialog } from './features/export-pdf/ExportPdfDialog'
 import { useExportStore } from './features/export/useExport'
+import { useExportPdfStore } from './features/export-pdf/useExportPdf'
 import { useCollectionManager } from './features/collections/useCollections'
 
 function HomeView(): React.ReactElement {
@@ -50,8 +51,10 @@ function App(): React.ReactElement {
   const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
   const exportOpen = useExportStore((s) => s.open)
   const exportError = useExportStore((s) => s.error)
+  const exportPdfOpen = useExportPdfStore((s) => s.open)
+  const exportPdfError = useExportPdfStore((s) => s.error)
 
-  // Close settings after successful export (dialog closes)
+  // Close settings after successful Excel export (dialog closes)
   const prevExportOpen = React.useRef(exportOpen)
   React.useEffect(() => {
     if (prevExportOpen.current && !exportOpen && !exportError) {
@@ -59,6 +62,15 @@ function App(): React.ReactElement {
     }
     prevExportOpen.current = exportOpen
   }, [exportOpen, exportError])
+
+  // Close settings after successful PDF export (dialog closes)
+  const prevExportPdfOpen = React.useRef(exportPdfOpen)
+  React.useEffect(() => {
+    if (prevExportPdfOpen.current && !exportPdfOpen && !exportPdfError) {
+      setShowSettings(false)
+    }
+    prevExportPdfOpen.current = exportPdfOpen
+  }, [exportPdfOpen, exportPdfError])
 
   React.useEffect(() => {
     window.api.preferences.getCurrency().then(setDefaultCurrency)
