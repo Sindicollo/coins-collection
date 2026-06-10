@@ -79,6 +79,8 @@ Run `npm run typecheck` to check both. They have different `lib` targets and JSX
 
 ## Code style
 
+- **NEVER commit without explicit command.** After completing a task, only run `lint`, `typecheck`, and `test`. Show the user `git status` and `git diff` so they can review before committing.
+- **Commit only when asked.** The user will run `git add` and `git commit` themselves.
 - **ESLint**: `@typescript-eslint/recommended` + `react/recommended` + `react-hooks/recommended` + `prettier`
 - **Prettier**: `semi: false`, `singleQuote: true`, `trailingComma: none`, `printWidth: 100`
 - Unused vars: `argsIgnorePattern: '^_'`, `caughtErrors: 'none'`
