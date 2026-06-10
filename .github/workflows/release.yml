@@ -7,6 +7,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: write
@@ -30,8 +31,6 @@ jobs:
 
       - name: Build and package for macOS
         run: npm run dist:mac -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List artifacts (debug)
         run: ls -la dist/
@@ -55,8 +54,6 @@ jobs:
 
       - name: Build and package for Windows
         run: npm run dist:win -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List artifacts (debug)
         run: dir dist\
