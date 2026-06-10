@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-mac:
     runs-on: macos-latest
@@ -20,7 +23,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Rebuild native modules (arm64)
-        run: npm rebuild better-sqlite3 sharp --arch arm64
+        run: npm rebuild better-sqlite3 sharp
 
       - name: Build and package for macOS
         run: npm run dist:mac -- --githubRelease
@@ -45,7 +48,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Rebuild native modules (x64)
-        run: npm rebuild better-sqlite3 sharp --arch x64
+        run: npm rebuild --arch x64 better-sqlite3 sharp
 
       - name: Build and package for Windows
         run: npm run dist:win -- --githubRelease
