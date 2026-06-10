@@ -5,14 +5,20 @@ directories:
   buildResources: resources
 files:
   - out/**/*
+asar:
+  smartUnpack: true
 asarUnpack:
-  - node_modules/sharp/**
-  - node_modules/@img/**
+  - "**/node_modules/sharp/**"
+  - "**/node_modules/@img/**"
 extraResources:
   - from: src/main/assets/fonts
     to: assets/fonts
     filter:
       - "*.ttf"
+  - from: node_modules/sharp
+    to: node_modules/sharp
+  - from: node_modules/@img
+    to: node_modules/@img
 publish:
   provider: github
   releaseType: release
