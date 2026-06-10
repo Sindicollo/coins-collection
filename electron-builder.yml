@@ -5,10 +5,9 @@ directories:
   buildResources: resources
 files:
   - out/**/*
-asar:
-  unpack:
-    - node_modules/sharp/**
-    - node_modules/@img/**
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
 extraResources:
   - from: src/main/assets/fonts
     to: assets/fonts
