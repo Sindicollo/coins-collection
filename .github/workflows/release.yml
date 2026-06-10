@@ -26,7 +26,7 @@ jobs:
         run: npm rebuild better-sqlite3 sharp
 
       - name: Build and package for macOS
-        run: npm run dist:mac -- --githubRelease
+        run: npm run dist:mac -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -51,7 +51,7 @@ jobs:
         run: npm rebuild --arch x64 better-sqlite3 sharp
 
       - name: Build and package for Windows
-        run: npm run dist:win -- --githubRelease
+        run: npm run dist:win -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
