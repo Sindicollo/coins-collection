@@ -5,20 +5,41 @@ directories:
   buildResources: resources
 files:
   - out/**/*
-asar:
-  smartUnpack: true
-asarUnpack:
-  - "**/node_modules/sharp/**"
-  - "**/node_modules/@img/**"
+  - package.json
 extraResources:
   - from: src/main/assets/fonts
     to: assets/fonts
     filter:
       - "*.ttf"
-  - from: node_modules/sharp
-    to: node_modules/sharp
-  - from: node_modules/@img
-    to: node_modules/@img
+  - from: node_modules
+    to: node_modules
+    filter:
+      - "**/*"
+      - "!.bin/**"
+      - "!.cache/**"
+      - "!.yarn/**"
+      - "!electron/**"
+      - "!electron-*/**"
+      - "!electron-builder/**"
+      - "!electron-vite/**"
+      - "!vite/**"
+      - "!vitest/**"
+      - "!@vitest/**"
+      - "!typescript/**"
+      - "!eslint*/**"
+      - "!prettier/**"
+      - "!@esbuild/**"
+      - "!esbuild/**"
+      - "!@testing-library/**"
+      - "!jsdom/**"
+      - "!@vitejs/**"
+      - "!autoprefixer/**"
+      - "!tailwindcss/**"
+      - "!postcss/**"
+      - "!@types/**"
+      - "!gh-release*/**"
+      - "!@electron/**"
+      - "!better-sqlite3/**"
 publish:
   provider: github
   releaseType: release
