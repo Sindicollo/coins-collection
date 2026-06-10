@@ -1,6 +1,6 @@
 ---
 name: github-release
-description: Use when the user asks to make a release, publish a release, create a GitHub release, bump version, or ship a new version of the app. Covers bumping version in package.json, updating CHANGELOG.md and README.md, building the .dmg, tagging, and creating a GitHub release with gh CLI.
+description: Use when the user asks to make a release, publish a release, create a GitHub release, bump version, or ship a new version of the app. Covers bumping version in package.json, updating CHANGELOG.md and README.md, pushing a tag to trigger GitHub Actions, and local fallback with gh CLI.
 ---
 
 # GitHub Release
@@ -9,30 +9,35 @@ Create and publish a GitHub release for the coin-collection Electron app.
 
 ## Prerequisites
 
-- Ensure `gh` CLI is authenticated (`gh auth status`)
-- Ensure Electron builder is configured (`electron-builder.yml`)
-- The app must build successfully: `npm run build` works
-- The `CHANGELOG.md` must have an entry for the new version
+- `gh` CLI authenticated (`gh auth status`) — required for local fallback
+- `CHANGELOG.md` entry for the new version
+- All changes committed to `main`
 
-## Steps
+## tl;dr
+
+Push a tag — GitHub Actions builds macOS + Windows and creates the release:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z — <description>"
+git push origin vX.Y.Z
+```
+
+## Full process
 
 ### 1. Determine the version
 
-Ask the user for the version number (e.g. `1.2.0`). If they don't specify,
-check the current version in `package.json` and suggest the next semver bump
-(patch/minor/major).
+Ask the user for the version number (e.g. `1.3.0`). If they don't specify,
+check the current version in `package.json` and suggest the next semver bump.
 
-### 2. Bump version in package.json
+### 2. Bump version in `package.json`
 
-```bash
-# Read current version, update it
-edit package.json: "version": "1.X.Y" → "version": "<new_version>"
+```json
+"version": "1.2.0" → "version": "1.3.0"
 ```
 
-### 3. Update CHANGELOG.md
+### 3. Update `CHANGELOG.md`
 
-Add a new section at the top with the version number, following the existing
-format:
+Add a new section at the top:
 
 ```markdown
 ## vX.Y.Z
@@ -47,81 +52,77 @@ format:
 - ...
 ```
 
-Use English only. Write concise, user-facing bullet points.
+Use English. Write concise, user-facing bullet points.
 
-### 4. Update README.md
+### 4. Update `README.md`
 
-Update the download link to point to the new version:
+Update the download table — change version in all three links:
 
 ```markdown
-[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v<version>/Coin.Collection-<version>-arm64.dmg)
+| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/vX.Y.Z/Coin-Collection-X.Y.Z-arm64.dmg) (~114 MB) |
+| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/vX.Y.Z/Coin-Collection-Setup-X.Y.Z.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/vX.Y.Z/Coin-Collection-X.Y.Z.exe) |
 ```
 
-The `.dmg` filename follows the pattern: `Coin Collection-<version>-arm64.dmg`
-(note the space, not a dot). Compare with previous releases in README for the
-exact format.
-
-Also update the file size estimate (`~110 MB` or similar).
+**Important:** electron-builder uploads with **hyphens** (`Coin-Collection`), not dots or spaces. Do not use the local `dist/` filename (which has spaces) — GitHub converts spaces to hyphens when electron-builder uploads.
 
 ### 5. Verify
 
 ```bash
-npm run lint && npm run typecheck
+npm run lint && npm run typecheck && npm test
 ```
 
-### 6. Build the .dmg
-
-```bash
-npm run dist:mac
-```
-
-The `.dmg` will be in `dist/Coin Collection-<version>-arm64.dmg`.
-
-### 7. Commit and push
+### 6. Commit and push
 
 ```bash
 git add package.json CHANGELOG.md README.md
-git commit -m "v<version>"
+git commit -m "vX.Y.Z"
 git push origin main
 ```
 
-### 8. Create and push the git tag
+### 7. Push the tag — triggers GitHub Actions
 
 ```bash
-git tag -a v<version> -m "v<version> — <short description>"
-git push origin v<version>
+git tag -a vX.Y.Z -m "vX.Y.Z — <short description>"
+git push origin vX.Y.Z
 ```
 
-### 9. Create the GitHub release
+The `.github/workflows/release.yml` workflow will:
+1. **build-mac** — Build `.dmg` + `.zip` on macOS, create GitHub Release
+2. **build-win** — Build `.exe` (NSIS + portable) on Windows, upload to same Release
+
+### 8. Verify the release
+
+Wait for the workflow to complete (~10 min), then check:
+- https://github.com/Sindicollo/coins-collection/releases
+- Both macOS and Windows artifacts are attached
+- Download links in README work
+
+---
+
+## Local fallback (if GitHub Actions fails)
+
+If the automated workflow fails, build and publish manually:
 
 ```bash
-gh release create v<version> \
-  --title "v<version> — <short description>" \
+# Build macOS .dmg
+npm run dist:mac
+
+# Create release
+gh release create vX.Y.Z \
+  --title "vX.Y.Z — <short description>" \
   --notes-file CHANGELOG.md \
-  "dist/Coin Collection-<version>-arm64.dmg"
+  "dist/Coin Collection-X.Y.Z-arm64.dmg"
 ```
 
-**Important:** `--notes-file CHANGELOG.md` will include the ENTIRE changelog
-as release notes. If you want only the current version's notes, extract that
-section first:
+Note: when uploading manually with `gh`, GitHub converts spaces to hyphens
+in the download URL (the filename in the release page will show hyphens).
 
-```bash
-# Extract only the latest version section (between first ## and second ##)
-sed -n '/^## v<version>/,/^## v/p' CHANGELOG.md | sed '$d' > /tmp/release-notes.md
-gh release create v<version> \
-  --title "v<version> — <short description>" \
-  --notes-file /tmp/release-notes.md \
-  "dist/Coin Collection-<version>-arm64.dmg"
-```
+---
 
-### 10. Verify the release
+## Notes
 
-Open the release URL printed by the `gh` command and check that:
-- The `.dmg` is attached
-- The release notes look correct
-- The download link works
-
-## After the release
-
-Tell the user the release URL. Remind them that the README download link now
-points to the new `.dmg`.
+- The `release.yml` workflow requires `permissions: contents: write` and
+  `env.GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`.
+- Windows builds use `npx electron-rebuild` instead of `npm rebuild` due
+  to `node-gyp@9.4.1` incompatibility with Node 20 on Windows.
+- The existing `test.yml` skips on tag pushes (`tags-ignore: v*`).
