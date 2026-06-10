@@ -26,6 +26,18 @@ English/russian interface.
 
 > ⚠️ **Windows builds are not tested.** The app is developed and tested on macOS only. Windows binaries are built via GitHub Actions but may contain platform-specific issues. Bug reports welcome!
 
+### macOS Installation
+
+The app is **unsigned** (no Apple Developer ID). macOS Gatekeeper will block it on first launch with the message *"Coin Collection is damaged and can't be opened."* To fix this, remove the quarantine flag after copying to `/Applications`:
+
+```bash
+# After dragging the app from the .dmg to /Applications:
+xattr -cr /Applications/Coin\ Collection.app
+# Then open normally from Finder or Spotlight
+```
+
+Alternatively, you can **right-click → Open** the app in Finder, then click "Open" in the dialog — this works once per downloaded version.
+
 ## Tech Stack
 
 | Layer | Technology |
