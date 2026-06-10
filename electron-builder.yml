@@ -10,6 +10,9 @@ extraResources:
     to: assets/fonts
     filter:
       - "*.ttf"
+publish:
+  provider: github
+  releaseType: release
 mac:
   category: public.app-category.collectibles
   target:
