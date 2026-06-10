@@ -1,13 +1,14 @@
 import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync } from 'fs'
 import ExcelJS from 'exceljs'
 import sharp from 'sharp'
-import * as collectionRepo from '../database/repositories/collections'
-import * as coinRepo from '../database/repositories/coins'
-import * as photoRepo from '../database/repositories/photos'
 import { app } from 'electron'
 import { t } from './l10n'
+import { collectExportData, getExportTempDir, buildExportFilename } from './common'
+import type { ProgressCallback } from './types'
+import type { Coin } from '@shared/types'
 
+// ── Constants ───────────────────────────────────────────
 const IMAGE_MAX_HEIGHT = 400
 const SHEET_MAX_NAME = 31
 
@@ -15,37 +16,80 @@ function getPhotosDir(): string {
   return join(app.getPath('userData'), 'photos')
 }
 
-function sanitizeSheetName(name: string): string {
-  return name
-    // eslint-disable-next-line no-useless-escape
-    .replace(/[\[\]:*?\\\/]/g, '')
-    .trim()
-    .slice(0, SHEET_MAX_NAME)
-    .replace(/\s+/g, ' ')
-    || `Sheet`
+// ── Pure helpers (exported for testing) ──────────────────
+
+/**
+ * Sanitize a sheet name for Excel (max 31 chars, remove forbidden chars).
+ */
+export function sanitizeSheetName(name: string): string {
+  return (
+    name
+      // eslint-disable-next-line no-useless-escape
+      .replace(/[\[\]:*?\\\/]/g, '')
+      .trim()
+      .slice(0, SHEET_MAX_NAME)
+      .replace(/\s+/g, ' ') || 'Sheet'
+  )
 }
 
-function formatDate(ts: number | null): string {
+/**
+ * Format a timestamp (ms) as YYYY-MM-DD string.
+ */
+export function formatDate(ts: number | null): string {
   if (!ts) return ''
-  const d = new Date(ts)
-  return d.toISOString().slice(0, 10)
+  return new Date(ts).toISOString().slice(0, 10)
 }
 
+/**
+ * Build a flat row data object from a coin for the Excel sheet.
+ */
+export function buildExcelRow(coin: Coin): Record<string, string | number | null> {
+  return {
+    denomination: coin.denomination,
+    year: coin.year ?? '',
+    condition: coin.condition ?? '',
+    country: coin.country ?? '',
+    purchaseDate: formatDate(coin.purchaseDate),
+    purchasePlace: coin.purchasePlace ?? '',
+    price: coin.price ?? '',
+    shippingCost: coin.shippingCost ?? '',
+    currency: coin.currency ?? '',
+    totalCost: (coin.price ?? 0) + (coin.shippingCost ?? 0),
+    notes: coin.notes ?? '',
+    sold: coin.sold ? '\u2713' : ''
+  }
+}
+
+/**
+ * Get the image extension for ExcelJS based on the original filename.
+ */
+export function getExtension(filename: string): 'jpeg' | 'png' | 'gif' {
+  const ext = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase()
+  if (ext === 'png') return 'png'
+  if (ext === 'gif') return 'gif'
+  return 'jpeg'
+}
+
+// ── Options ─────────────────────────────────────────────
 export interface ExportOptions {
   collectionIds: string[]
   includeSold: boolean
   includeImages: boolean
   locale: 'en' | 'ru'
-  onProgress?: (stage: string, current: number, total: number, message: string) => void
+  onProgress?: ProgressCallback
 }
 
+// ── Main export function ────────────────────────────────
 export async function exportCollectionsToExcel(options: ExportOptions): Promise<string> {
-  const { collectionIds, includeSold, includeImages, locale, onProgress } = options
+  const { includeImages, locale, onProgress } = options
   const photosDir = getPhotosDir()
-  const totalCollections = collectionIds.length
+
+  // Collect data using shared logic
+  const collectionsData = await collectExportData(options)
 
   const wb = new ExcelJS.Workbook()
 
+  // Build columns based on locale
   const columns: Partial<ExcelJS.Column>[] = [
     { header: t(locale, 'denomination'), key: 'denomination', width: 20 },
     { header: t(locale, 'year'), key: 'year', width: 6 },
@@ -58,7 +102,9 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
     { header: t(locale, 'currency'), key: 'currency', width: 8 },
     { header: t(locale, 'totalCost'), key: 'totalCost', width: 12 },
     {
-      header: t(locale, 'notes'), key: 'notes', width: 35,
+      header: t(locale, 'notes'),
+      key: 'notes',
+      width: 35,
       style: { alignment: { wrapText: true, vertical: 'top' } }
     },
     { header: t(locale, 'sold'), key: 'sold', width: 6 }
@@ -71,15 +117,12 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
     )
   }
 
+  const totalCollections = collectionsData.length
+
   for (let ci = 0; ci < totalCollections; ci++) {
-    const cid = collectionIds[ci]
-    const collection = collectionRepo.getCollection(cid)
-    if (!collection) continue
+    const { collection, coins, photosMap } = collectionsData[ci]
 
-    const name = sanitizeSheetName(collection.name) || `Sheet${ci + 1}`
-    const allCoins = coinRepo.listCoinsByCollection(cid)
-    const coins = includeSold ? allCoins : allCoins.filter((c) => !c.sold)
-
+    const name = sanitizeSheetName(collection.name)
     const ws = wb.addWorksheet(name)
     ws.columns = columns
 
@@ -92,20 +135,7 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
       const coin = coins[ri]
       const rowNum = ri + 2 // 1-indexed + header
 
-      const rowData: Record<string, string | number | null> = {
-        denomination: coin.denomination,
-        year: coin.year ?? '',
-        condition: coin.condition ?? '',
-        country: coin.country ?? '',
-        purchaseDate: formatDate(coin.purchaseDate),
-        purchasePlace: coin.purchasePlace ?? '',
-        price: coin.price ?? '',
-        shippingCost: coin.shippingCost ?? '',
-        currency: coin.currency ?? '',
-        totalCost: (coin.price ?? 0) + (coin.shippingCost ?? 0),
-        notes: coin.notes ?? '',
-        sold: coin.sold ? '\u2713' : ''
-      }
+      const rowData = buildExcelRow(coin)
 
       if (includeImages) {
         rowData.obverse = ''
@@ -117,16 +147,17 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
       // Calculate row height based on text length in Notes
       const notesText = coin.notes ?? ''
       const baseHeight = 20
-      const notesHeight = notesText.length > 60
-        ? 20 + Math.ceil(notesText.length / 50) * 15
-        : baseHeight
+      const notesHeight =
+        notesText.length > 60
+          ? 20 + Math.ceil(notesText.length / 50) * 15
+          : baseHeight
 
       // Embed photos if requested — up to 2 per coin (obverse + reverse)
       if (includeImages) {
-        const photos = photoRepo.listPhotos(coin.id).slice(0, 2)
+        const coinPhotos = photosMap.get(coin.id) ?? []
 
-        for (let pi = 0; pi < photos.length; pi++) {
-          const photo = photos[pi]
+        for (let pi = 0; pi < coinPhotos.length && pi < 2; pi++) {
+          const photo = coinPhotos[pi]
           const photoPath = join(photosDir, photo.filename)
           if (!existsSync(photoPath)) continue
 
@@ -155,13 +186,13 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
         row.height = Math.max(110, notesHeight)
       }
 
-      // Progress report every 10 photos
+      // Progress report every 10 coins
       if (onProgress && (ri + 1) % 10 === 0) {
         onProgress(
           `Collection: ${collection.name}`,
           ri + 1,
           coins.length,
-          `Photos: ${ri + 1}/${coins.length}`
+          `${ri + 1}/${coins.length}`
         )
       }
     }
@@ -174,23 +205,11 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
     )
   }
 
-  // Write to temp file
-  const tmpDir = join(app.getPath('temp'), 'coin-export')
-  if (!existsSync(tmpDir)) {
-    mkdirSync(tmpDir, { recursive: true })
-  }
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const filePath = join(tmpDir, `coin-collection-export-${timestamp}.xlsx`)
+  // Write to temp file using shared helpers
+  const tmpDir = getExportTempDir()
+  const filePath = join(tmpDir, buildExportFilename('coin-collection-export', 'xlsx'))
 
   await wb.xlsx.writeFile(filePath)
 
   return filePath
-}
-
-function getExtension(filename: string): 'jpeg' | 'png' | 'gif' {
-  const ext = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase()
-  if (ext === 'png') return 'png'
-  if (ext === 'gif') return 'gif'
-  return 'jpeg' // jpg, webp → treat as jpeg
 }

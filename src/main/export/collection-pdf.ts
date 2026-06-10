@@ -1,13 +1,12 @@
 import PDFDocument from 'pdfkit'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import sharp from 'sharp'
 import { app } from 'electron'
-import * as collectionRepo from '../database/repositories/collections'
-import * as coinRepo from '../database/repositories/coins'
-import * as photoRepo from '../database/repositories/photos'
-import type { Coin, Collection, Photo } from '@shared/types'
+import type { Coin, Photo } from '@shared/types'
 import { t } from './l10n'
+import { collectExportData, getExportTempDir, buildExportFilename } from './common'
+import type { ProgressCallback } from './types'
 
 // ── Paths ───────────────────────────────────────────────────
 function getPhotosDir(): string {
@@ -44,7 +43,7 @@ export interface ExportPdfOptions {
   includeImages: boolean
   includePurchaseInfo: boolean
   locale: 'en' | 'ru'
-  onProgress?: (stage: string, current: number, total: number, message: string) => void
+  onProgress?: ProgressCallback
 }
 
 // ── i18n ────────────────────────────────────────────────────
@@ -194,61 +193,31 @@ async function renderCoinPhotos(
 // ── Main export function ────────────────────────────────────
 export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise<string> {
   const {
-    collectionIds,
-    includeSold,
     includeImages,
     includePurchaseInfo,
     locale,
     onProgress
   } = options
   const photosDir = getPhotosDir()
-  const totalCollections = collectionIds.length
   const now = new Date()
 
-  console.log('[pdf] Starting PDF export, collections:', totalCollections)
+  console.log('[pdf] Starting PDF export, collections:', options.collectionIds.length)
   console.log('[pdf] Photos dir:', photosDir)
   console.log('[pdf] Include images:', includeImages)
 
-  // ── Collect data ──────────────────────────────────────────
-  const collectionsData: Array<{
-    collection: Collection
-    coins: Coin[]
-    photosMap: Map<string, Photo[]>
-  }> = []
-
-  let totalPhotos = 0
-
-  for (let ci = 0; ci < totalCollections; ci++) {
-    const cid = collectionIds[ci]
-    const collection = collectionRepo.getCollection(cid)
-    if (!collection) continue
-
-    const allCoins = coinRepo.listCoinsByCollection(cid)
-    const coins = includeSold ? allCoins : allCoins.filter((c) => !c.sold)
-
-    const photosMap = new Map<string, Photo[]>()
-    if (includeImages) {
-      for (const coin of coins) {
-        const coinPhotos = photoRepo.listPhotos(coin.id)
-        photosMap.set(coin.id, coinPhotos)
-        totalPhotos += coinPhotos.length
-      }
-    }
-
-    collectionsData.push({ collection, coins, photosMap })
-    onProgress?.('Preparing', ci + 1, totalCollections, `Collection: ${collection.name}`)
-  }
+  // ── Collect data (shared logic) ───────────────────────────
+  const collectionsData = await collectExportData(options)
+  const totalPhotos = collectionsData.reduce(
+    (s, c) => s + Array.from(c.photosMap.values()).reduce((sp, p) => sp + p.length, 0),
+    0
+  )
 
   console.log('[pdf] Total coins:', collectionsData.reduce((s, c) => s + c.coins.length, 0))
   console.log('[pdf] Total photos found:', totalPhotos)
 
-  // ── Set up temp file ──────────────────────────────────────
-  const tmpDir = join(app.getPath('temp'), 'coin-export')
-  if (!existsSync(tmpDir)) {
-    mkdirSync(tmpDir, { recursive: true })
-  }
-  const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const filePath = join(tmpDir, `coin-collection-pdf-${timestamp}.pdf`)
+  // ── Set up temp file (shared helpers) ─────────────────────
+  const tmpDir = getExportTempDir()
+  const filePath = join(tmpDir, buildExportFilename('coin-collection-pdf', 'pdf'))
 
   // ── Create PDF document ───────────────────────────────────
   const doc = new PDFDocument({
@@ -440,8 +409,8 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
     onProgress?.(
       'Generating',
       ci + 1,
-      totalCollections,
-      `${collection.name} (${ci + 1}/${totalCollections})`
+      collectionsData.length,
+      `${collection.name} (${ci + 1}/${collectionsData.length})`
     )
   }
 
