@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.1
+
+### Added
+- Windows build via GitHub Actions (NSIS installer + portable)
+- GitHub Actions release workflow triggered on tag push
+- opencode skill for creating releases
+
+### Changed
+- Fixed node-gyp compatibility for Windows builds (Node 20.20.2)
+- README: added Windows download section with untested notice
+
 ## v1.2.0
 
 ### Added
