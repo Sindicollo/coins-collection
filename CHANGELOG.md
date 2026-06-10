@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.2
+
+### Fixed
+- macOS: app no longer blocked by Gatekeeper (disabled hardenedRuntime for unsigned builds)
+- macOS: sharp native module properly included in packaged app (extraResources)
+- Reduced DMG size from 251 MB to 122 MB
+
 ## v1.2.1
 
 ### Added
