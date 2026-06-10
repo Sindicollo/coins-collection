@@ -75,6 +75,8 @@ const api = {
   export: {
     excel: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean }) =>
       ipcRenderer.invoke('export:excel', options) as Promise<string | null>,
+    pdf: (options: { collectionIds: string[]; includeSold: boolean; includeImages: boolean; includePurchaseInfo: boolean; locale: string }) =>
+      ipcRenderer.invoke('export:pdf', options) as Promise<string | null>,
     onProgress: (callback: (data: { stage: string; current: number; total: number; message: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, data: { stage: string; current: number; total: number; message: string }) => callback(data)
       ipcRenderer.on('export:progress', handler)

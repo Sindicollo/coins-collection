@@ -142,6 +142,7 @@
     "exportButton": "Экспорт БД",
     "importButton": "Импорт БД",
     "exportFormats": "Форматы экспорта",
+    "exportFormatsTooltip": "Экспорт выбранных коллекций с метаинформацией о монетах в PDF или .xslx (для Excel/Apple Numbers)",
     "exportPdf": "Экспорт в PDF",
     "exportExcel": "Экспорт в Excel",
     "comingSoon": "Скоро",
@@ -171,6 +172,21 @@
     "includeSold": "Включить проданные монеты",
     "cancel": "Отмена",
     "export": "Экспорт",
+    "exporting": "Экспорт…"
+  },
+  "exportPdf": {
+    "title": "Экспорт в PDF",
+    "selectCollections": "Выберите коллекции",
+    "noCollections": "Коллекции не найдены",
+    "selectAll": "Выбрать всё",
+    "deselectAll": "Снять всё",
+    "includeImages": "Включить фото",
+    "includeSold": "Включить проданные монеты",
+    "purchaseInfo": "Информация о покупке",
+    "purchaseInfoNo": "Без информации о покупке (номинал, год, страна, состояние, заметки)",
+    "purchaseInfoYes": "С информацией о покупке (цена, дата, место серым текстом)",
+    "cancel": "Отмена",
+    "export": "Экспорт PDF",
     "exporting": "Экспорт…"
   }
 }

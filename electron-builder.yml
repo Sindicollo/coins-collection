@@ -5,6 +5,11 @@ directories:
   buildResources: resources
 files:
   - out/**/*
+extraResources:
+  - from: src/main/assets/fonts
+    to: assets/fonts
+    filter:
+      - "*.ttf"
 mac:
   category: public.app-category.collectibles
   target:

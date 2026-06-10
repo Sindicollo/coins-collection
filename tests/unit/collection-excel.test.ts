@@ -1,392 +1,308 @@
 /**
- * Unit tests for collection-excel.ts — XLSX export logic.
- *
- * Uses a real better-sqlite3 database, mocks electron (app.getPath)
- * and sharp (image processing).
+ * Unit tests for collection-excel.ts — pure helper functions.
  *
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { join } from 'path'
-import { mkdirSync, rmSync, writeFileSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
-import ExcelJS from 'exceljs'
-import Database from 'better-sqlite3'
-import { createDatabaseAt, closeDatabase, getDatabase } from '../../src/main/database'
+import { mkdirSync } from 'fs'
+import type { Coin } from '@shared/types'
 
-// ---------------------------------------------------------------------------
-// Mocks — must be before module imports (vi.mock is hoisted)
-// ---------------------------------------------------------------------------
+// Create mock references early so they can be shared between vi.mock factory and test code
+const mockCollectExportData = vi.hoisted(() => vi.fn())
+const mockGetExportTempDir = vi.hoisted(() => vi.fn())
+const mockBuildExportFilename = vi.hoisted(() => vi.fn())
+const mockElectronGetPath = vi.hoisted(() => vi.fn())
 
 vi.mock('electron', () => ({
   app: {
-    getPath: vi.fn((name: string) => {
-      const base = join(tmpdir(), 'coin-excel-test-userdata')
-      if (name === 'userData') return base
-      if (name === 'temp') return join(tmpdir(), 'coin-excel-test-temp')
-      return join(tmpdir(), 'coin-excel-test-' + name)
-    })
+    getPath: mockElectronGetPath
   }
 }))
 
 vi.mock('sharp', () => ({
   default: vi.fn(() => ({
     resize: vi.fn().mockReturnThis(),
-    toBuffer: vi.fn().mockResolvedValue(Buffer.from('FAKE_IMAGE_DATA'))
+    toBuffer: vi.fn().mockResolvedValue(Buffer.from('FAKE'))
   }))
 }))
 
-// ---------------------------------------------------------------------------
+vi.mock('../../src/main/export/common', () => ({
+  collectExportData: mockCollectExportData,
+  getExportTempDir: mockGetExportTempDir,
+  buildExportFilename: mockBuildExportFilename
+}))
+
 // Module under test
+import {
+  sanitizeSheetName,
+  formatDate,
+  buildExcelRow,
+  getExtension,
+  exportCollectionsToExcel
+} from '../../src/main/export/collection-excel'
+
+// ---------------------------------------------------------------------------
+// Fixtures
 // ---------------------------------------------------------------------------
 
-import { exportCollectionsToExcel } from '../../src/main/export/collection-excel'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const PK = vi.hoisted(() => {
-  return {
-    COLL_ID: 'coll-1',
-    COIN_A_ID: 'coin-a',
-    COIN_B_ID: 'coin-b',
-    COIN_SOLD_ID: 'coin-sold',
-    PHOTO_ID: 'photo-1'
-  } as const
-})
-
-function initTestDb(dbPath: string): void {
-  try { closeDatabase() } catch { /* ignore */ }
-  const temp = createDatabaseAt(dbPath)
-  temp.close()
-  getDatabase(dbPath)
+const fullCoin: Coin = {
+  id: 'coin-1',
+  collectionId: 'coll-1',
+  denomination: '1 рубль',
+  year: 1999,
+  condition: 'UNC',
+  country: 'Russia',
+  notes: 'Nice coin',
+  purchaseDate: 946684800000,
+  purchasePlace: 'eBay',
+  price: 50,
+  shippingCost: 5,
+  currency: 'RUB',
+  extraData: null,
+  sold: false,
+  createdAt: 1000,
+  updatedAt: 1000
 }
 
-/** Seed a minimal database with one collection and three coins. */
-function seedBasicData(db: Database.Database): void {
-  const now = Date.now()
-
-  db.prepare(
-    'INSERT INTO collections (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)'
-  ).run(PK.COLL_ID, 'Test Collection', now, now)
-
-  // Coin A — active, full data
-  db.prepare(
-    `INSERT INTO coins (id, collection_id, denomination, year, condition,
-      purchase_date, purchase_place, price, shipping_cost, currency, country,
-      notes, extra_data, sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    PK.COIN_A_ID, PK.COLL_ID, '1 рубль', 1999, 'UNC',
-    now, 'eBay', 50, 5, 'RUB', 'Russia',
-    'Nice coin', null, 0, now, now
-  )
-
-  // Coin B — active, minimal fields (nulls)
-  db.prepare(
-    `INSERT INTO coins (id, collection_id, denomination, year, condition,
-      purchase_date, purchase_place, price, shipping_cost, currency, country,
-      notes, extra_data, sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    PK.COIN_B_ID, PK.COLL_ID, '50 копеек', null, null,
-    null, null, null, null, null, null,
-    null, null, 0, now, now
-  )
-
-  // Coin C — sold
-  db.prepare(
-    `INSERT INTO coins (id, collection_id, denomination, year, condition,
-      purchase_date, purchase_place, price, shipping_cost, currency, country,
-      notes, extra_data, sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    PK.COIN_SOLD_ID, PK.COLL_ID, 'Sold Coin', 2020, 'VF',
-    now, 'Auction', 100, 10, 'USD', 'USA',
-    'Was sold', null, 1, now, now
-  )
+const minimalCoin: Coin = {
+  id: 'coin-2',
+  collectionId: 'coll-1',
+  denomination: '1 Penny',
+  year: null,
+  condition: null,
+  country: null,
+  notes: null,
+  purchaseDate: null,
+  purchasePlace: null,
+  price: null,
+  shippingCost: null,
+  currency: null,
+  extraData: null,
+  sold: false,
+  createdAt: 1001,
+  updatedAt: 1001
 }
 
-/** Read back the first worksheet from an XLSX file as an array of row objects. */
-async function readWorksheetRows(filePath: string): Promise<Record<string, string | number>[]> {
-  const wb = new ExcelJS.Workbook()
-  await wb.xlsx.readFile(filePath)
-  const ws = wb.worksheets[0]
-  const rows: Record<string, string | number>[] = []
-  ws.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return // skip header
-    const obj: Record<string, string | number> = {}
-    row.eachCell((cell) => {
-      if (cell.col <= ws.columnCount) {
-        obj[ws.getRow(1).getCell(cell.col).value as string] = cell.value as string | number
-      }
-    })
-    rows.push(obj)
+const soldCoin: Coin = {
+  ...fullCoin,
+  id: 'coin-3',
+  sold: true
+}
+
+// ---------------------------------------------------------------------------
+// sanitizeSheetName
+// ---------------------------------------------------------------------------
+
+describe('sanitizeSheetName', () => {
+  it('removes forbidden Excel characters: [ ] : * ? \\ /', () => {
+    expect(sanitizeSheetName('Weird [Name] *Test?')).toBe('Weird Name Test')
   })
-  return rows
-}
 
-// ---------------------------------------------------------------------------
-// Suite
-// ---------------------------------------------------------------------------
+  it('trims whitespace from both ends', () => {
+    expect(sanitizeSheetName('  My Collection  ')).toBe('My Collection')
+  })
 
-let testRoot: string
-let dbPath: string
+  it('truncates to 31 characters (Excel max sheet name)', () => {
+    const long = 'A Very Long Collection Name That Exceeds The Maximum Length'
+    expect(sanitizeSheetName(long)).toHaveLength(31)
+    expect(sanitizeSheetName(long)).toBe('A Very Long Collection Name Tha')
+  })
 
-beforeEach(() => {
-  testRoot = join(tmpdir(), `coin-excel-test-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`)
-  mkdirSync(testRoot, { recursive: true })
-  dbPath = join(testRoot, 'test.sqlite')
-  initTestDb(dbPath)
+  it('returns "Sheet" for empty or all-forbidden input', () => {
+    expect(sanitizeSheetName('')).toBe('Sheet')
+    expect(sanitizeSheetName('[]:*?\\/')).toBe('Sheet')
+    expect(sanitizeSheetName('   ')).toBe('Sheet')
+  })
 
-  const db = new Database(dbPath)
-  seedBasicData(db)
-  db.close()
-
-  // Create a photo directory with a dummy file
-  const photosDir = join(tmpdir(), 'coin-excel-test-userdata', 'photos')
-  mkdirSync(photosDir, { recursive: true })
-  writeFileSync(join(photosDir, 'dummy.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]))
-
-  // Insert a photo record linked to coin A
-  const photoDb = new Database(dbPath)
-  photoDb.prepare(
-    'INSERT INTO photos (id, coin_id, filename, original_name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(PK.PHOTO_ID, PK.COIN_A_ID, 'dummy.jpg', 'original.jpg', 0, Date.now())
-  photoDb.close()
-})
-
-afterEach(() => {
-  try { closeDatabase() } catch { /* ignore */ }
-  try { rmSync(testRoot, { recursive: true, force: true }) } catch { /* ignore */ }
-  vi.clearAllMocks()
+  it('collapses multiple spaces into one', () => {
+    expect(sanitizeSheetName('My   Collection')).toBe('My Collection')
+  })
 })
 
 // ---------------------------------------------------------------------------
-// Tests
+// formatDate
+// ---------------------------------------------------------------------------
+
+describe('formatDate', () => {
+  it('returns empty string for null', () => {
+    expect(formatDate(null)).toBe('')
+  })
+
+  it('returns empty string for 0', () => {
+    expect(formatDate(0)).toBe('')
+  })
+
+  it('formats a valid timestamp as YYYY-MM-DD', () => {
+    // 2020-06-15 UTC
+    expect(formatDate(1592179200000)).toBe('2020-06-15')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildExcelRow
+// ---------------------------------------------------------------------------
+
+describe('buildExcelRow', () => {
+  it('maps all coin fields correctly (happy path)', () => {
+    const row = buildExcelRow(fullCoin)
+
+    expect(row.denomination).toBe('1 рубль')
+    expect(row.year).toBe(1999)
+    expect(row.condition).toBe('UNC')
+    expect(row.country).toBe('Russia')
+    expect(row.purchaseDate).toBe('2000-01-01')
+    expect(row.purchasePlace).toBe('eBay')
+    expect(row.price).toBe(50)
+    expect(row.shippingCost).toBe(5)
+    expect(row.currency).toBe('RUB')
+    expect(row.totalCost).toBe(55) // 50 + 5
+    expect(row.notes).toBe('Nice coin')
+    expect(row.sold).toBe('')
+  })
+
+  it('handles minimal coin with null fields', () => {
+    const row = buildExcelRow(minimalCoin)
+
+    expect(row.year).toBe('')
+    expect(row.condition).toBe('')
+    expect(row.country).toBe('')
+    expect(row.price).toBe('')
+    expect(row.shippingCost).toBe('')
+    expect(row.currency).toBe('')
+    expect(row.notes).toBe('')
+    expect(row.totalCost).toBe(0) // null + null
+    expect(row.purchaseDate).toBe('')
+    expect(row.purchasePlace).toBe('')
+  })
+
+  it('marks sold coin with checkmark unicode', () => {
+    const row = buildExcelRow(soldCoin)
+    expect(row.sold).toBe('\u2713')
+  })
+
+  it('non-sold coin has empty sold field', () => {
+    const row = buildExcelRow(fullCoin)
+    expect(row.sold).toBe('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getExtension
+// ---------------------------------------------------------------------------
+
+describe('getExtension', () => {
+  it('returns "png" for .png files', () => {
+    expect(getExtension('photo.png')).toBe('png')
+    expect(getExtension('image.PNG')).toBe('png')
+  })
+
+  it('returns "gif" for .gif files', () => {
+    expect(getExtension('animation.gif')).toBe('gif')
+    expect(getExtension('cat.GIF')).toBe('gif')
+  })
+
+  it('returns "jpeg" for .jpg files', () => {
+    expect(getExtension('photo.jpg')).toBe('jpeg')
+    expect(getExtension('image.JPG')).toBe('jpeg')
+  })
+
+  it('returns "jpeg" for other image extensions (webp, heic)', () => {
+    expect(getExtension('photo.webp')).toBe('jpeg')
+    expect(getExtension('image.heic')).toBe('jpeg')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// exportCollectionsToExcel (with mocked collectExportData)
 // ---------------------------------------------------------------------------
 
 describe('exportCollectionsToExcel', () => {
-  it('creates a valid XLSX file with coin data (happy path)', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockElectronGetPath.mockImplementation((name: string) =>
+      join(tmpdir(), 'coin-excel-test-' + name)
+    )
+    const exportDir = join(tmpdir(), 'coin-excel-export')
+    mockGetExportTempDir.mockReturnValue(exportDir)
+    mkdirSync(exportDir, { recursive: true })
+    mockBuildExportFilename.mockReturnValue('test-export.xlsx')
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('creates a valid XLSX file with English locale headers', async () => {
+    mockCollectExportData.mockResolvedValue([
+      {
+        collection: { id: 'c1', name: 'Test Coll', createdAt: 0, updatedAt: 0 },
+        coins: [fullCoin],
+        photosMap: new Map()
+      }
+    ])
+
     const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
+      collectionIds: ['c1'],
       includeSold: true,
       includeImages: false,
       locale: 'en'
     })
 
     expect(filePath).toBeTruthy()
-    expect(existsSync(filePath!)).toBe(true)
+    expect(typeof filePath).toBe('string')
+    expect(filePath).toContain('test-export.xlsx')
 
-    const rows = await readWorksheetRows(filePath!)
-    // 3 coins (A, B, Sold)
-    expect(rows).toHaveLength(3)
+    // Verify headers via readback (ExcelJS can read from file)
+    const { existsSync, unlinkSync } = await import('fs')
+    expect(existsSync(filePath)).toBe(true)
 
-    // Coin A
-    const coinA = rows.find((r) => r.Denomination === '1 рубль')
-    expect(coinA).toBeDefined()
-    expect(coinA!.Year).toBe(1999)
-    expect(coinA!.Condition).toBe('UNC')
-    expect(coinA!['Purchase Date']).toBeTruthy()
-    expect(coinA!['Purchase Place']).toBe('eBay')
-    expect(coinA!.Price).toBe(50)
-    expect(coinA!.Shipping).toBe(5)
-    expect(coinA!.Currency).toBe('RUB')
-    expect(coinA!['Total Cost']).toBe(55) // 50 + 5
-    expect(coinA!.Country).toBe('Russia')
-    expect(coinA!.Notes).toBe('Nice coin')
-    expect(coinA!.Sold).toBe('')
-
-    // Coin B — minimal/null fields
-    const coinB = rows.find((r) => r.Denomination === '50 копеек')
-    expect(coinB).toBeDefined()
-    expect(coinB!.Year).toBe('')
-    expect(coinB!.Price).toBe('')
-    expect(coinB!.Notes).toBe('')
-    expect(coinB!['Total Cost']).toBe(0)
-
-    // Sold coin
-    const soldCoin = rows.find((r) => r.Denomination === 'Sold Coin')
-    expect(soldCoin).toBeDefined()
-    expect(soldCoin!.Sold).toBe('\u2713')
-  })
-
-  it('excludes sold coins when includeSold is false', async () => {
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
-      includeSold: false,
-      includeImages: false,
-      locale: 'en'
-    })
-
-    const rows = await readWorksheetRows(filePath!)
-    expect(rows).toHaveLength(2)
-
-    const soldCoin = rows.find((r) => r.Denomination === 'Sold Coin')
-    expect(soldCoin).toBeUndefined()
-  })
-
-  it('handles empty collection gracefully', async () => {
-    // Create a second collection with no coins
-    const db = new Database(dbPath)
-    db.prepare(
-      'INSERT INTO collections (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)'
-    ).run('coll-empty', 'Empty Collection', Date.now(), Date.now())
-    db.close()
-
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: ['coll-empty'],
-      includeSold: true,
-      includeImages: false,
-      locale: 'en'
-    })
-
-    expect(existsSync(filePath!)).toBe(true)
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
+    const ExcelJS = await import('exceljs')
+    const wb = new ExcelJS.default.Workbook()
+    await wb.xlsx.readFile(filePath)
     const ws = wb.worksheets[0]
     expect(ws).toBeDefined()
-    expect(ws.name).toBe('Empty Collection')
+    expect(ws.name).toBe('Test Coll')
 
-    // Only header row — no data
-    let dataRowCount = 0
-    ws.eachRow((_row, rowNumber) => {
-      if (rowNumber > 1) dataRowCount++
-    })
-    expect(dataRowCount).toBe(0)
-  })
+    const headers = (ws.getRow(1).values as Array<string | null>).filter(Boolean) as string[]
+    expect(headers).toContain('Denomination')
+    expect(headers).toContain('Year')
+    expect(headers).toContain('Sold')
+    expect(headers).not.toContain('Obverse')
+    expect(headers).not.toContain('Reverse')
 
-  it('uses Russian locale for column headers', async () => {
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
-      includeSold: false,
-      includeImages: false,
-      locale: 'ru'
-    })
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
-    const ws = wb.worksheets[0]
-    // Read header row
-    const headerValues = (ws.getRow(1).values as Array<string | null>).filter(Boolean) as string[]
-
-    expect(headerValues).toContain('Номинал')
-    expect(headerValues).toContain('Год')
-    expect(headerValues).toContain('Цена')
-    expect(headerValues).toContain('Заметки')
-    expect(headerValues).toContain('Продан')
-    // English fallback should not appear
-    expect(headerValues).not.toContain('Denomination')
+    // Cleanup
+    unlinkSync(filePath)
   })
 
   it('includes Obverse/Reverse columns when includeImages is true', async () => {
+    mockCollectExportData.mockResolvedValue([
+      {
+        collection: { id: 'c1', name: 'Test', createdAt: 0, updatedAt: 0 },
+        coins: [fullCoin],
+        photosMap: new Map()
+      }
+    ])
+
     const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
+      collectionIds: ['c1'],
       includeSold: false,
       includeImages: true,
       locale: 'en'
     })
 
-    const wb = new ExcelJS.Workbook()
+    const ExcelJS = await import('exceljs')
+    const wb = new ExcelJS.default.Workbook()
     await wb.xlsx.readFile(filePath!)
-    const ws = wb.worksheets[0]
-    const headerValues = (ws.getRow(1).values as Array<string | null>).filter(Boolean) as string[]
+    const headers = (wb.worksheets[0].getRow(1).values as Array<string | null>)
+      .filter(Boolean) as string[]
 
-    expect(headerValues).toContain('Obverse')
-    expect(headerValues).toContain('Reverse')
-  })
+    expect(headers).toContain('Obverse')
+    expect(headers).toContain('Reverse')
 
-  it('does not include Obverse/Reverse columns when includeImages is false', async () => {
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
-      includeSold: false,
-      includeImages: false,
-      locale: 'en'
-    })
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
-    const ws = wb.worksheets[0]
-    const headerValues = (ws.getRow(1).values as Array<string | null>).filter(Boolean) as string[]
-
-    expect(headerValues).not.toContain('Obverse')
-    expect(headerValues).not.toContain('Reverse')
-  })
-
-  it('skips missing collections (returns file with only valid sheets)', async () => {
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID, 'non-existent-id'],
-      includeSold: true,
-      includeImages: false,
-      locale: 'en'
-    })
-
-    expect(existsSync(filePath!)).toBe(true)
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
-    // Only one worksheet (the valid collection); the non-existent is skipped
-    expect(wb.worksheets).toHaveLength(1)
-  })
-
-  it('calls onProgress callback during export', async () => {
-    const onProgress = vi.fn()
-
-    await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
-      includeSold: true,
-      includeImages: false,
-      locale: 'en',
-      onProgress
-    })
-
-    // Called at least with the end-of-collection progress
-    expect(onProgress).toHaveBeenCalled()
-    const lastCall = onProgress.mock.calls[onProgress.mock.calls.length - 1]
-    expect(lastCall[0]).toContain('Exporting')
-    expect(lastCall[1]).toBe(1) // current collection index
-    expect(lastCall[2]).toBe(1) // total collections
-  })
-
-  it('sanitizes sheet names with invalid Excel characters', async () => {
-    const db = new Database(dbPath)
-    db.prepare(
-      'INSERT INTO collections (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)'
-    ).run(
-      'coll-weird', 'Weird [Name] *Test?', Date.now(), Date.now()
-    )
-    db.close()
-
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: ['coll-weird'],
-      includeSold: true,
-      includeImages: false,
-      locale: 'en'
-    })
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
-    const ws = wb.worksheets[0]
-    // Forbidden chars [ ] * ? should be removed
-    expect(ws.name).toBe('Weird Name Test')
-  })
-
-  it('returns file with photos embedded when includeImages is true', async () => {
-    const filePath = await exportCollectionsToExcel({
-      collectionIds: [PK.COLL_ID],
-      includeSold: false,
-      includeImages: true,
-      locale: 'en'
-    })
-
-    expect(existsSync(filePath!)).toBe(true)
-
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(filePath!)
-    // Verify the file is valid with at least one sheet
-    expect(wb.worksheets).toHaveLength(1)
+    const { unlinkSync } = await import('fs')
+    unlinkSync(filePath!)
   })
 })

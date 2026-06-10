@@ -10,6 +10,7 @@ import { registerImportHandlers } from './ipc/import'
 import { registerPriceHandlers } from './ipc/prices'
 import { registerBackupHandlers } from './ipc/backup'
 import { registerExportHandlers } from './ipc/export'
+import { registerExportPdfHandlers } from './ipc/export-pdf'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -61,6 +62,7 @@ app.whenReady().then(() => {
   registerPriceHandlers()
   registerBackupHandlers()
   registerExportHandlers()
+  registerExportPdfHandlers()
 
   createWindow()
 
