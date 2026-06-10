@@ -18,7 +18,7 @@ mac:
   target:
     - dmg
     - zip
-  hardenedRuntime: true
+  hardenedRuntime: false
 win:
   target:
     - nsis
