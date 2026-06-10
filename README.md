@@ -10,6 +10,8 @@ English/russian interface.
 - **Collections** — organize coins into custom collections (e.g. "Russian Coins", "British Shillings")
 - **Coins** — track denomination, year, condition, purchase date, price, currency, notes, sold status, and more
 - **Photos** — attach multiple photos to each coin, reorder them, and browse in a lightbox
+- **Export to PDF** — export selected collections with coin details, photos (up to 4 per coin), table of contents, and «Sold» label in red
+- **Export to Excel** — export selected collections to `.xlsx` with embedded photos
 - **Import** — bulk import coins from Excel `.xlsx` spreadsheets
 - **Backup & Restore** — export your entire database to a ZIP archive (JSON + photos), import back with smart merge
 - **i18n** — English and Russian UI
@@ -17,7 +19,7 @@ English/russian interface.
 
 ## Download
 
-[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v1.1.0/Coin.Collection-1.1.0-arm64.dmg) (macOS arm64, 106 MB)
+[**Download .dmg**](https://github.com/Sindicollo/coins-collection/releases/download/v1.2.0/Coin.Collection-1.2.0-arm64.dmg) (macOS arm64, ~110 MB)
 
 > See [Releases](https://github.com/Sindicollo/coins-collection/releases) for other versions.
 
@@ -38,6 +40,9 @@ English/russian interface.
 | Build | [electron-builder](https://www.electron.build/) 25 |
 | Backup | [adm-zip](https://github.com/cthackers/adm-zip) |
 | Import | [SheetJS (xlsx)](https://sheetjs.com/) |
+| Export (Excel) | [ExcelJS](https://github.com/exceljs/exceljs) |
+| Export (PDF) | [PDFKit](https://pdfkit.org/) |
+| Images | [sharp](https://sharp.pixelplumbing.com/) |
 
 ## Architecture
 
