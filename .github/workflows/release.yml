@@ -48,7 +48,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Rebuild native modules (x64)
-        run: npm rebuild --arch x64 better-sqlite3 sharp
+        run: npx electron-rebuild -f -w better-sqlite3,sharp -m .
 
       - name: Build and package for Windows
         run: npm run dist:win -- --publish always
