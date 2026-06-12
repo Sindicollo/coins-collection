@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.3.0
+
+### Added
+- LLM prompt template — copy-paste ready prompt for ChatGPT/Claude with collection JSON
+- LLM prompt template translated to Russian when UI language is Russian
+- Tooltips on Export/Import buttons explaining the LLM workflow
+- `HelpTooltip` component (reusable CSS tooltip)
+
+### Changed
+- **LLM Import refactored**: renamed from "Import prices" to generic LLM tools (`LlmTools`)
+- Import field changed from `prices` to `info` — supports any LLM query, not just prices
+- No `prices:` prefix when appending LLM output to coin notes
+- Ghost button hover changed to blue tint
+- LLM buttons repositioned next to "Add Coin" button for more title space
+- Shared `LlmExportCoin` type (deduplicated from main and renderer)
+
+### Fixed
+- IPC crash protection: `readFileSync`/`JSON.parse` wrapped in try/catch
+- Clipboard fallback replaced with proper error handling (Electron context)
+- `setTimeout` cleanup on unmount for copy button state
+- Windows path separator in exported filename display
+- GitHub Actions: force Node.js 24 for actions runner
+
 ## v1.2.2
 
 ### Fixed
