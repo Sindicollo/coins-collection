@@ -52,9 +52,10 @@ const api = {
       downloadPhotos: boolean
     }) => ipcRenderer.invoke('import:execute-no-year', args)
   },
-  prices: {
-    exportAll: (collectionId: string) => ipcRenderer.invoke('price:exportAll', collectionId),
-    importPrices: () => ipcRenderer.invoke('price:importPrices')
+  llm: {
+    getExportData: (collectionId: string) => ipcRenderer.invoke('llm:getExportData', collectionId),
+    exportAll: (collectionId: string) => ipcRenderer.invoke('llm:exportAll', collectionId),
+    importInfo: () => ipcRenderer.invoke('llm:importInfo')
   },
   backup: {
     exportExecute: () => ipcRenderer.invoke('backup:export-execute'),

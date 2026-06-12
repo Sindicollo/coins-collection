@@ -16,7 +16,7 @@ export {
   listDistinctCountries,
   listAllCoins,
   getCollectionTotalCost,
-  bulkAppendNotes
+  bulkAppendLlmInfo
 } from './coins'
 
 export {

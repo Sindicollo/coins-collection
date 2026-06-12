@@ -6,7 +6,7 @@ import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { LlmPrices } from './LlmPrices'
+import { LlmTools } from './LlmTools'
 import { Plus } from '@/components/ui/icons/Plus'
 import { currencySymbol } from '@/utils/currency'
 import type { Coin, CoinCondition } from '@shared/types'
@@ -122,9 +122,9 @@ export function CoinView({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-primary-800">{collectionName}</h1>
+      <div className="flex items-start justify-between mb-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold text-primary-800 truncate">{collectionName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {totals.length > 0
               ? t('coins.totalCost', {
@@ -135,8 +135,8 @@ export function CoinView({
               : t('coins.title')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <LlmPrices collectionId={collectionId} onImported={handleRefresh} />
+        <div className="flex items-start gap-2 flex-shrink-0 ml-4">
+          <LlmTools collectionId={collectionId} onImported={handleRefresh} />
           <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="w-4 h-4 mr-1" />
             {t('coins.addButton')}

@@ -31,9 +31,10 @@ export const IPC_CHANNELS = {
     EXECUTE: 'import:execute',
     EXECUTE_NO_YEAR: 'import:execute-no-year'
   },
-  PRICE: {
-    EXPORT_ALL: 'price:exportAll',
-    IMPORT_PRICES: 'price:importPrices'
+  LLM: {
+    GET_EXPORT_DATA: 'llm:getExportData',
+    EXPORT_ALL: 'llm:exportAll',
+    IMPORT_INFO: 'llm:importInfo'
   },
   BACKUP: {
     EXPORT_EXECUTE: 'backup:export-execute',

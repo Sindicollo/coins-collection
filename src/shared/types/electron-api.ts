@@ -3,6 +3,7 @@
 // Used by both renderer (global-api.ts) and preload (index.d.ts) type declarations.
 
 import type { DropFileInput } from './photo'
+import type { LlmExportCoin } from './index'
 
 export interface ElectronAPI {
   collections: {
@@ -42,9 +43,10 @@ export interface ElectronAPI {
     execute: (args: Record<string, unknown>) => Promise<any>
     executeNoYear: (args: Record<string, unknown>) => Promise<any>
   }
-  prices: {
+  llm: {
+    getExportData: (collectionId: string) => Promise<LlmExportCoin[]>
     exportAll: (collectionId: string) => Promise<string | null>
-    importPrices: () => Promise<any>
+    importInfo: () => Promise<any>
   }
   backup: {
     exportExecute: () => Promise<string | null>
