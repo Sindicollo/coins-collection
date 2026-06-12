@@ -10,6 +10,14 @@ export interface PaginatedResult<T> {
   hasMore: boolean
 }
 
+export interface LlmExportCoin {
+  id: string
+  country: string | null
+  denomination: string
+  year: number | null
+  condition: string | null
+}
+
 export interface ErrorResult {
   error: string
 }

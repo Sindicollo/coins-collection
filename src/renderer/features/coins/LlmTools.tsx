@@ -1,19 +1,12 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
+import { HelpTooltip } from '@/components/ui/HelpTooltip'
 
 interface LlmToolsProps {
   collectionId: string
   onExported?: (filePath: string) => void
   onImported?: (updated: number, skipped: number) => void
-}
-
-interface ExportCoin {
-  id: string
-  country: string | null
-  denomination: string
-  year: number | null
-  condition: string | null
 }
 
 export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps): React.ReactElement {
@@ -25,12 +18,25 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
     updated: number
     skipped: number
   } | null>(null)
-  const [exportData, setExportData] = React.useState<ExportCoin[]>([])
+  const [exportData, setExportData] = React.useState<unknown[]>([])
+  const [loadError, setLoadError] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
+  const copyTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
 
   React.useEffect(() => {
-    window.api.llm.getExportData(collectionId).then(setExportData).catch(console.error)
-  }, [collectionId])
+    setLoadError(null)
+    window.api.llm
+      .getExportData(collectionId)
+      .then(setExportData)
+      .catch((err) => {
+        console.error(err)
+        setLoadError(t('coins.llmLoadError', { defaultValue: 'Failed to load collection data' }))
+      })
+  }, [collectionId, t])
+
+  React.useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current)
+  }, [])
 
   const promptText = React.useMemo(() => {
     if (exportData.length === 0) return ''
@@ -65,15 +71,20 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
   }
 
   const handleCopy = async (): Promise<void> => {
-    await navigator.clipboard.writeText(promptText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    try {
+      await navigator.clipboard.writeText(promptText)
+      setCopied(true)
+    } catch {
+      console.error('Failed to copy to clipboard')
+    }
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
   }
 
   return (
     <div>
       <div className="flex items-center gap-2 flex-wrap justify-end">
-        <span className="relative group cursor-help inline-flex items-center gap-1">
+        <div className="inline-flex items-center gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -82,15 +93,10 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
           >
             {exporting ? '...' : t('coins.exportLlm', { defaultValue: 'Export for LLM' })}
           </Button>
-          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[10px] leading-none text-gray-400 border border-gray-300">
-            ?
-          </span>
-          <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 max-w-[280px] pointer-events-none whitespace-normal z-50">
-            {t('coins.llmExportTooltip')}
-          </span>
-        </span>
+          <HelpTooltip text={t('coins.llmExportTooltip')} />
+        </div>
 
-        <span className="relative group cursor-help inline-flex items-center gap-1">
+        <div className="inline-flex items-center gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -99,17 +105,12 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
           >
             {importing ? '...' : t('coins.importLlm', { defaultValue: 'Import from LLM' })}
           </Button>
-          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[10px] leading-none text-gray-400 border border-gray-300">
-            ?
-          </span>
-          <span className="absolute top-full left-0 mt-1.5 px-3 py-1.5 bg-gray-800 text-white text-[11px] leading-relaxed rounded shadow-lg opacity-0 invisible group-hover:opacity-85 group-hover:visible transition-all duration-150 max-w-[280px] pointer-events-none whitespace-normal z-50">
-            {t('coins.llmImportTooltip')}
-          </span>
-        </span>
+          <HelpTooltip text={t('coins.llmImportTooltip')} />
+        </div>
 
         {lastExported && (
           <span className="text-xs text-gray-500">
-            {lastExported.split('/').pop()}
+            {lastExported.split(/[\\/]/).pop()}
           </span>
         )}
 
@@ -123,6 +124,12 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
           </span>
         )}
       </div>
+
+      {loadError && (
+        <p className="text-xs text-red-500 mt-1 text-right">
+          {loadError}
+        </p>
+      )}
 
       {promptText && (
         <details className="mt-2 group">

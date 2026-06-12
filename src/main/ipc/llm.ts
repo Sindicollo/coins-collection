@@ -1,19 +1,12 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
 import { listCoinsByCollection, bulkAppendLlmInfo, type LlmNoteUpdate } from '../database/repositories/coins'
+import type { LlmExportCoin } from '@shared/types'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 
-interface ExportCoin {
-  id: string
-  country: string | null
-  denomination: string
-  year: number | null
-  condition: string | null
-}
-
-function buildExportData(collectionId: string): ExportCoin[] {
+function buildExportData(collectionId: string): LlmExportCoin[] {
   const coins = listCoinsByCollection(collectionId)
   return coins.map((c) => ({
     id: c.id,
@@ -27,7 +20,7 @@ function buildExportData(collectionId: string): ExportCoin[] {
 export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.GET_EXPORT_DATA,
-    async (_event, collectionId: string): Promise<ExportCoin[]> => {
+    async (_event, collectionId: string): Promise<LlmExportCoin[]> => {
       return buildExportData(collectionId)
     }
   )
@@ -64,11 +57,18 @@ export function registerLlmHandlers(): void {
       if (result.canceled || result.filePaths.length === 0) return null
 
       const filePath = result.filePaths[0]
-      const content = readFileSync(filePath, 'utf-8')
-      const parsed: unknown = JSON.parse(content)
 
-      if (!Array.isArray(parsed)) {
-        console.error('[llm] Invalid JSON: expected array')
+      let parsed: unknown
+      try {
+        const content = readFileSync(filePath, 'utf-8')
+        parsed = JSON.parse(content)
+      } catch (err) {
+        console.error('[llm] Failed to read or parse file:', err)
+        return null
+      }
+
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        console.error('[llm] Invalid JSON: expected non-empty array, got', typeof parsed)
         return null
       }
 
@@ -80,6 +80,11 @@ export function registerLlmHandlers(): void {
             typeof (item as LlmNoteUpdate).id === 'string' &&
             typeof (item as LlmNoteUpdate).info === 'string'
         )
+
+      const skippedByFormat = parsed.length - updates.length
+      if (skippedByFormat > 0) {
+        console.warn(`[llm] Skipped ${skippedByFormat} items with invalid structure`)
+      }
 
       const { updated, skipped } = bulkAppendLlmInfo(updates)
       return { updated, skipped, filePath }
