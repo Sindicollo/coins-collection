@@ -21,8 +21,8 @@ English/russian interface.
 
 | Platform | Link |
 |----------|------|
-| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.2.2/Coin-Collection-1.2.2-arm64.dmg) (~114 MB) |
-| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.2.2/Coin-Collection-Setup-1.2.2.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.2.2/Coin-Collection-1.2.2.exe) |
+| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.3.0/Coin-Collection-1.3.0-arm64.dmg) (~114 MB) |
+| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.3.0/Coin-Collection-Setup-1.3.0.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.3.0/Coin-Collection-1.3.0.exe) |
 
 > ⚠️ **Windows builds are not tested.** The app is developed and tested on macOS only. Windows binaries are built via GitHub Actions but may contain platform-specific issues. Bug reports welcome!
 

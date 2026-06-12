@@ -65,6 +65,8 @@ Update the download table — change version in all three links:
 
 **Important:** electron-builder uploads with **hyphens** (`Coin-Collection`), not dots or spaces. Do not use the local `dist/` filename (which has spaces) — GitHub converts spaces to hyphens when electron-builder uploads.
 
+> ⚠️ **Do NOT skip this step.** Without it, users will download old versions from the README links. The filename pattern is predictable — update before pushing the tag.
+
 ### 5. Verify
 
 ```bash
@@ -95,7 +97,8 @@ The `.github/workflows/release.yml` workflow will:
 Wait for the workflow to complete (~10 min), then check:
 - https://github.com/Sindicollo/coins-collection/releases
 - Both macOS and Windows artifacts are attached
-- Download links in README work
+- Download links in README work (click each link)
+- If README was updated after the commit, push a follow-up commit
 
 ---
 
