@@ -98,7 +98,16 @@ i18n.use(initReactI18next).init({
             deleteFailed: 'Failed to delete coin',
             denominationRequired: 'Denomination is required'
           },
-          retry: 'Retry'
+          retry: 'Retry',
+          exportLlm: 'Export for LLM',
+          importLlm: 'Import from LLM',
+          llmResult: '{{updated}} updated, {{skipped}} skipped',
+          llmTemplate: 'LLM Prompt Template',
+          llmCopied: 'Copied!',
+          llmCopyPrompt: 'Copy prompt',
+          llmExportTooltip: 'Paste this JSON into an AI chat and ask your questions — e.g. about current market prices, mintage, etc. See the prompt template below for an example. Important: the response must contain "id" and "info" fields only.',
+          llmImportTooltip: 'Copy the JSON response from the AI chat into a file, then import it here to add the information to your coins.',
+          llmPrompt: 'You are a numismatic expert. For each coin in the JSON below, add useful information to the "info" field: historical context, mintage figures, rarity, market prices, varieties, notable design features, interesting facts, etc. Be concise but informative.\n\nIMPORTANT: Output ONLY a valid JSON array containing only the coins you modified. Do NOT include coins you haven\'t changed. Do NOT add explanations, markdown, or extra text outside the JSON. Each object must have "id" (matching the original coin) and "info" (your analysis text).\n\nHere is my coin collection:\n{{json}}\n\nExample response format:\n[\n  { "id": "abc-123", "info": "Minted in St. Petersburg, 1895. Mintage: 2.1M. Rarity: common. Market price: 500-700₽ (UNC). Varieties: plain edge and reeded edge." },\n  { "id": "def-456", "info": "Rare variety with wide edge lettering. Only ~50K minted. Price: 5000-8000₽ (UNC)." }\n]'
         },
         photos: {
           title: 'Photos',
@@ -215,9 +224,10 @@ if (typeof window !== 'undefined') {
       execute: vi.fn(),
       executeNoYear: vi.fn()
     },
-    prices: {
+    llm: {
+      getExportData: vi.fn(),
       exportAll: vi.fn(),
-      importPrices: vi.fn()
+      importInfo: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

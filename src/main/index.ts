@@ -7,7 +7,7 @@ import { registerCoinHandlers } from './ipc/coins'
 import { registerPhotoHandlers } from './ipc/photos'
 import { registerPreferenceHandlers } from './ipc/preferences'
 import { registerImportHandlers } from './ipc/import'
-import { registerPriceHandlers } from './ipc/prices'
+import { registerLlmHandlers } from './ipc/llm'
 import { registerBackupHandlers } from './ipc/backup'
 import { registerExportHandlers } from './ipc/export'
 import { registerExportPdfHandlers } from './ipc/export-pdf'
@@ -59,7 +59,7 @@ app.whenReady().then(() => {
   registerPhotoHandlers()
   registerPreferenceHandlers()
   registerImportHandlers()
-  registerPriceHandlers()
+  registerLlmHandlers()
   registerBackupHandlers()
   registerExportHandlers()
   registerExportPdfHandlers()

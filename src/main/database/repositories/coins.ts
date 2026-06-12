@@ -313,9 +313,9 @@ export function listCoinsByCollection(collectionId: string): Coin[] {
   }))
 }
 
-export interface PriceUpdate {
+export interface LlmNoteUpdate {
   id: string
-  prices: string
+  info: string
 }
 
 export interface BulkAppendResult {
@@ -323,7 +323,7 @@ export interface BulkAppendResult {
   skipped: number
 }
 
-export function bulkAppendNotes(updates: PriceUpdate[]): BulkAppendResult {
+export function bulkAppendLlmInfo(updates: LlmNoteUpdate[]): BulkAppendResult {
   const db = getDatabase()
   const getStmt = db.prepare('SELECT notes FROM coins WHERE id = ?')
   const setStmt = db.prepare(
@@ -334,16 +334,15 @@ export function bulkAppendNotes(updates: PriceUpdate[]): BulkAppendResult {
   let skipped = 0
 
   const now = Date.now()
-  const tx = db.transaction((items: PriceUpdate[]): void => {
+  const tx = db.transaction((items: LlmNoteUpdate[]): void => {
     for (const item of items) {
       const row = getStmt.get(item.id) as { notes: string | null } | undefined
       if (!row) {
         skipped++
         continue
       }
-      const suffix = `\n\nprices: ${item.prices}`
       const newNotes =
-        row.notes && row.notes !== '' ? row.notes + suffix : suffix.trim()
+        row.notes && row.notes !== '' ? row.notes + '\n\n' + item.info : item.info
       setStmt.run(newNotes, now, item.id)
       updated++
     }

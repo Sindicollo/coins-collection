@@ -2,7 +2,7 @@ import React from 'react'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   children: React.ReactNode
 }
 
@@ -14,6 +14,7 @@ const variantStyles: Record<string, string> = {
 }
 
 const sizeStyles: Record<string, string> = {
+  xs: 'px-1.5 py-0.5 text-[11px]',
   sm: 'px-2.5 py-1.5 text-xs',
   md: 'px-4 py-2 text-sm',
   lg: 'px-6 py-3 text-base'

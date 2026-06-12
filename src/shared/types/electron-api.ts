@@ -42,9 +42,10 @@ export interface ElectronAPI {
     execute: (args: Record<string, unknown>) => Promise<any>
     executeNoYear: (args: Record<string, unknown>) => Promise<any>
   }
-  prices: {
+  llm: {
+    getExportData: (collectionId: string) => Promise<any[]>
     exportAll: (collectionId: string) => Promise<string | null>
-    importPrices: () => Promise<any>
+    importInfo: () => Promise<any>
   }
   backup: {
     exportExecute: () => Promise<string | null>

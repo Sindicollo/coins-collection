@@ -51,12 +51,12 @@ vi.mock('@/features/coins/CoinForm', () => ({
   ))
 }))
 
-vi.mock('@/features/coins/LlmPrices', () => ({
-  LlmPrices: vi.fn(({ onImported }) => {
+vi.mock('@/features/coins/LlmTools', () => ({
+  LlmTools: vi.fn(({ onImported }) => {
     // Store callback for test access
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(window as any).__llmOnImported = onImported
-    return <div data-testid="llm-prices" />
+    return <div data-testid="llm-tools" />
   })
 }))
 
@@ -281,7 +281,7 @@ describe('CoinView', () => {
   })
 
   describe('refresh', () => {
-    it('called when LlmPrices fires onImported', () => {
+    it('called when LlmTools fires onImported', () => {
       const resetSpy = vi.fn()
       const loadSpy = vi.fn()
       vi.spyOn(useCoinStore.getState(), 'reset').mockImplementation(resetSpy)
@@ -289,7 +289,7 @@ describe('CoinView', () => {
 
       renderCoinView()
 
-      // Trigger the stored callback from LlmPrices mock
+      // Trigger the stored callback from LlmTools mock
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(window as any).__llmOnImported?.()
 

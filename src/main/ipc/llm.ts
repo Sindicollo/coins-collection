@@ -1,6 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
-import { listCoinsByCollection, bulkAppendNotes, type PriceUpdate } from '../database/repositories/coins'
+import { listCoinsByCollection, bulkAppendLlmInfo, type LlmNoteUpdate } from '../database/repositories/coins'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
@@ -13,18 +13,29 @@ interface ExportCoin {
   condition: string | null
 }
 
-export function registerPriceHandlers(): void {
+function buildExportData(collectionId: string): ExportCoin[] {
+  const coins = listCoinsByCollection(collectionId)
+  return coins.map((c) => ({
+    id: c.id,
+    country: c.country,
+    denomination: c.denomination,
+    year: c.year,
+    condition: c.condition
+  }))
+}
+
+export function registerLlmHandlers(): void {
   ipcMain.handle(
-    IPC_CHANNELS.PRICE.EXPORT_ALL,
+    IPC_CHANNELS.LLM.GET_EXPORT_DATA,
+    async (_event, collectionId: string): Promise<ExportCoin[]> => {
+      return buildExportData(collectionId)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.EXPORT_ALL,
     async (_event, collectionId: string): Promise<string | null> => {
-      const coins = listCoinsByCollection(collectionId)
-      const exportData: ExportCoin[] = coins.map((c) => ({
-        id: c.id,
-        country: c.country,
-        denomination: c.denomination,
-        year: c.year,
-        condition: c.condition
-      }))
+      const exportData = buildExportData(collectionId)
 
       const now = new Date()
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -43,7 +54,7 @@ export function registerPriceHandlers(): void {
   )
 
   ipcMain.handle(
-    IPC_CHANNELS.PRICE.IMPORT_PRICES,
+    IPC_CHANNELS.LLM.IMPORT_INFO,
     async (): Promise<{ updated: number; skipped: number; filePath: string } | null> => {
       const result = await dialog.showOpenDialog({
         properties: ['openFile'],
@@ -57,20 +68,20 @@ export function registerPriceHandlers(): void {
       const parsed: unknown = JSON.parse(content)
 
       if (!Array.isArray(parsed)) {
-        console.error('[prices] Invalid JSON: expected array')
+        console.error('[llm] Invalid JSON: expected array')
         return null
       }
 
-      const updates: PriceUpdate[] = parsed
+      const updates: LlmNoteUpdate[] = parsed
         .filter(
-          (item): item is PriceUpdate =>
+          (item): item is LlmNoteUpdate =>
             typeof item === 'object' &&
             item !== null &&
-            typeof (item as PriceUpdate).id === 'string' &&
-            typeof (item as PriceUpdate).prices === 'string'
+            typeof (item as LlmNoteUpdate).id === 'string' &&
+            typeof (item as LlmNoteUpdate).info === 'string'
         )
 
-      const { updated, skipped } = bulkAppendNotes(updates)
+      const { updated, skipped } = bulkAppendLlmInfo(updates)
       return { updated, skipped, filePath }
     }
   )
