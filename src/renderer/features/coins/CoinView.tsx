@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useCoinStore } from './useCoins'
 import { useScrollRestoration } from './useScrollRestoration'
 import { CoinList } from './CoinList'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LlmTools } from './LlmTools'
 import { Plus } from '@/components/ui/icons/Plus'
+import { Ai } from '@/components/ui/icons/Ai'
 import { currencySymbol } from '@/utils/currency'
 import type { Coin, CoinCondition } from '@shared/types'
 
@@ -48,6 +50,7 @@ export function CoinView({
   onCollectionChange
 }: CoinViewProps): React.ReactElement {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const store = useCoinStore()
 
   const [showForm, setShowForm] = React.useState(false)
@@ -136,6 +139,15 @@ export function CoinView({
           </p>
         </div>
         <div className="flex items-start gap-2 flex-shrink-0 ml-4">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate(`/ai/${collectionId}`)}
+            title={t('ai.title', { defaultValue: 'AI Assistant' })}
+          >
+            <Ai className="w-4 h-4 mr-1" />
+            {t('ai.title', { defaultValue: 'AI' })}
+          </Button>
           <LlmTools collectionId={collectionId} onImported={handleRefresh} />
           <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="w-4 h-4 mr-1" />

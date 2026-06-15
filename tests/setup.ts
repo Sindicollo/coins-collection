@@ -219,16 +219,56 @@ if (typeof window !== 'undefined') {
       setCurrency: vi.fn(),
       getCurrencies: vi.fn()
     },
-    import: {
-      selectFile: vi.fn(),
-      preview: vi.fn(),
-      execute: vi.fn(),
-      executeNoYear: vi.fn()
-    },
+        import: {
+          selectFile: vi.fn(),
+          preview: vi.fn(),
+          execute: vi.fn(),
+          executeNoYear: vi.fn()
+        },
+        ai: {
+          title: 'AI',
+          back: 'Back',
+          bulkPrices: 'Learn Prices',
+          bulkMintage: 'Learn Mintage',
+          bulkInfo: 'Learn General Info',
+          manualInput: 'Manual Input',
+          settingsButton: 'Settings',
+          querying: 'Querying...',
+          queryingCollection: 'Asking AI about {{type}}...',
+          loadingCoins: 'Loading coins...',
+          pasteJson: 'Paste JSON response from AI chat (array of objects with "id" field):',
+          parseJson: 'Parse JSON',
+          appendToNotes: 'Append to Notes',
+          clearResult: 'Clear',
+          queryPrice: 'eBay price',
+          queryMintage: 'Mintage',
+          queryInfo: 'Info',
+          field: {
+            price: 'Price',
+            mintage: 'Mintage',
+            rarity: 'Rarity',
+            varieties: 'Varieties'
+          },
+          settings: {
+            title: 'AI Settings',
+            provider: 'Provider',
+            baseUrl: 'Base URL',
+            model: 'Model',
+            apiKey: 'API Key',
+            testConnection: 'Test Connection',
+            testOk: 'Connection successful!',
+            testFailed: 'Connection failed'
+          }
+        },
     llm: {
       getExportData: vi.fn(),
       exportAll: vi.fn(),
-      importInfo: vi.fn()
+      importInfo: vi.fn(),
+      queryBulk: vi.fn(),
+      querySingle: vi.fn(),
+      getConfig: vi.fn(),
+      setConfig: vi.fn(),
+      testConnection: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

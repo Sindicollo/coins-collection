@@ -1,10 +1,14 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
-import { listCoinsByCollection, bulkAppendLlmInfo, type LlmNoteUpdate } from '../database/repositories/coins'
-import type { LlmExportCoin } from '@shared/types'
+import { listCoinsByCollection, getCoin, bulkAppendLlmInfo, type LlmNoteUpdate } from '../database/repositories/coins'
+import type { LlmExportCoin, AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult } from '@shared/types'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
+import { createLlmModel } from '../llm/providers'
+import { queryBulkCoins, querySingleCoin } from '../llm/chains'
+import { loadLlmConfig, saveLlmConfig } from '../llm/config'
+import { HumanMessage } from '@langchain/core/messages'
 
 function buildExportData(collectionId: string): LlmExportCoin[] {
   const coins = listCoinsByCollection(collectionId)
@@ -18,6 +22,8 @@ function buildExportData(collectionId: string): LlmExportCoin[] {
 }
 
 export function registerLlmHandlers(): void {
+  // --- Existing handlers ---
+
   ipcMain.handle(
     IPC_CHANNELS.LLM.GET_EXPORT_DATA,
     async (_event, collectionId: string): Promise<LlmExportCoin[]> => {
@@ -88,6 +94,69 @@ export function registerLlmHandlers(): void {
 
       const { updated, skipped } = bulkAppendLlmInfo(updates)
       return { updated, skipped, filePath }
+    }
+  )
+
+  // --- New AI query handlers ---
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.QUERY_BULK,
+    async (_event, query: AiBulkQuery): Promise<AiCoinInfo[]> => {
+      const coins = listCoinsByCollection(query.collectionId)
+      if (coins.length === 0) {
+        return []
+      }
+
+      const model = createLlmModel(query.config)
+      return queryBulkCoins(model, coins, query.queryType)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.QUERY_SINGLE,
+    async (_event, query: AiSingleQuery): Promise<AiCoinInfo> => {
+      const coin = getCoin(query.coinId)
+      if (!coin) {
+        throw new Error(`Coin not found: ${query.coinId}`)
+      }
+
+      const model = createLlmModel(query.config)
+      return querySingleCoin(model, coin, query.queryType)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.GET_CONFIG,
+    async (): Promise<LlmConfig> => {
+      return loadLlmConfig()
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.SET_CONFIG,
+    async (_event, config: LlmConfig): Promise<void> => {
+      saveLlmConfig(config)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.TEST_CONNECTION,
+    async (_event, config?: LlmConfig): Promise<LlmTestResult> => {
+      try {
+        const model = createLlmModel(config)
+        const effectiveConfig = config ? { ...loadLlmConfig(), ...config } : loadLlmConfig()
+        console.log('[llm] Testing connection:', {
+          provider: effectiveConfig.provider,
+          model: effectiveConfig.model,
+          baseUrl: effectiveConfig.baseUrl
+        })
+        await model.invoke([new HumanMessage('Reply with just the word "OK"')])
+        return { ok: true }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[llm] Connection test failed:', message)
+        return { ok: false, error: message }
+      }
     }
   )
 }
