@@ -9,7 +9,6 @@ import { CoinView } from './features/coins/CoinView'
 import { PhotoGallery } from './features/photos/PhotoGallery'
 import { ExportDialog } from './features/export/ExportDialog'
 import { ExportPdfDialog } from './features/export-pdf/ExportPdfDialog'
-import { AiPage } from './features/ai'
 import { useExportStore } from './features/export/useExport'
 import { useExportPdfStore } from './features/export-pdf/useExportPdf'
 import { useCollectionManager } from './features/collections/useCollections'
@@ -88,17 +87,6 @@ function App(): React.ReactElement {
         <Route
           path="/coins/:collectionId/photo/:coinId"
           element={<PhotoGallery onOpenSettings={() => setShowSettings(true)} />}
-        />
-        <Route
-          path="/ai/:collectionId"
-          element={
-            <AppLayout
-              sidebar={<CollectionSidebar />}
-              onOpenSettings={() => setShowSettings(true)}
-            >
-              <AiPage />
-            </AppLayout>
-          }
         />
         <Route
           path="*"

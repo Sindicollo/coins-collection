@@ -3,7 +3,7 @@
 // Used by both renderer (global-api.ts) and preload (index.d.ts) type declarations.
 
 import type { DropFileInput } from './photo'
-import type { LlmExportCoin, AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult } from './index'
+import type { LlmExportCoin } from './index'
 
 export interface ElectronAPI {
   collections: {
@@ -47,11 +47,6 @@ export interface ElectronAPI {
     getExportData: (collectionId: string) => Promise<LlmExportCoin[]>
     exportAll: (collectionId: string) => Promise<string | null>
     importInfo: () => Promise<any>
-    queryBulk: (query: AiBulkQuery) => Promise<AiCoinInfo[]>
-    querySingle: (query: AiSingleQuery) => Promise<AiCoinInfo>
-    getConfig: () => Promise<LlmConfig>
-    setConfig: (config: LlmConfig) => Promise<void>
-    testConnection: (config?: LlmConfig) => Promise<LlmTestResult>
   }
   backup: {
     exportExecute: () => Promise<string | null>

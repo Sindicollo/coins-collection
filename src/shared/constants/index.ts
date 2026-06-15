@@ -34,12 +34,7 @@ export const IPC_CHANNELS = {
   LLM: {
     GET_EXPORT_DATA: 'llm:getExportData',
     EXPORT_ALL: 'llm:exportAll',
-    IMPORT_INFO: 'llm:importInfo',
-    QUERY_BULK: 'llm:query-bulk',
-    QUERY_SINGLE: 'llm:query-single',
-    GET_CONFIG: 'llm:get-config',
-    SET_CONFIG: 'llm:set-config',
-    TEST_CONNECTION: 'llm:test-connection'
+    IMPORT_INFO: 'llm:importInfo'
   },
   BACKUP: {
     EXPORT_EXECUTE: 'backup:export-execute',

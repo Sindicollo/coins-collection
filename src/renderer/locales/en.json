@@ -112,41 +112,6 @@
     "llmImportTooltip": "Copy the JSON response from the AI chat into a file, then import it here to add the information to your coins.",
     "llmPrompt": "You are a numismatic expert. For each coin in the JSON below, add useful information to the \"info\" field: historical context, mintage figures, rarity, market prices, varieties, notable design features, interesting facts, etc. Be concise but informative.\n\nIMPORTANT: Output ONLY a valid JSON array containing only the coins you modified. Do NOT include coins you haven't changed. Do NOT add explanations, markdown, or extra text outside the JSON. Each object must have \"id\" (matching the original coin) and \"info\" (your analysis text).\n\nHere is my coin collection:\n{{json}}\n\nExample response format:\n[\n  { \"id\": \"abc-123\", \"info\": \"Minted in St. Petersburg, 1895. Mintage: 2.1M. Rarity: common. Market price: 500-700₽ (UNC). Varieties: plain edge and reeded edge.\" },\n  { \"id\": \"def-456\", \"info\": \"Rare variety with wide edge lettering. Only ~50K minted. Price: 5000-8000₽ (UNC).\" }\n]"
   },
-  "ai": {
-    "title": "AI",
-    "back": "Back",
-    "bulkPrices": "Learn Prices",
-    "bulkMintage": "Learn Mintage",
-    "bulkInfo": "Learn General Info",
-    "manualInput": "Manual Input",
-    "settingsButton": "Settings",
-    "querying": "Querying...",
-    "queryingCollection": "Asking AI about {{type}}...",
-    "loadingCoins": "Loading coins...",
-    "pasteJson": "Paste JSON response from AI chat (array of objects with \"id\" field):",
-    "parseJson": "Parse JSON",
-    "appendToNotes": "Append to Notes",
-    "clearResult": "Clear",
-    "queryPrice": "eBay price",
-    "queryMintage": "Mintage",
-    "queryInfo": "Info",
-    "field": {
-      "price": "Price",
-      "mintage": "Mintage",
-      "rarity": "Rarity",
-      "varieties": "Varieties"
-    },
-    "settings": {
-      "title": "AI Settings",
-      "provider": "Provider",
-      "baseUrl": "Base URL",
-      "model": "Model",
-      "apiKey": "API Key",
-      "testConnection": "Test Connection",
-      "testOk": "Connection successful!",
-      "testFailed": "Connection failed"
-    }
-  },
   "photos": {
     "title": "Photos",
     "photo": "photo",

@@ -55,12 +55,7 @@ const api = {
   llm: {
     getExportData: (collectionId: string) => ipcRenderer.invoke('llm:getExportData', collectionId),
     exportAll: (collectionId: string) => ipcRenderer.invoke('llm:exportAll', collectionId),
-    importInfo: () => ipcRenderer.invoke('llm:importInfo'),
-    queryBulk: (query: Record<string, unknown>) => ipcRenderer.invoke('llm:query-bulk', query),
-    querySingle: (query: Record<string, unknown>) => ipcRenderer.invoke('llm:query-single', query),
-    getConfig: () => ipcRenderer.invoke('llm:get-config'),
-    setConfig: (config: Record<string, unknown>) => ipcRenderer.invoke('llm:set-config', config),
-    testConnection: (config?: Record<string, unknown>) => ipcRenderer.invoke('llm:test-connection', config)
+    importInfo: () => ipcRenderer.invoke('llm:importInfo')
   },
   backup: {
     exportExecute: () => ipcRenderer.invoke('backup:export-execute'),
