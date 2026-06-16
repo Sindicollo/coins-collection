@@ -74,6 +74,11 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
               {conditionLabel}
             </span>
           )}
+          {coin.composition && (
+            <span className="text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">
+              {t(`coins.compositions.${coin.composition}`)}
+            </span>
+          )}
           {coin.country && (
             <span className="text-xs text-gray-400 shrink-0">{coin.country}</span>
           )}

@@ -17,6 +17,12 @@ const PROVIDERS: { value: LlmProviderType; label: string }[] = [
   { value: 'ollama', label: 'Ollama' }
 ]
 
+const DEFAULT_URLS: Record<LlmProviderType, string> = {
+  openrouter: 'https://openrouter.ai/api/v1',
+  lmstudio: 'http://localhost:1234/v1',
+  ollama: 'http://localhost:11434/v1'
+}
+
 export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.ReactElement {
   const { t } = useTranslation()
   const [config, setConfig] = React.useState<LlmConfig>({
@@ -70,9 +76,14 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
           </label>
           <select
             value={config.provider}
-            onChange={(e) =>
-              setConfig((prev) => ({ ...prev, provider: e.target.value as LlmProviderType }))
-            }
+            onChange={(e) => {
+              const provider = e.target.value as LlmProviderType
+              setConfig((prev) => ({
+                ...prev,
+                provider,
+                baseUrl: DEFAULT_URLS[provider]
+              }))
+            }}
             className="px-3 py-2 border border-gray-300 rounded-md text-sm
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >

@@ -101,6 +101,15 @@
       "denominationRequired": "Номинал обязателен"
     },
     "retry": "Повторить",
+    "composition": "Состав",
+    "compositions": {
+      "gold": "Золото",
+      "silver": "Серебро",
+      "billon": "Биллон",
+      "copper": "Медь",
+      "bronze": "Бронза",
+      "other": "Другое"
+    },
     "exportLlm": "Экспорт для LLM",
     "importLlm": "Импорт из LLM",
     "llmResult": "{{updated}} обновлено, {{skipped}} пропущено",
@@ -130,6 +139,8 @@
     "queryPrice": "Цена на eBay",
     "queryMintage": "Тираж",
     "queryInfo": "Инфо",
+    "progress": "Обработано {{processed}} из {{total}} монет",
+    "stop": "Стоп",
     "field": {
       "price": "Цена",
       "mintage": "Тираж",

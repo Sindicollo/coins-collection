@@ -10,6 +10,9 @@ interface AiState {
   manualInput: string
   configLoading: boolean
   configLoaded: boolean
+  bulkProgress: number
+  bulkTotal: number
+  bulkRunning: boolean
 }
 
 interface AiActions {
@@ -20,6 +23,7 @@ interface AiActions {
   appendCoinToNotes: (coinId: string) => Promise<boolean>
   setManualInput: (input: string) => void
   parseManualInput: () => void
+  cancelBulk: (collectionId: string) => void
 }
 
 type AiStore = AiState & AiActions
@@ -44,27 +48,58 @@ export const useAiStore = create<AiStore>((set, get) => ({
   manualInput: '',
   configLoading: false,
   configLoaded: false,
+  bulkProgress: 0,
+  bulkTotal: 0,
+  bulkRunning: false,
 
   queryBulk: async (collectionId: string, queryType: string) => {
     console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
-    set({ loading: true, error: null, lastQueryType: queryType })
+
+    // Clear previous results and set up progress
+    set({
+      loading: true,
+      error: null,
+      lastQueryType: queryType,
+      bulkProgress: 0,
+      bulkTotal: 0,
+      bulkRunning: true
+    })
+
+    // Listen for progress events
+    const unsubscribe = window.api.llm.onBulkProgress((data) => {
+      set((state) => {
+        const newResults = { ...state.results }
+        for (const item of data.results) {
+          newResults[item.id] = item
+        }
+        return {
+          results: newResults,
+          bulkProgress: data.processed,
+          bulkTotal: data.total
+        }
+      })
+    })
+
     try {
       const results = await aiApi.queryBulk(collectionId, queryType)
-      console.log('[useAiStore] queryBulk results:', results.length, 'coins')
+      console.log('[useAiStore] queryBulk complete:', results.length, 'coins')
       set((state) => {
         const newResults = { ...state.results }
         for (const item of results) {
           newResults[item.id] = item
         }
-        return { results: newResults, loading: false }
+        return { results: newResults, loading: false, bulkRunning: false }
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[useAiStore] queryBulk error:', message, err)
       set({
         error: message || 'Failed to query LLM',
-        loading: false
+        loading: false,
+        bulkRunning: false
       })
+    } finally {
+      unsubscribe()
     }
   },
 
@@ -87,7 +122,12 @@ export const useAiStore = create<AiStore>((set, get) => ({
     }
   },
 
-  clearResults: () => set({ results: {}, error: null, lastQueryType: null }),
+  clearResults: () => set({ results: {}, error: null, lastQueryType: null, bulkProgress: 0, bulkTotal: 0, bulkRunning: false }),
+
+  cancelBulk: (collectionId: string) => {
+    window.api.llm.cancelBulk(collectionId)
+    set({ bulkRunning: false, loading: false })
+  },
 
   clearCoinResult: (coinId: string) => {
     set((state) => {

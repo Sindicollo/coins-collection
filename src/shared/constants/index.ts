@@ -39,7 +39,9 @@ export const IPC_CHANNELS = {
     QUERY_SINGLE: 'llm:query-single',
     GET_CONFIG: 'llm:get-config',
     SET_CONFIG: 'llm:set-config',
-    TEST_CONNECTION: 'llm:test-connection'
+    TEST_CONNECTION: 'llm:test-connection',
+    BULK_PROGRESS: 'llm:bulk-progress',
+    CANCEL_BULK: 'llm:cancel-bulk'
   },
   BACKUP: {
     EXPORT_EXECUTE: 'backup:export-execute',

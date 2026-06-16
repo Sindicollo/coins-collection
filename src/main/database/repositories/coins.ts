@@ -2,6 +2,7 @@ import { uuidv4 } from './uuid'
 import { getDatabase } from '..'
 import type {
   Coin,
+  CoinComposition,
   CreateCoinInput,
   UpdateCoinInput,
   PaginatedResult
@@ -97,6 +98,7 @@ export function listCoins(
     shippingCost: nullableNumber(row.shipping_cost),
     currency: (row.currency as string) ?? null,
     country: (row.country as string) ?? null,
+    composition: (row.composition as CoinComposition) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
@@ -137,6 +139,7 @@ export function getCoin(id: string): Coin | undefined {
     shippingCost: nullableNumber(row.shipping_cost),
     currency: (row.currency as string) ?? null,
     country: (row.country as string) ?? null,
+    composition: (row.composition as CoinComposition) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
@@ -151,15 +154,16 @@ export function createCoin(input: CreateCoinInput): Coin {
   const id = uuidv4()
 
   db.prepare(
-    `INSERT INTO coins (id, collection_id, denomination, year, condition, purchase_date,
-      purchase_place, price, shipping_cost, currency, country, notes, extra_data, sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO coins (id, collection_id, denomination, year, condition, composition,
+      purchase_date, purchase_place, price, shipping_cost, currency, country, notes, extra_data, sold, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.collectionId,
     input.denomination,
     input.year ?? null,
     input.condition ?? null,
+    input.composition ?? null,
     input.purchaseDate ?? null,
     input.purchasePlace ?? null,
     input.price ?? null,
@@ -185,6 +189,7 @@ export function createCoin(input: CreateCoinInput): Coin {
     shippingCost: input.shippingCost ?? null,
     currency: input.currency ?? null,
     country: input.country ?? null,
+    composition: input.composition ?? null,
     notes: input.notes ?? null,
     extraData: input.extraData ?? null,
     sold: input.sold ?? false,
@@ -211,13 +216,14 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
   if (input.shippingCost !== undefined) fields.shippingCost = input.shippingCost ?? null
   if (input.currency !== undefined) fields.currency = input.currency ?? null
   if (input.country !== undefined) fields.country = input.country ?? null
+  if (input.composition !== undefined) fields.composition = input.composition ?? null
   if (input.notes !== undefined) fields.notes = input.notes ?? null
   if (input.extraData !== undefined) fields.extraData = input.extraData ?? null
   if (input.sold !== undefined) fields.sold = input.sold
   fields.updatedAt = now
 
   db.prepare(
-    `UPDATE coins SET collection_id = ?, denomination = ?, year = ?, condition = ?,
+    `UPDATE coins SET collection_id = ?, denomination = ?, year = ?, condition = ?, composition = ?,
      purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?, currency = ?, country = ?,
      notes = ?, extra_data = ?, sold = ?, updated_at = ? WHERE id = ?`
   ).run(
@@ -225,6 +231,7 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
     fields.denomination,
     fields.year,
     fields.condition,
+    fields.composition,
     fields.purchaseDate,
     fields.purchasePlace,
     fields.price,
@@ -277,6 +284,7 @@ export function listAllCoins(): Coin[] {
     shippingCost: nullableNumber(row.shipping_cost),
     currency: (row.currency as string) ?? null,
     country: (row.country as string) ?? null,
+    composition: (row.composition as CoinComposition) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
@@ -305,6 +313,7 @@ export function listCoinsByCollection(collectionId: string): Coin[] {
     shippingCost: nullableNumber(row.shipping_cost),
     currency: (row.currency as string) ?? null,
     country: (row.country as string) ?? null,
+    composition: (row.composition as CoinComposition) ?? null,
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,

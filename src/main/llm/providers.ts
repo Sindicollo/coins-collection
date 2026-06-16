@@ -8,7 +8,8 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
 
   const common = {
     temperature: 0.3,
-    maxTokens: 4096
+    maxTokens: 16384,
+    timeout: 120000
   }
 
   switch (cfg.provider) {
@@ -17,6 +18,7 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
         ...common,
         modelName: cfg.model,
         apiKey: cfg.apiKey,
+        modelKwargs: { reasoning: { max_tokens: 4096 } },
         configuration: {
           baseURL: cfg.baseUrl
         }

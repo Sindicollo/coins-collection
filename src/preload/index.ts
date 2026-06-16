@@ -60,7 +60,13 @@ const api = {
     querySingle: (query: Record<string, unknown>) => ipcRenderer.invoke('llm:query-single', query),
     getConfig: () => ipcRenderer.invoke('llm:get-config'),
     setConfig: (config: Record<string, unknown>) => ipcRenderer.invoke('llm:set-config', config),
-    testConnection: (config?: Record<string, unknown>) => ipcRenderer.invoke('llm:test-connection', config)
+    testConnection: (config?: Record<string, unknown>) => ipcRenderer.invoke('llm:test-connection', config),
+    onBulkProgress: (callback: (data: Record<string, unknown>) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Record<string, unknown>) => callback(data)
+      ipcRenderer.on('llm:bulk-progress', handler)
+      return () => ipcRenderer.removeListener('llm:bulk-progress', handler)
+    },
+    cancelBulk: (collectionId: string) => ipcRenderer.invoke('llm:cancel-bulk', collectionId)
   },
   backup: {
     exportExecute: () => ipcRenderer.invoke('backup:export-execute'),

@@ -19,13 +19,17 @@ export function AiPage(): React.ReactElement {
     error,
     lastQueryType,
     manualInput,
+    bulkProgress,
+    bulkTotal,
+    bulkRunning,
     queryBulk,
     querySingle,
     clearResults,
     clearCoinResult,
     appendCoinToNotes,
     setManualInput,
-    parseManualInput
+    parseManualInput,
+    cancelBulk
   } = store
 
   const [coins, setCoins] = React.useState<Coin[]>([])
@@ -162,6 +166,41 @@ export function AiPage(): React.ReactElement {
       {error && (
         <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
           {error}
+        </div>
+      )}
+
+      {/* Progress bar for bulk queries */}
+      {bulkRunning && bulkTotal > 0 && (
+        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-blue-700">
+              {t('ai.progress', {
+                defaultValue: 'Processed {{processed}} of {{total}} coins',
+                processed: bulkProgress,
+                total: bulkTotal
+              })}
+            </span>
+            <span className="text-xs text-blue-500">
+              {bulkTotal > 0 ? Math.round((bulkProgress / bulkTotal) * 100) : 0}%
+            </span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${bulkTotal > 0 ? (bulkProgress / bulkTotal) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="flex justify-end mt-2">
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => {
+                if (collectionId) cancelBulk(collectionId)
+              }}
+            >
+              ⏹ {t('ai.stop', { defaultValue: 'Stop' })}
+            </Button>
+          </div>
         </div>
       )}
 

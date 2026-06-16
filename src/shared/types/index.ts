@@ -17,6 +17,7 @@ export interface LlmExportCoin {
   denomination: string
   year: number | null
   condition: string | null
+  composition: string | null
 }
 
 export interface ErrorResult {

@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Autocomplete } from '@/components/ui/Autocomplete'
 import { CURRENCIES } from '@/utils/currency'
-import type { Coin, CoinCondition } from '@shared/types'
-import { COIN_CONDITIONS } from '@shared/types'
+import type { Coin, CoinComposition, CoinCondition } from '@shared/types'
+import { COIN_CONDITIONS, COIN_COMPOSITIONS } from '@shared/types'
 
 interface CoinFormData {
   collectionId: string
@@ -14,6 +14,7 @@ interface CoinFormData {
   country: string
   year: string
   condition: CoinCondition | ''
+  composition: CoinComposition | ''
   purchaseDate: string
   purchasePlace: string
   price: string
@@ -31,6 +32,7 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
       country: '',
       year: '',
       condition: '',
+      composition: '',
       purchaseDate: '',
       purchasePlace: '',
       price: '',
@@ -46,6 +48,7 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     country: coin.country ?? '',
     year: coin.year?.toString() ?? '',
     condition: coin.condition ?? '',
+    composition: coin.composition ?? '',
     purchaseDate: coin.purchaseDate
       ? new Date(coin.purchaseDate).toISOString().slice(0, 10)
       : '',
@@ -70,6 +73,7 @@ interface CoinFormProps {
     country: string | null
     year: number | null
     condition: CoinCondition | null
+    composition: CoinComposition | null
     purchaseDate: number | null
     purchasePlace: string | null
     price: number | null
@@ -133,6 +137,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       country: data.country.trim() || null,
       year: data.year ? parseInt(data.year, 10) : null,
       condition: data.condition || null,
+      composition: data.composition || null,
       purchaseDate: data.purchaseDate ? new Date(data.purchaseDate).getTime() : null,
       purchasePlace: data.purchasePlace.trim() || null,
       price: data.price ? parseFloat(data.price) : null,
@@ -213,6 +218,26 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Composition / metal */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">
+            {t('coins.composition', { defaultValue: 'Composition' })}
+          </label>
+          <select
+            value={data.composition}
+            onChange={(e) => handleChange('composition', e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm
+              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">—</option>
+            {COIN_COMPOSITIONS.map((c) => (
+              <option key={c} value={c}>
+                {t(`coins.compositions.${c}`)}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

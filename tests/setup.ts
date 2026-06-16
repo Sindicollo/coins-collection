@@ -99,6 +99,15 @@ i18n.use(initReactI18next).init({
             denominationRequired: 'Denomination is required'
           },
           retry: 'Retry',
+          composition: 'Composition',
+          compositions: {
+            gold: 'Gold',
+            silver: 'Silver',
+            billon: 'Billon',
+            copper: 'Copper',
+            bronze: 'Bronze',
+            other: 'Other'
+          },
           exportLlm: 'Export for LLM',
           importLlm: 'Import from LLM',
           llmResult: '{{updated}} updated, {{skipped}} skipped',
@@ -243,6 +252,8 @@ if (typeof window !== 'undefined') {
           queryPrice: 'eBay price',
           queryMintage: 'Mintage',
           queryInfo: 'Info',
+          progress: 'Processed {{processed}} of {{total}} coins',
+          stop: 'Stop',
           field: {
             price: 'Price',
             mintage: 'Mintage',
@@ -268,7 +279,9 @@ if (typeof window !== 'undefined') {
       querySingle: vi.fn(),
       getConfig: vi.fn(),
       setConfig: vi.fn(),
-      testConnection: vi.fn()
+      testConnection: vi.fn(),
+      onBulkProgress: vi.fn(() => vi.fn()),
+      cancelBulk: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

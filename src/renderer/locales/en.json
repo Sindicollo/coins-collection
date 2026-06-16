@@ -101,6 +101,15 @@
       "denominationRequired": "Denomination is required"
     },
     "retry": "Retry",
+    "composition": "Composition",
+    "compositions": {
+      "gold": "Gold",
+      "silver": "Silver",
+      "billon": "Billon",
+      "copper": "Copper",
+      "bronze": "Bronze",
+      "other": "Other"
+    },
     "exportLlm": "Export for LLM",
     "importLlm": "Import from LLM",
     "llmResult": "{{updated}} updated, {{skipped}} skipped",
@@ -130,6 +139,8 @@
     "queryPrice": "eBay price",
     "queryMintage": "Mintage",
     "queryInfo": "Info",
+    "progress": "Processed {{processed}} of {{total}} coins",
+    "stop": "Stop",
     "field": {
       "price": "Price",
       "mintage": "Mintage",

@@ -37,4 +37,12 @@ export interface LlmTestResult {
   error?: string
 }
 
+export interface LlmBulkProgress {
+  processed: number
+  total: number
+  currentBatch: number
+  totalBatches: number
+  results: AiCoinInfo[]
+}
+
 export type LlmProviderType = LlmConfig['provider']

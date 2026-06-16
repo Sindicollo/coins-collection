@@ -11,7 +11,7 @@ import { LlmTools } from './LlmTools'
 import { Plus } from '@/components/ui/icons/Plus'
 import { Ai } from '@/components/ui/icons/Ai'
 import { currencySymbol } from '@/utils/currency'
-import type { Coin, CoinCondition } from '@shared/types'
+import type { Coin, CoinComposition, CoinCondition } from '@shared/types'
 
 interface CurrencyTotal {
   currency: string
@@ -33,6 +33,7 @@ type CoinSaveData = {
   country: string | null
   year: number | null
   condition: CoinCondition | null
+  composition: CoinComposition | null
   purchaseDate: number | null
   purchasePlace: string | null
   price: number | null
