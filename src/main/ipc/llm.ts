@@ -102,13 +102,24 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_BULK,
     async (_event, query: AiBulkQuery): Promise<AiCoinInfo[]> => {
-      const coins = listCoinsByCollection(query.collectionId)
-      if (coins.length === 0) {
-        return []
-      }
+      console.log('[llm:ipc] QUERY_BULK:', { collectionId: query.collectionId, queryType: query.queryType })
+      try {
+        const coins = listCoinsByCollection(query.collectionId)
+        console.log('[llm:ipc] coins loaded:', coins.length)
+        if (coins.length === 0) {
+          console.warn('[llm:ipc] No coins in collection, returning empty')
+          return []
+        }
 
-      const model = createLlmModel(query.config)
-      return queryBulkCoins(model, coins, query.queryType)
+        const model = createLlmModel(query.config)
+        console.log('[llm:ipc] model created, running chain...')
+        const result = await queryBulkCoins(model, coins, query.queryType, query.locale || 'en')
+        console.log('[llm:ipc] chain result:', result.length, 'coins')
+        return result
+      } catch (err) {
+        console.error('[llm:ipc] QUERY_BULK error:', err)
+        throw err
+      }
     }
   )
 
@@ -121,7 +132,7 @@ export function registerLlmHandlers(): void {
       }
 
       const model = createLlmModel(query.config)
-      return querySingleCoin(model, coin, query.queryType)
+      return querySingleCoin(model, coin, query.queryType, query.locale || 'en')
     }
   )
 

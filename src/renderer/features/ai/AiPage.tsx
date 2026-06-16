@@ -76,7 +76,11 @@ export function AiPage(): React.ReactElement {
   }, [collectionId, clearResults])
 
   const handleBulkQuery = (queryType: string): void => {
-    if (!collectionId) return
+    console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })
+    if (!collectionId) {
+      console.warn('[AiPage] No collectionId, skipping query')
+      return
+    }
     queryBulk(collectionId, queryType)
   }
 

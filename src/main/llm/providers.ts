@@ -6,11 +6,16 @@ import { loadLlmConfig } from './config'
 export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   const cfg = { ...loadLlmConfig(), ...config }
 
+  const common = {
+    temperature: 0.3,
+    maxTokens: 4096
+  }
+
   switch (cfg.provider) {
     case 'openrouter':
       return new ChatOpenAI({
+        ...common,
         modelName: cfg.model,
-        temperature: 0.3,
         apiKey: cfg.apiKey,
         configuration: {
           baseURL: cfg.baseUrl
@@ -23,8 +28,8 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
         baseUrl = baseUrl.replace(/\/$/, '') + '/v1'
       }
       return new ChatOpenAI({
+        ...common,
         modelName: cfg.model,
-        temperature: 0.3,
         apiKey: cfg.apiKey || 'lm-studio',
         configuration: {
           baseURL: baseUrl
@@ -39,8 +44,8 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
       }
       const ollamaModel = cfg.model.includes('/') ? cfg.model.split('/').pop()! : cfg.model
       return new ChatOpenAI({
+        ...common,
         modelName: ollamaModel,
-        temperature: 0.3,
         apiKey: cfg.apiKey || 'ollama',
         configuration: {
           baseURL: baseUrl

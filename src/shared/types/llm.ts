@@ -15,12 +15,14 @@ export interface AiBulkQuery {
   collectionId: string
   queryType: QueryType
   config?: LlmConfig
+  locale?: string
 }
 
 export interface AiSingleQuery {
   coinId: string
   queryType: QueryType
   config?: LlmConfig
+  locale?: string
 }
 
 export interface LlmConfig {

@@ -46,9 +46,11 @@ export const useAiStore = create<AiStore>((set, get) => ({
   configLoaded: false,
 
   queryBulk: async (collectionId: string, queryType: string) => {
+    console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
     set({ loading: true, error: null, lastQueryType: queryType })
     try {
       const results = await aiApi.queryBulk(collectionId, queryType)
+      console.log('[useAiStore] queryBulk results:', results.length, 'coins')
       set((state) => {
         const newResults = { ...state.results }
         for (const item of results) {
@@ -58,6 +60,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
+      console.error('[useAiStore] queryBulk error:', message, err)
       set({
         error: message || 'Failed to query LLM',
         loading: false
