@@ -6,6 +6,10 @@ import { loadLlmConfig } from './config'
 export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   const cfg = { ...loadLlmConfig(), ...config }
 
+  if (!cfg.model) {
+    throw new Error('Model name is empty. Set a model in AI Settings (e.g., openai/gpt-4.1).')
+  }
+
   const common = {
     temperature: 0.3,
     maxTokens: 16384,

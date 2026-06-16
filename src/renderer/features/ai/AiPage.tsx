@@ -61,8 +61,8 @@ export function AiPage(): React.ReactElement {
       try {
         const col = await window.api.collections.get(collectionId!)
         if (!cancelled && col) setCollectionName(col.name)
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn('[AiPage] Failed to load collection name:', err instanceof Error ? err.message : err)
       }
     }
 

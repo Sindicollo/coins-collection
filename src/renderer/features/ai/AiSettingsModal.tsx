@@ -53,7 +53,9 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
       await aiApi.setConfig(config)
       const result = await aiApi.testConnection(config)
       setTestResult(result)
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn('[AiSettingsModal] Test connection failed:', message)
       setTestResult({ ok: false, error: 'Connection test failed' })
     } finally {
       setTesting(false)

@@ -8,8 +8,6 @@ interface AiState {
   error: string | null
   lastQueryType: string | null
   manualInput: string
-  configLoading: boolean
-  configLoaded: boolean
   bulkProgress: number
   bulkTotal: number
   bulkRunning: boolean
@@ -46,8 +44,6 @@ export const useAiStore = create<AiStore>((set, get) => ({
   error: null,
   lastQueryType: null,
   manualInput: '',
-  configLoading: false,
-  configLoaded: false,
   bulkProgress: 0,
   bulkTotal: 0,
   bulkRunning: false,
@@ -163,8 +159,9 @@ export const useAiStore = create<AiStore>((set, get) => ({
       set({ results: newResults })
 
       return true
-    } catch {
-      console.error('Failed to append AI info to notes for coin', coinId)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[useAiStore] Failed to append AI info to notes for coin', coinId, message)
       return false
     }
   },
