@@ -64,7 +64,11 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
   }
 
   const handleClose = async (): Promise<void> => {
-    await aiApi.setConfig(config)
+    try {
+      await aiApi.setConfig(config)
+    } catch (err) {
+      console.warn('[AiSettingsModal] Failed to save config:', err)
+    }
     setLoaded(false)
     onClose()
   }

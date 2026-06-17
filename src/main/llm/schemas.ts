@@ -56,7 +56,7 @@ const anyToVarieties = z
 export const AiCoinInfoSchema = z
   .preprocess((val) => {
     if (typeof val !== 'object' || val === null) return val
-    const obj = val as Record<string, unknown>
+    const obj = { ...val as Record<string, unknown> }  // Don't mutate input
     // Remap common alternative field names
     if (obj.estimated_value !== undefined && obj.price === undefined) {
       obj.price = obj.estimated_value

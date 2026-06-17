@@ -176,7 +176,9 @@ export function registerLlmHandlers(): void {
   )
 
   // Cancel active bulk query
-  ipcMain.handle('llm:cancel-bulk', async (_event, collectionId: string): Promise<void> => {
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.CANCEL_BULK,
+    async (_event, collectionId: string): Promise<void> => {
     for (const [key, query] of activeQueries) {
       if (key.startsWith(collectionId)) {
         query.cancel()
@@ -264,7 +266,8 @@ export function registerLlmHandlers(): void {
           if (err.cause) {
             console.error('[llm] Error cause:', err.cause)
           }
-          const status = (err as unknown as Record<string, unknown>).status
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const status = (err as any).status
           if (typeof status === 'number') {
             message = `HTTP ${status}: ${message}`
           }

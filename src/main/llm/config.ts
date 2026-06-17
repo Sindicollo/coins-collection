@@ -50,8 +50,8 @@ export function saveLlmConfig(config: LlmConfig): void {
   setPreference(PREF_KEYS.provider, config.provider)
   setPreference(PREF_KEYS.model, config.model)
   setPreference(PREF_KEYS.baseUrl, config.baseUrl)
-  // Only save API key if provided (don't overwrite with empty)
-  if (config.apiKey) {
+  // Save API key (even if empty — allows clearing it)
+  if (config.apiKey !== undefined) {
     setPreference(PREF_KEYS.apiKey, config.apiKey)
   }
   setPreference(PREF_KEYS.webSearch, String(config.enableWebSearch))

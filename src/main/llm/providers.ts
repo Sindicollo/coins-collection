@@ -16,70 +16,68 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
     timeout: 120000
   }
 
+  // Ensure OpenAI-compatible base URL ends with /v1
+  function normalizeUrl(baseUrl: string, fallback: string): string {
+    let url = baseUrl || fallback
+    if (!url.endsWith('/v1')) {
+      url = url.replace(/\/$/, '') + '/v1'
+    }
+    return url
+  }
+
   switch (cfg.provider) {
     case 'openrouter': {
       const enableWebSearch = cfg.enableWebSearch
+
+      const configuration: Record<string, unknown> = {
+        baseURL: cfg.baseUrl
+      }
+
+      if (enableWebSearch) {
+        configuration.fetch = async (url: any, init?: any) => {
+          if (init?.body && typeof init.body === 'string') {
+            try {
+              const body = JSON.parse(init.body)
+              body.tools = [
+                {
+                  type: 'openrouter:web_search',
+                  parameters: { max_results: 5, search_context_size: 'medium' }
+                }
+              ]
+              delete body.tool_choice
+              init = { ...init, body: JSON.stringify(body) }
+            } catch { /* not JSON */ }
+          }
+          return fetch(url, init)
+        }
+      }
 
       return new ChatOpenAI({
         ...common,
         modelName: cfg.model,
         apiKey: cfg.apiKey,
-        configuration: {
-          baseURL: cfg.baseUrl,
-          // Intercept fetch to inject web search via OpenRouter tools API
-          ...(enableWebSearch && {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            fetch: async (url: any, init?: any) => {
-              if (init?.body && typeof init.body === 'string') {
-                try {
-                  const body = JSON.parse(init.body)
-                  // OpenRouter new tools API for web search (replaces deprecated plugins)
-                  body.tools = [
-                    {
-                      type: 'openrouter:web_search',
-                      parameters: { max_results: 5, search_context_size: 'medium' }
-                    }
-                  ]
-                  // model selects tool mode — auto: model decides, none: off
-                  delete body.tool_choice
-                  init = { ...init, body: JSON.stringify(body) }
-                } catch { /* not JSON */ }
-              }
-
-              return fetch(url, init)
-            }
-          })
-        }
+        configuration
       })
     }
 
-    case 'lmstudio': {
-      let baseUrl = cfg.baseUrl || 'http://localhost:1234/v1'
-      if (!baseUrl.endsWith('/v1')) {
-        baseUrl = baseUrl.replace(/\/$/, '') + '/v1'
-      }
+    case 'lmstudio':
       return new ChatOpenAI({
         ...common,
         modelName: cfg.model,
         apiKey: cfg.apiKey || 'lm-studio',
         configuration: {
-          baseURL: baseUrl
+          baseURL: normalizeUrl(cfg.baseUrl, 'http://localhost:1234/v1')
         }
       })
-    }
 
     case 'ollama': {
-      let baseUrl = cfg.baseUrl || 'http://localhost:11434/v1'
-      if (!baseUrl.endsWith('/v1')) {
-        baseUrl = baseUrl.replace(/\/$/, '') + '/v1'
-      }
       const ollamaModel = cfg.model.includes('/') ? cfg.model.split('/').pop()! : cfg.model
       return new ChatOpenAI({
         ...common,
         modelName: ollamaModel,
         apiKey: cfg.apiKey || 'ollama',
         configuration: {
-          baseURL: baseUrl
+          baseURL: normalizeUrl(cfg.baseUrl, 'http://localhost:11434/v1')
         }
       })
     }
