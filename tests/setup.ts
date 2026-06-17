@@ -268,7 +268,9 @@ if (typeof window !== 'undefined') {
             apiKey: 'API Key',
             testConnection: 'Test Connection',
             testOk: 'Connection successful!',
-            testFailed: 'Connection failed'
+            testFailed: 'Connection failed',
+            webSearch: 'Enable web search',
+            webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
           }
         },
     llm: {

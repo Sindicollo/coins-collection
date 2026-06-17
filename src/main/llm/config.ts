@@ -5,7 +5,8 @@ const PREF_KEYS = {
   provider: 'llm.provider',
   model: 'llm.model',
   baseUrl: 'llm.baseUrl',
-  apiKey: 'llm.apiKey'
+  apiKey: 'llm.apiKey',
+  webSearch: 'llm.webSearch'
 } as const
 
 function envConfig(): LlmConfig {
@@ -13,7 +14,8 @@ function envConfig(): LlmConfig {
     provider: (process.env.LLM_PROVIDER as LlmProviderType) || 'openrouter',
     model: process.env.LLM_MODEL || 'openai/gpt-4.1',
     baseUrl: process.env.LLM_BASE_URL || 'https://openrouter.ai/api/v1',
-    apiKey: process.env.LLM_API_KEY || ''
+    apiKey: process.env.LLM_API_KEY || '',
+    enableWebSearch: process.env.LLM_WEB_SEARCH === 'true'
   }
 }
 
@@ -30,15 +32,17 @@ export function loadLlmConfig(): LlmConfig {
   const dbModel = getPreference(PREF_KEYS.model)
   const dbBaseUrl = getPreference(PREF_KEYS.baseUrl)
   const dbApiKey = getPreference(PREF_KEYS.apiKey)
+  const dbWebSearch = getPreference(PREF_KEYS.webSearch)
 
   // If at least one preference is set, use DB values (with env fallback)
-  const hasDbConfig = dbProvider || dbModel || dbBaseUrl || dbApiKey
+  const hasDbConfig = dbProvider || dbModel || dbBaseUrl || dbApiKey || !!dbWebSearch
 
   return {
     provider: hasDbConfig ? validateProvider(dbProvider || env.provider) : env.provider,
     model: hasDbConfig ? (dbModel || env.model) : env.model,
     baseUrl: hasDbConfig ? (dbBaseUrl || env.baseUrl) : env.baseUrl,
-    apiKey: hasDbConfig ? (dbApiKey ?? env.apiKey) : env.apiKey
+    apiKey: hasDbConfig ? (dbApiKey ?? env.apiKey) : env.apiKey,
+    enableWebSearch: hasDbConfig ? (dbWebSearch === 'true') : env.enableWebSearch
   }
 }
 
@@ -50,4 +54,5 @@ export function saveLlmConfig(config: LlmConfig): void {
   if (config.apiKey) {
     setPreference(PREF_KEYS.apiKey, config.apiKey)
   }
+  setPreference(PREF_KEYS.webSearch, String(config.enableWebSearch))
 }

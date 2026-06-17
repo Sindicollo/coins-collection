@@ -155,7 +155,9 @@
       "apiKey": "API-ключ",
       "testConnection": "Проверить соединение",
       "testOk": "Соединение успешно!",
-      "testFailed": "Ошибка соединения"
+      "testFailed": "Ошибка соединения",
+      "webSearch": "Веб-поиск",
+      "webSearchHint": "OpenRouter tools API. Работает с большинством моделей. +~10с к запросу."
     }
   },
   "photos": {

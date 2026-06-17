@@ -18,7 +18,7 @@ interface AiActions {
   querySingle: (coinId: string, queryType: string) => Promise<AiCoinInfo | null>
   clearResults: () => void
   clearCoinResult: (coinId: string) => void
-  appendCoinToNotes: (coinId: string) => Promise<boolean>
+  appendCoinToNotes: (coinId: string) => Promise<string | null>
   setManualInput: (input: string) => void
   parseManualInput: () => void
   cancelBulk: (collectionId: string) => void
@@ -136,14 +136,14 @@ export const useAiStore = create<AiStore>((set, get) => ({
   appendCoinToNotes: async (coinId: string) => {
     const { results } = get()
     const info = results[coinId]
-    if (!info) return false
+    if (!info) return null
 
     const text = aiInfoToText(info)
-    if (!text) return false
+    if (!text) return null
 
     try {
       const coin = await window.api.coins.get(coinId)
-      if (!coin) return false
+      if (!coin) return null
 
       const existingNotes = coin.notes || ''
       const newNotes = existingNotes ? existingNotes + '\n\n---\n' + text : text
@@ -153,16 +153,13 @@ export const useAiStore = create<AiStore>((set, get) => ({
         notes: newNotes
       })
 
-      // Clear the result after appending
-      const newResults = { ...get().results }
-      delete newResults[coinId]
-      set({ results: newResults })
-
-      return true
+      // Keep AI result visible — user can clear manually with «Clear» button
+      // Return new notes so the parent can update the coin display
+      return newNotes
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[useAiStore] Failed to append AI info to notes for coin', coinId, message)
-      return false
+      return null
     }
   },
 

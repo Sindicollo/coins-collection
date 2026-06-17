@@ -30,6 +30,7 @@ export interface LlmConfig {
   model: string
   baseUrl: string
   apiKey: string
+  enableWebSearch: boolean
 }
 
 export interface LlmTestResult {

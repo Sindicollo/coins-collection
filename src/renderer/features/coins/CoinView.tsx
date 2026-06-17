@@ -7,9 +7,8 @@ import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { LlmTools } from './LlmTools'
-import { Plus } from '@/components/ui/icons/Plus'
 import { Ai } from '@/components/ui/icons/Ai'
+import { Plus } from '@/components/ui/icons/Plus'
 import { currencySymbol } from '@/utils/currency'
 import type { Coin, CoinComposition, CoinCondition } from '@shared/types'
 
@@ -118,11 +117,6 @@ export function CoinView({
     }
   }
 
-  const handleRefresh = (): void => {
-    store.reset()
-    store.loadCoins(collectionId)
-  }
-
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -149,7 +143,6 @@ export function CoinView({
             <Ai className="w-4 h-4 mr-1" />
             {t('ai.title', { defaultValue: 'AI' })}
           </Button>
-          <LlmTools collectionId={collectionId} onImported={handleRefresh} />
           <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="w-4 h-4 mr-1" />
             {t('coins.addButton')}

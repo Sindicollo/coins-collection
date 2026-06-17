@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button'
 import { AiCoinCard } from './AiCoinCard'
 import { AiSettingsModal } from './AiSettingsModal'
 import { useAiStore } from './useAiStore'
+import { useCoinStore } from '@/features/coins/useCoins'
+import { LlmTools } from '@/features/coins/LlmTools'
 import type { Coin, QueryType } from '@shared/types'
 
 export function AiPage(): React.ReactElement {
@@ -79,6 +81,13 @@ export function AiPage(): React.ReactElement {
     clearResults()
   }, [collectionId, clearResults])
 
+  // Reset coin store on unmount so CoinView reloads up-to-date data
+  React.useEffect(() => {
+    return () => {
+      useCoinStore.getState().reset()
+    }
+  }, [collectionId])
+
   const handleBulkQuery = (queryType: string): void => {
     console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })
     if (!collectionId) {
@@ -92,7 +101,15 @@ export function AiPage(): React.ReactElement {
     querySingle(coinId, queryType)
   }
 
+  const handleCoinUpdated = (coinId: string, newNotes: string): void => {
+    setCoins((prev) =>
+      prev.map((c) => (c.id === coinId ? { ...c, notes: newNotes } : c))
+    )
+  }
+
   const handleBack = (): void => {
+    // Reset coin store so CoinView reloads updated notes
+    useCoinStore.getState().reset()
     navigate('/')
   }
 
@@ -119,6 +136,7 @@ export function AiPage(): React.ReactElement {
             )}
           </div>
         </div>
+        {collectionId && <LlmTools collectionId={collectionId} />}
       </div>
 
       {/* Bulk action buttons */}
@@ -244,6 +262,7 @@ export function AiPage(): React.ReactElement {
                 onQuerySingle={handleSingleQuery}
                 onAppendToNotes={appendCoinToNotes}
                 onClearResult={clearCoinResult}
+                onCoinUpdated={handleCoinUpdated}
               />
             ))}
           </div>

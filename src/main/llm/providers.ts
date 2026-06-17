@@ -17,16 +17,41 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   }
 
   switch (cfg.provider) {
-    case 'openrouter':
+    case 'openrouter': {
+      const enableWebSearch = cfg.enableWebSearch
+
       return new ChatOpenAI({
         ...common,
         modelName: cfg.model,
         apiKey: cfg.apiKey,
-        modelKwargs: { reasoning: { max_tokens: 4096 } },
         configuration: {
-          baseURL: cfg.baseUrl
+          baseURL: cfg.baseUrl,
+          // Intercept fetch to inject web search via OpenRouter tools API
+          ...(enableWebSearch && {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fetch: async (url: any, init?: any) => {
+              if (init?.body && typeof init.body === 'string') {
+                try {
+                  const body = JSON.parse(init.body)
+                  // OpenRouter new tools API for web search (replaces deprecated plugins)
+                  body.tools = [
+                    {
+                      type: 'openrouter:web_search',
+                      parameters: { max_results: 5, search_context_size: 'medium' }
+                    }
+                  ]
+                  // model selects tool mode — auto: model decides, none: off
+                  delete body.tool_choice
+                  init = { ...init, body: JSON.stringify(body) }
+                } catch { /* not JSON */ }
+              }
+
+              return fetch(url, init)
+            }
+          })
         }
       })
+    }
 
     case 'lmstudio': {
       let baseUrl = cfg.baseUrl || 'http://localhost:1234/v1'

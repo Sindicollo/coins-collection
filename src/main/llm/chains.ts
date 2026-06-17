@@ -103,7 +103,19 @@ async function invokeAndExtract(
 }
 
 function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
+  if (!rawText || rawText.trim().length === 0) {
+    throw new Error(
+      'Model returned empty response. Check that the model name is correct and the API key is valid.'
+    )
+  }
+
   const cleaned = extractJsonFromText(rawText)
+
+  if (!cleaned || cleaned.trim().length === 0) {
+    throw new Error(
+      `Model response contained no JSON. Raw response: ${rawText.slice(0, 200)}`
+    )
+  }
 
   let parsed: unknown
   try {
@@ -132,7 +144,19 @@ function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
 }
 
 function extractAndValidateSingle(rawText: string): AiCoinInfo {
+  if (!rawText || rawText.trim().length === 0) {
+    throw new Error(
+      'Model returned empty response. Check that the model name is correct and the API key is valid.'
+    )
+  }
+
   const cleaned = extractJsonFromText(rawText)
+
+  if (!cleaned || cleaned.trim().length === 0) {
+    throw new Error(
+      `Model response contained no JSON. Raw response: ${rawText.slice(0, 200)}`
+    )
+  }
 
   let parsed: unknown
   try {
@@ -159,19 +183,25 @@ function extractAndValidateSingle(rawText: string): AiCoinInfo {
 
 // ── Prompts ──────────────────────────────────────────────────────
 
-const EN_PRICE = `You are a professional numismatist. For each coin below, estimate current market value (retail price from dealer catalogs, recent eBay sold listings, and auction results).
+const EN_PRICE = `You are a professional numismatist-expert. For each coin below, estimate current market value USING WEB SEARCH.
 
-CRITICAL RULES:
-1. FIRST identify the coin correctly: determine metal composition (silver, gold, copper, nickel, etc.), weight, and catalog reference (KM#, Y#, etc.). Metal value matters — silver/gold coins have a melt value floor.
-2. Soviet/Russian coins: 1921-1931 silver coins are 0.900 fine (e.g., 1924 1 ruble = 20g, 18g pure silver). Copper/bronze coins are different denominations (kopecks). DO NOT confuse silver rubles with copper kopecks.
-3. Quote price as a RANGE with currency: "500-800 RUB (~$6-9 USD)". For Russian coins, primary price in RUB, secondary in USD.
-4. Price varies by condition — use the provided condition grade (UNC, XF, VF, etc.).
-5. Be conservative: prefer actual sold prices over asking prices. If uncertain, state so.
+YOUR TOOLS: you have internet search access. You MUST use it for every step below.
+
+SEARCH PLAN (execute for each coin):
+1. Find the EXACT catalog number (KM#) — search "[year] [denomination] [country] Krause KM#". VERIFY the number matches THIS coin, not a similar one (e.g., don't confuse crown with half-crown or 5 pounds).
+2. Find exact weight and fineness — search "[denomination] [year] [country] specifications".
+3. Find RECENT (2025-2026) sold prices on eBay — search "sold [year] [denomination] [country] eBay". Use RANGE of actual sold prices, not asking prices.
+4. Calculate melt value for silver/gold (metal spot price × pure metal weight). Use as MINIMUM floor price.
+5. If web search yields no results — honestly state "no web search data available, estimate from training data".
+
+OUTPUT FORMAT:
+Quote price as RANGE: "500-800 RUB (~$6-9 USD)". For Russian coins, primary in RUB.
+In "info" field include catalog number, source, weight and fineness.
+Do NOT invent prices — if no data, write "needs verification".
 
 OUTPUT ONLY raw JSON — no markdown, no code fences, no extra text.
-Required fields per coin: "id" (match input), "price" (range + currency).
-Optional: "info" (metal, weight, catalog #), "rarity" (common/scarce/rare), "varieties" (mint marks, edge types).
-`
+STRICTLY follow this format (only fields: id, price, info, rarity, varieties):
+{{"id": "...", "price": "150-300 $ (~13500-27000 ₽)", "info": "KM# 765. Silver 925, 28.28g. Melt ~25$.", "rarity": "Common", "varieties": "London mint, reeded edge"}}`
 
 const EN_MINTAGE = `You are a professional numismatist specializing in mintage data. For each coin below, provide official mintage figures from authoritative sources (Krause Standard Catalog of World Coins, national mint records).
 
@@ -199,18 +229,26 @@ OUTPUT ONLY raw JSON — no markdown, no code fences, no extra text.
 Required: "id" (match input), "info" (comprehensive text).
 Optional: "price", "mintage", "rarity", "varieties".`
 
-const RU_PRICE = `Ты — профессиональный нумизмат. Для каждой монеты ниже оцени текущую рыночную стоимость (розничные цены из каталогов дилеров, недавние продажи на eBay и аукционах).
+const RU_PRICE = `
+Ты — профессиональный нумизмат-эксперт. Для каждой монеты ниже оцени текущую рыночную стоимость, ИСПОЛЬЗУЯ ВЕБ-ПОИСК.
 
-ВАЖНЫЕ ПРАВИЛА:
-1. СНАЧАЛА правильно определи монету: металл (серебро, золото, медь, никель и т.д.), вес, каталожный номер (KM#, Y#, Conros). Стоимость металла имеет значение — у серебряных/золотых монет есть минимальная цена лома.
-2. Советские/российские монеты: серебряные монеты 1921-1931 гг. — 900 проба (например, 1 рубль 1924 = 20г, 18г чистого серебра). Медные/бронзовые — это копейки. НЕ путай серебряные рубли с медными копейками.
-3. Указывай цену ДИАПАЗОНОМ с валютой: "500-800 ₽ (~$6-9)". Для российских монет — основная цена в рублях, дополнительно в USD.
-4. Цена зависит от состояния — используй указанную степень сохранности (UNC, XF, VF и т.д.).
-5. Будь консервативен: предпочитай реальные цены продаж, а не запрашиваемые. Если не уверен — укажи это.
+ТВОИ ИНСТРУМЕНТЫ: у тебя есть доступ к поиску в интернете. ОБЯЗАТЕЛЬНО используй его для каждого пункта.
+
+ПЛАН ПОИСКА (выполни для каждой монеты):
+1. Найди точный каталожный номер (KM#) — ищи "[год] [номинал] [страна] Krause KM#". ПРОВЕРЬ, что номер соответствует именно этой монете, а не похожей (например, не путай крону с полкроной или 5 фунтов).
+2. Найди точный вес и пробу — ищи "[номинал] [год] [страна] технические характеристики".
+3. Найди НЕДАВНИЕ (2025-2026) цены продаж на eBay — ищи "sold [year] [denomination] [country] eBay". Бери ДИАПАЗОН реальных продаж, а не запрашиваемые цены.
+4. Рассчитай стоимость лома для серебра/золота (цена металла × вес чистого металла). Используй КАК МИНИМУМ цены.
+5. Если веб-поиск не дал результатов — честно напиши «нет данных веб-поиска, оценка по памяти».
+
+ФОРМАТ ОТВЕТА:
+Указывай цену ДИАПАЗОНОМ: "500-800 ₽ (~$6-9)". Для российских монет — основная цена в ₽.
+В поле "info" укажи каталожный номер, источник, вес и пробу.
+Не выдумывай — если нет данных, пиши «требуется проверка».
 
 ВЫВОДИ ТОЛЬКО чистый JSON — без markdown, без code fences, без лишнего текста.
-Обязательные поля: "id" (совпадает с входным), "price" (диапазон + валюта).
-Опционально: "info" (металл, вес, каталог), "rarity" (обычная/редкая), "varieties" (знаки монетного двора, гурты).`
+СТРОГО следуй этому формату (только поля id, price, info, rarity, varieties):
+{{"id": "...", "price": "150-300 $ (~13500-27000 ₽)", "info": "KM# 765. Серебро 925, 28.28 г. Лом ~25$.", "rarity": "Обычная", "varieties": "Лондонский МД, рубчатый гурт"}}`
 
 const RU_MINTAGE = `Ты — профессиональный нумизмат, специализирующийся на тиражах. Для каждой монеты ниже предоставь официальные данные о тиражах из авторитетных источников (Krause Standard Catalog of World Coins, записи монетных дворов).
 

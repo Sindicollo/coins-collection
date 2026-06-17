@@ -29,7 +29,8 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
     provider: 'openrouter',
     model: '',
     baseUrl: '',
-    apiKey: ''
+    apiKey: '',
+    enableWebSearch: false
   })
   const [testing, setTesting] = React.useState(false)
   const [testResult, setTestResult] = React.useState<{ ok: boolean; error?: string } | null>(null)
@@ -121,6 +122,28 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
           onChange={(e) => setConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
           placeholder="sk-..."
         />
+
+        {/* Web search toggle */}
+        <div className="flex flex-col gap-1">
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={config.enableWebSearch}
+              onChange={(e) =>
+                setConfig((prev) => ({ ...prev, enableWebSearch: e.target.checked }))
+              }
+              className="rounded border-gray-300 accent-primary-600"
+            />
+            <span className="text-gray-700">
+              {t('ai.settings.webSearch', { defaultValue: 'Enable web search' })}
+            </span>
+          </label>
+          <p className="text-xs text-gray-400 ml-6">
+            {t('ai.settings.webSearchHint', {
+              defaultValue: 'Only OpenRouter. More accurate prices & mintage. Adds ~10s per query.'
+            })}
+          </p>
+        </div>
 
         {/* Test result */}
         {testResult && (

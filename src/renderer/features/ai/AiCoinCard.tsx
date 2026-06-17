@@ -9,8 +9,9 @@ interface AiCoinCardProps {
   aiResult: AiCoinInfo | undefined
   loading: boolean
   onQuerySingle: (coinId: string, queryType: QueryType) => void
-  onAppendToNotes: (coinId: string) => void
+  onAppendToNotes: (coinId: string) => Promise<string | null>
   onClearResult: (coinId: string) => void
+  onCoinUpdated: (coinId: string, newNotes: string) => void
 }
 
 export function AiCoinCard({
@@ -19,7 +20,8 @@ export function AiCoinCard({
   loading,
   onQuerySingle,
   onAppendToNotes,
-  onClearResult
+  onClearResult,
+  onCoinUpdated
 }: AiCoinCardProps): React.ReactElement {
   const { t } = useTranslation()
 
@@ -53,7 +55,10 @@ export function AiCoinCard({
 
   const handleAppend = async (): Promise<void> => {
     setAppendingId(coin.id)
-    await onAppendToNotes(coin.id)
+    const newNotes = await onAppendToNotes(coin.id)
+    if (newNotes) {
+      onCoinUpdated(coin.id, newNotes)
+    }
     setAppendingId(null)
   }
 

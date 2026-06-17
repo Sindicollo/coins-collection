@@ -54,7 +54,21 @@ const anyToVarieties = z
 
 /** Schema for a single coin's AI info — lenient to handle various model outputs */
 export const AiCoinInfoSchema = z
-  .object({
+  .preprocess((val) => {
+    if (typeof val !== 'object' || val === null) return val
+    const obj = val as Record<string, unknown>
+    // Remap common alternative field names
+    if (obj.estimated_value !== undefined && obj.price === undefined) {
+      obj.price = obj.estimated_value
+    }
+    if (obj.catalog_number !== undefined && obj.info === undefined) {
+      obj.info = obj.catalog_number
+    }
+    if (obj.denomination !== undefined && obj.info === undefined) {
+      obj.info = `Denomination: ${obj.denomination}`
+    }
+    return obj
+  }, z.object({
     id: z.string(),
     info: anythingToString.optional(),
     price: anythingToString.optional(),
@@ -62,7 +76,7 @@ export const AiCoinInfoSchema = z
     rarity: anythingToString.optional(),
     varieties: anyToVarieties.optional()
   })
-  .passthrough()
+  .passthrough())
 
 /** Array of coin infos - the expected LLM output format */
 export const AiCoinInfoArraySchema = z.array(AiCoinInfoSchema)
