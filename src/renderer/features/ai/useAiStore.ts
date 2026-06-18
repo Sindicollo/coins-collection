@@ -11,6 +11,7 @@ interface AiState {
   bulkProgress: number
   bulkTotal: number
   bulkRunning: boolean
+  coinLoading: Record<string, boolean>
 }
 
 interface AiActions {
@@ -47,6 +48,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
   bulkProgress: 0,
   bulkTotal: 0,
   bulkRunning: false,
+  coinLoading: {},
 
   queryBulk: async (collectionId: string, queryType: string) => {
     console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
@@ -100,25 +102,27 @@ export const useAiStore = create<AiStore>((set, get) => ({
   },
 
   querySingle: async (coinId: string, queryType: string) => {
-    set({ loading: true, error: null })
+    set({ error: null, coinLoading: { ...get().coinLoading, [coinId]: true } })
     try {
       const result = await aiApi.querySingle(coinId, queryType)
       set((state) => ({
         results: { ...state.results, [coinId]: result },
-        loading: false
+        loading: false,
+        coinLoading: { ...state.coinLoading, [coinId]: false }
       }))
       return result
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       set({
         error: message || 'Failed to query LLM',
-        loading: false
+        loading: false,
+        coinLoading: { ...get().coinLoading, [coinId]: false }
       })
       return null
     }
   },
 
-  clearResults: () => set({ results: {}, error: null, lastQueryType: null, bulkProgress: 0, bulkTotal: 0, bulkRunning: false }),
+  clearResults: () => set({ results: {}, error: null, lastQueryType: null, bulkProgress: 0, bulkTotal: 0, bulkRunning: false, coinLoading: {} }),
 
   cancelBulk: (collectionId: string) => {
     window.api.llm.cancelBulk(collectionId)

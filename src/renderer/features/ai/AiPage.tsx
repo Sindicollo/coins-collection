@@ -24,6 +24,7 @@ export function AiPage(): React.ReactElement {
     bulkProgress,
     bulkTotal,
     bulkRunning,
+    coinLoading,
     queryBulk,
     querySingle,
     clearResults,
@@ -259,6 +260,7 @@ export function AiPage(): React.ReactElement {
                 coin={coin}
                 aiResult={results[coin.id]}
                 loading={loading}
+                perCoinLoading={coinLoading[coin.id] ?? false}
                 onQuerySingle={handleSingleQuery}
                 onAppendToNotes={appendCoinToNotes}
                 onClearResult={clearCoinResult}

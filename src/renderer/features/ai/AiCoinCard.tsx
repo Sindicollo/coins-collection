@@ -8,6 +8,7 @@ interface AiCoinCardProps {
   coin: Coin
   aiResult: AiCoinInfo | undefined
   loading: boolean
+  perCoinLoading: boolean
   onQuerySingle: (coinId: string, queryType: QueryType) => void
   onAppendToNotes: (coinId: string) => Promise<string | null>
   onClearResult: (coinId: string) => void
@@ -18,6 +19,7 @@ export function AiCoinCard({
   coin,
   aiResult,
   loading,
+  perCoinLoading,
   onQuerySingle,
   onAppendToNotes,
   onClearResult,
@@ -93,7 +95,7 @@ export function AiCoinCard({
       />
 
       {/* Loading indicator */}
-      {loading && (
+      {perCoinLoading && (
         <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
           <span className="inline-block w-3 h-3 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
           {t('ai.querying', { defaultValue: 'Querying...' })}
