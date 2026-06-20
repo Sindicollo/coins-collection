@@ -99,6 +99,15 @@ i18n.use(initReactI18next).init({
             denominationRequired: 'Denomination is required'
           },
           retry: 'Retry',
+          composition: 'Composition',
+          compositions: {
+            gold: 'Gold',
+            silver: 'Silver',
+            billon: 'Billon',
+            copper: 'Copper',
+            bronze: 'Bronze',
+            other: 'Other'
+          },
           exportLlm: 'Export for LLM',
           importLlm: 'Import from LLM',
           llmResult: '{{updated}} updated, {{skipped}} skipped',
@@ -108,7 +117,7 @@ i18n.use(initReactI18next).init({
           llmLoadError: 'Failed to load collection data',
           llmExportTooltip: 'Paste this JSON into an AI chat and ask your questions — e.g. about current market prices, mintage, etc. See the prompt template below for an example. Important: the response must contain "id" and "info" fields only.',
           llmImportTooltip: 'Copy the JSON response from the AI chat into a file, then import it here to add the information to your coins.',
-          llmPrompt: 'You are a numismatic expert. For each coin in the JSON below, add useful information to the "info" field: historical context, mintage figures, rarity, market prices, varieties, notable design features, interesting facts, etc. Be concise but informative.\n\nIMPORTANT: Output ONLY a valid JSON array containing only the coins you modified. Do NOT include coins you haven\'t changed. Do NOT add explanations, markdown, or extra text outside the JSON. Each object must have "id" (matching the original coin) and "info" (your analysis text).\n\nHere is my coin collection:\n{{json}}\n\nExample response format:\n[\n  { "id": "abc-123", "info": "Minted in St. Petersburg, 1895. Mintage: 2.1M. Rarity: common. Market price: 500-700₽ (UNC). Varieties: plain edge and reeded edge." },\n  { "id": "def-456", "info": "Rare variety with wide edge lettering. Only ~50K minted. Price: 5000-8000₽ (UNC)." }\n]'
+          llmPrompt: 'You are a professional numismatist-expert. For each coin in the JSON below, add useful information to the "info" field. USE WEB SEARCH if available.\n\nSEARCH PLAN for each coin:\n1. Identify the coin precisely: metal, weight, catalog numbers.\n2. Find the EXACT catalog number.\n3. Find RECENT market prices from eBay, Heritage, Violity.\n4. For silver/gold coins: calculate melt value.\n5. Quote price as a RANGE with currency.\n\nCRITICAL RULES:\n- Do NOT invent catalog numbers or prices.\n- Do NOT confuse denominations.\n\nIMPORTANT: Output ONLY a valid JSON array. Each object must have "id" and "info".\n\nHere is my coin collection:\n{{json}}\n\nExample response format:\n[\n  { "id": "abc-123", "info": "KM# 765. Silver 925, 28.28g. $80-150 VF+." }\n]'
         },
         photos: {
           title: 'Photos',
@@ -219,16 +228,62 @@ if (typeof window !== 'undefined') {
       setCurrency: vi.fn(),
       getCurrencies: vi.fn()
     },
-    import: {
-      selectFile: vi.fn(),
-      preview: vi.fn(),
-      execute: vi.fn(),
-      executeNoYear: vi.fn()
-    },
+        import: {
+          selectFile: vi.fn(),
+          preview: vi.fn(),
+          execute: vi.fn(),
+          executeNoYear: vi.fn()
+        },
+        ai: {
+          title: 'AI',
+          back: 'Back',
+          bulkPrices: 'Learn Prices',
+          bulkMintage: 'Learn Mintage',
+          bulkInfo: 'Learn General Info',
+          manualInput: 'Manual Input',
+          settingsButton: 'Settings',
+          querying: 'Querying...',
+          queryingCollection: 'Asking AI about {{type}}...',
+          loadingCoins: 'Loading coins...',
+          pasteJson: 'Paste JSON response from AI chat (array of objects with "id" field):',
+          parseJson: 'Parse JSON',
+          appendToNotes: 'Append to Notes',
+          clearResult: 'Clear',
+          queryPrice: 'eBay price',
+          queryMintage: 'Mintage',
+          queryInfo: 'Info',
+          progress: 'Processed {{processed}} of {{total}} coins',
+          stop: 'Stop',
+          field: {
+            price: 'Price',
+            mintage: 'Mintage',
+            rarity: 'Rarity',
+            varieties: 'Varieties'
+          },
+          settings: {
+            title: 'AI Settings',
+            provider: 'Provider',
+            baseUrl: 'Base URL',
+            model: 'Model',
+            apiKey: 'API Key',
+            testConnection: 'Test Connection',
+            testOk: 'Connection successful!',
+            testFailed: 'Connection failed',
+            webSearch: 'Enable web search',
+            webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
+          }
+        },
     llm: {
       getExportData: vi.fn(),
       exportAll: vi.fn(),
-      importInfo: vi.fn()
+      importInfo: vi.fn(),
+      queryBulk: vi.fn(),
+      querySingle: vi.fn(),
+      getConfig: vi.fn(),
+      setConfig: vi.fn(),
+      testConnection: vi.fn(),
+      onBulkProgress: vi.fn(() => vi.fn()),
+      cancelBulk: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

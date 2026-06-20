@@ -3,6 +3,7 @@ export * from './coin'
 export * from './photo'
 export * from './electron-api'
 export * from './backup'
+export * from './llm'
 
 export interface PaginatedResult<T> {
   items: T[]
@@ -16,6 +17,7 @@ export interface LlmExportCoin {
   denomination: string
   year: number | null
   condition: string | null
+  composition: string | null
 }
 
 export interface ErrorResult {

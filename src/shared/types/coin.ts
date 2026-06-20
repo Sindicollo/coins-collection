@@ -11,12 +11,17 @@ export interface Coin {
   shippingCost: number | null
   currency: string | null
   country: string | null
+  composition: CoinComposition | null
   notes: string | null
   extraData: Record<string, unknown> | null
   sold: boolean
   createdAt: number
   updatedAt: number
 }
+
+export type CoinComposition = 'gold' | 'silver' | 'billon' | 'copper' | 'bronze' | 'other'
+
+export const COIN_COMPOSITIONS: CoinComposition[] = ['gold', 'silver', 'billon', 'copper', 'bronze', 'other']
 
 export type CoinCondition = 'UNC' | 'XF+' | 'XF' | 'VF+' | 'VF' | 'F' | 'VG' | 'G' | 'F-2' | 'F-1' | 'AUNC'
 
@@ -27,6 +32,7 @@ export interface CreateCoinInput {
   denomination: string
   year?: number | null
   condition?: CoinCondition | null
+  composition?: CoinComposition | null
   purchaseDate?: number | null
   purchasePlace?: string | null
   price?: number | null

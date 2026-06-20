@@ -1,15 +1,16 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useCoinStore } from './useCoins'
 import { useScrollRestoration } from './useScrollRestoration'
 import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { LlmTools } from './LlmTools'
+import { Ai } from '@/components/ui/icons/Ai'
 import { Plus } from '@/components/ui/icons/Plus'
 import { currencySymbol } from '@/utils/currency'
-import type { Coin, CoinCondition } from '@shared/types'
+import type { Coin, CoinComposition, CoinCondition } from '@shared/types'
 
 interface CurrencyTotal {
   currency: string
@@ -31,6 +32,7 @@ type CoinSaveData = {
   country: string | null
   year: number | null
   condition: CoinCondition | null
+  composition: CoinComposition | null
   purchaseDate: number | null
   purchasePlace: string | null
   price: number | null
@@ -48,6 +50,7 @@ export function CoinView({
   onCollectionChange
 }: CoinViewProps): React.ReactElement {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const store = useCoinStore()
 
   const [showForm, setShowForm] = React.useState(false)
@@ -114,11 +117,6 @@ export function CoinView({
     }
   }
 
-  const handleRefresh = (): void => {
-    store.reset()
-    store.loadCoins(collectionId)
-  }
-
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -136,7 +134,15 @@ export function CoinView({
           </p>
         </div>
         <div className="flex items-start gap-2 flex-shrink-0 ml-4">
-          <LlmTools collectionId={collectionId} onImported={handleRefresh} />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate(`/ai/${collectionId}`)}
+            title={t('ai.title', { defaultValue: 'AI Assistant' })}
+          >
+            <Ai className="w-4 h-4 mr-1" />
+            {t('ai.title', { defaultValue: 'AI' })}
+          </Button>
           <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="w-4 h-4 mr-1" />
             {t('coins.addButton')}

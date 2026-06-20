@@ -59,7 +59,9 @@ const MIGRATIONS: string[] = [
     CREATE INDEX IF NOT EXISTS idx_coins_collection ON coins(collection_id, denomination, year, id);
   `,
   // V5: Sold flag
-  `ALTER TABLE coins ADD COLUMN sold INTEGER NOT NULL DEFAULT 0;`
+  `ALTER TABLE coins ADD COLUMN sold INTEGER NOT NULL DEFAULT 0;`,
+  // V6: Composition (metal) field
+  `ALTER TABLE coins ADD COLUMN composition TEXT;`
 ]
 
 export function runMigrations(db: Database.Database): void {
