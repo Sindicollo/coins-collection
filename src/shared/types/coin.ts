@@ -15,6 +15,8 @@ export interface Coin {
   notes: string | null
   extraData: Record<string, unknown> | null
   sold: boolean
+  onAuction: boolean
+  auctionPrice: number | null
   createdAt: number
   updatedAt: number
 }
@@ -42,6 +44,8 @@ export interface CreateCoinInput {
   notes?: string | null
   extraData?: Record<string, unknown> | null
   sold?: boolean
+  onAuction?: boolean
+  auctionPrice?: number | null
 }
 
 export interface UpdateCoinInput extends Partial<CreateCoinInput> {

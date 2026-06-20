@@ -8,6 +8,7 @@ import { Edit } from '@/components/ui/icons/Edit'
 import { Delete } from '@/components/ui/icons/Delete'
 import { Coin as CoinIcon } from '@/components/ui/icons/Coin'
 import { Plus } from '@/components/ui/icons/Plus'
+import { Auc } from '@/components/ui/icons/Auc'
 
 interface CoinCardProps {
   coin: Coin
@@ -59,7 +60,7 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
   }
 
   return (
-    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group ${coin.sold ? 'opacity-60 grayscale' : ''}`} onClick={() => onSelect(coin)}>
+    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group relative ${coin.onAuction ? 'bg-orange-50 border-orange-200' : ''} ${coin.sold && !coin.onAuction ? 'opacity-60 grayscale' : ''}`} onClick={() => onSelect(coin)}>
       {/* Top row: denomination, year, condition, price, actions */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -162,6 +163,13 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
           <Plus className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Auction indicator — visible when coin is on auction */}
+      {coin.onAuction && (
+        <div className="absolute top-1 right-[54px] pointer-events-none">
+          <Auc className="w-10 h-10 text-orange-400 opacity-60" />
+        </div>
+      )}
     </Card>
   )
 }

@@ -72,6 +72,8 @@ i18n.use(initReactI18next).init({
           currency: 'Currency',
           notes: 'Notes',
           sold: 'Sold',
+          onAuction: 'On auction',
+          auctionPrice: 'Auction price',
           save: 'Save',
           cancel: 'Cancel',
           edit: 'Edit',

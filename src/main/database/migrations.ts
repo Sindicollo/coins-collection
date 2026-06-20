@@ -61,7 +61,12 @@ const MIGRATIONS: string[] = [
   // V5: Sold flag
   `ALTER TABLE coins ADD COLUMN sold INTEGER NOT NULL DEFAULT 0;`,
   // V6: Composition (metal) field
-  `ALTER TABLE coins ADD COLUMN composition TEXT;`
+  `ALTER TABLE coins ADD COLUMN composition TEXT;`,
+  // V7: Auction support
+  `
+    ALTER TABLE coins ADD COLUMN on_auction INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE coins ADD COLUMN auction_price REAL;
+  `
 ]
 
 export function runMigrations(db: Database.Database): void {
