@@ -1,5 +1,9 @@
 # AGENTS.md — coin-collection
 
+## Behavioral rules
+
+- If the user proposes something incorrect, immediately say "Нет, вот правильный вариант:" and give the correct answer — no preambles like "да, почти" or "лучше".
+
 ## Project overview
 
 Electron desktop app (React + TypeScript + SQLite) for managing coin collections. Built with `electron-vite`.
