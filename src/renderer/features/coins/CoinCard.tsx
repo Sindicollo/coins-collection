@@ -64,7 +64,7 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
   }
 
   return (
-    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group relative ${coin.onAuction ? 'bg-orange-50 border-orange-800' : ''}`} onClick={() => onSelect(coin)}>
+    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group relative ${coin.onAuction && !coin.sold ? 'bg-orange-50 border-orange-800' : ''}`} onClick={() => onSelect(coin)}>
       {/* Content wrapper — gets opacity/grayscale for sold coins, but not the absolute-positioned icons */}
       <div className={`${coin.sold && !coin.onAuction ? 'opacity-60' : ''}`}>
       {/* Top row: denomination, year, condition, price, actions */}

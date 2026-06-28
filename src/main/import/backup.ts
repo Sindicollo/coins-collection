@@ -38,6 +38,7 @@ interface BackupCoin {
   currency: string | null; country: string | null
   notes: string | null; extraData: string | null
   sold: boolean; createdAt: number; updatedAt: number
+  onAuction?: boolean; auctionPrice?: number | null; salePrice?: number | null
 }
 
 interface BackupPhoto {
@@ -126,14 +127,15 @@ function importCoins(
     `INSERT OR IGNORE INTO coins
      (id, collection_id, denomination, year, condition, purchase_date,
       purchase_place, price, shipping_cost, currency, country, notes, extra_data,
-      sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      sold, on_auction, auction_price, sale_price, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
   const update = db.prepare(
     `UPDATE coins SET
      collection_id = ?, denomination = ?, year = ?, condition = ?,
      purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?,
      currency = ?, country = ?, notes = ?, extra_data = ?, sold = ?,
+     on_auction = ?, auction_price = ?, sale_price = ?,
      updated_at = ?
      WHERE id = ?`
   )
@@ -143,10 +145,12 @@ function importCoins(
       try {
         const existing = db.prepare('SELECT id FROM coins WHERE id = ?').get(coin.id) as { id: string } | undefined
         const sold = coin.sold ? 1 : 0
+        const onAuction = coin.onAuction ? 1 : 0
         const values = [
           coin.collectionId, coin.denomination, coin.year, coin.condition,
           coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
           coin.currency, coin.country, coin.notes, coin.extraData, sold,
+          onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
           coin.updatedAt, coin.id
         ]
         if (existing) {
@@ -156,6 +160,7 @@ function importCoins(
           insert.run(coin.id, coin.collectionId, coin.denomination, coin.year, coin.condition,
             coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
             coin.currency, coin.country, coin.notes, coin.extraData, sold,
+            onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
             coin.createdAt, coin.updatedAt)
           result.imported.coins++
         }

@@ -42,6 +42,7 @@ type CoinSaveData = {
   sold: boolean
   onAuction: boolean
   auctionPrice: number | null
+  salePrice: number | null
 }
 
 export function CoinView({

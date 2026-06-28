@@ -17,6 +17,9 @@ export const L10N: Record<string, Record<string, string>> = {
     totalCost: 'Total Cost',
     notes: 'Notes',
     sold: 'Sold',
+    onAuction: 'On Auction',
+    auctionPrice: 'Auction Price',
+    salePrice: 'Sale Price',
     obverse: 'Obverse',
     reverse: 'Reverse'
   },
@@ -37,6 +40,9 @@ export const L10N: Record<string, Record<string, string>> = {
     totalCost: 'Общая стоимость',
     notes: 'Заметки',
     sold: 'Продан',
+    onAuction: 'На аукционе',
+    auctionPrice: 'Цена на аукционе',
+    salePrice: 'Цена продажи',
     obverse: 'Аверс',
     reverse: 'Реверс'
   }

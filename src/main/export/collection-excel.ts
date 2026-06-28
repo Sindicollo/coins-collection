@@ -56,7 +56,10 @@ export function buildExcelRow(coin: Coin): Record<string, string | number | null
     currency: coin.currency ?? '',
     totalCost: (coin.price ?? 0) + (coin.shippingCost ?? 0),
     notes: coin.notes ?? '',
-    sold: coin.sold ? '\u2713' : ''
+    sold: coin.sold ? '\u2713' : '',
+    onAuction: coin.onAuction ? '\u2713' : '',
+    auctionPrice: coin.auctionPrice ?? '',
+    salePrice: coin.salePrice ?? ''
   }
 }
 
@@ -107,7 +110,10 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
       width: 35,
       style: { alignment: { wrapText: true, vertical: 'top' } }
     },
-    { header: t(locale, 'sold'), key: 'sold', width: 6 }
+    { header: t(locale, 'sold'), key: 'sold', width: 6 },
+    { header: t(locale, 'onAuction'), key: 'onAuction', width: 6 },
+    { header: t(locale, 'auctionPrice'), key: 'auctionPrice', width: 12 },
+    { header: t(locale, 'salePrice'), key: 'salePrice', width: 12 }
   ]
 
   if (includeImages) {
