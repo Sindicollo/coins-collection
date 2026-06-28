@@ -8,7 +8,7 @@ English/russian interface.
 ## Features
 
 - **Collections** — organize coins into custom collections (e.g. "Russian Coins", "British Shillings")
-- **Coins** — track denomination, year, condition, purchase date, price, currency, notes, sold status, and more
+- **Coins** — track denomination, year, condition, purchase date, price, currency, notes, sold status, auction and sale prices, and more
 - **Photos** — attach multiple photos to each coin, reorder them, and browse in a lightbox
 - **Export to PDF** — export selected collections with coin details, photos (up to 4 per coin), table of contents, and «Sold» label in red
 - **Export to Excel** — export selected collections to `.xlsx` with embedded photos
