@@ -64,6 +64,7 @@
     "sold": "Sold",
     "onAuction": "On auction",
     "auctionPrice": "Auction price",
+    "salePrice": "Sale price",
     "totalCost": "Total purchase cost: {{cost}}",
     "save": "Save",
     "cancel": "Cancel",

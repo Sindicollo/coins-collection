@@ -74,6 +74,7 @@ i18n.use(initReactI18next).init({
           sold: 'Sold',
           onAuction: 'On auction',
           auctionPrice: 'Auction price',
+          salePrice: 'Sale price',
           save: 'Save',
           cancel: 'Cancel',
           edit: 'Edit',

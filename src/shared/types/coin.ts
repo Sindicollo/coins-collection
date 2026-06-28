@@ -17,6 +17,7 @@ export interface Coin {
   sold: boolean
   onAuction: boolean
   auctionPrice: number | null
+  salePrice: number | null
   createdAt: number
   updatedAt: number
 }
@@ -46,6 +47,7 @@ export interface CreateCoinInput {
   sold?: boolean
   onAuction?: boolean
   auctionPrice?: number | null
+  salePrice?: number | null
 }
 
 export interface UpdateCoinInput extends Partial<CreateCoinInput> {

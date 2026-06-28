@@ -24,6 +24,7 @@ interface CoinFormData {
   sold: boolean
   onAuction: boolean
   auctionPrice: string
+  salePrice: string
 }
 
 function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
@@ -43,7 +44,8 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
       notes: '',
       sold: false,
       onAuction: false,
-      auctionPrice: ''
+      auctionPrice: '',
+      salePrice: ''
     }
   }
   return {
@@ -63,7 +65,8 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     notes: coin.notes ?? '',
     sold: coin.sold,
     onAuction: coin.onAuction,
-    auctionPrice: coin.auctionPrice?.toString() ?? ''
+    auctionPrice: coin.auctionPrice?.toString() ?? '',
+    salePrice: coin.salePrice?.toString() ?? ''
   }
 }
 
@@ -89,6 +92,7 @@ interface CoinFormProps {
     sold: boolean
     onAuction: boolean
     auctionPrice: number | null
+    salePrice: number | null
   }) => void
   onClose: () => void
 }
@@ -154,7 +158,8 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       notes: data.notes.trim() || null,
       sold: data.sold,
       onAuction: data.onAuction,
-      auctionPrice: data.auctionPrice ? parseFloat(data.auctionPrice) : null
+      auctionPrice: data.auctionPrice ? parseFloat(data.auctionPrice) : null,
+      salePrice: data.salePrice ? parseFloat(data.salePrice) : null
     })
   }
 
@@ -331,6 +336,18 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             step="0.01"
             value={data.auctionPrice}
             onChange={(e) => handleChange('auctionPrice', e.target.value)}
+            placeholder="0.00"
+          />
+        )}
+
+        {/* Sale price — shown only when sold is checked */}
+        {data.sold && (
+          <Input
+            label={t('coins.salePrice')}
+            type="number"
+            step="0.01"
+            value={data.salePrice}
+            onChange={(e) => handleChange('salePrice', e.target.value)}
             placeholder="0.00"
           />
         )}

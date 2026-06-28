@@ -66,7 +66,9 @@ const MIGRATIONS: string[] = [
   `
     ALTER TABLE coins ADD COLUMN on_auction INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE coins ADD COLUMN auction_price REAL;
-  `
+  `,
+  // V8: Sale price
+  `ALTER TABLE coins ADD COLUMN sale_price REAL;`
 ]
 
 export function runMigrations(db: Database.Database): void {
