@@ -65,8 +65,12 @@ const fullCoin: Coin = {
   currency: 'GBP',
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1000,
-  updatedAt: 1000
+  updatedAt: 1000,
+  composition: 'other'
 }
 
 const minimalCoin: Coin = {
@@ -84,8 +88,12 @@ const minimalCoin: Coin = {
   currency: null,
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1001,
-  updatedAt: 1001
+  updatedAt: 1001,
+  composition: 'other'
 }
 
 const soldCoin: Coin = {
@@ -95,7 +103,8 @@ const soldCoin: Coin = {
   purchaseDate: null,
   purchasePlace: null,
   price: null,
-  shippingCost: null
+  shippingCost: null,
+  salePrice: null
 }
 
 // ---------------------------------------------------------------------------

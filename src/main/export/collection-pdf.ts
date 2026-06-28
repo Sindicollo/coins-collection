@@ -110,6 +110,12 @@ export function buildPurchaseLine(coin: Coin, locale: 'en' | 'ru'): string | nul
   if (coin.purchasePlace) {
     parts.push(`${t(locale, 'purchasePlace')}: ${coin.purchasePlace}`)
   }
+  if (coin.onAuction && coin.auctionPrice != null) {
+    parts.push(`${t(locale, 'auctionPrice')}: ${coin.auctionPrice} ${coin.currency ?? ''}`)
+  }
+  if (coin.sold && coin.salePrice != null) {
+    parts.push(`${t(locale, 'salePrice')}: ${coin.salePrice} ${coin.currency ?? ''}`)
+  }
   return parts.length > 0 ? parts.join('  \u00B7  ') : null
 }
 

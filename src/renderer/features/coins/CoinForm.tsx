@@ -22,6 +22,9 @@ interface CoinFormData {
   currency: string
   notes: string
   sold: boolean
+  onAuction: boolean
+  auctionPrice: string
+  salePrice: string
 }
 
 function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
@@ -39,7 +42,10 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
       shippingCost: '',
       currency: defaultCurrency,
       notes: '',
-      sold: false
+      sold: false,
+      onAuction: false,
+      auctionPrice: '',
+      salePrice: ''
     }
   }
   return {
@@ -57,7 +63,10 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     shippingCost: coin.shippingCost?.toString() ?? '',
     currency: coin.currency ?? defaultCurrency,
     notes: coin.notes ?? '',
-    sold: coin.sold
+    sold: coin.sold,
+    onAuction: coin.onAuction,
+    auctionPrice: coin.auctionPrice?.toString() ?? '',
+    salePrice: coin.salePrice?.toString() ?? ''
   }
 }
 
@@ -81,6 +90,9 @@ interface CoinFormProps {
     currency: string | null
     notes: string | null
     sold: boolean
+    onAuction: boolean
+    auctionPrice: number | null
+    salePrice: number | null
   }) => void
   onClose: () => void
 }
@@ -115,7 +127,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
     if (error) setError(null)
   }
 
-  const handleCheckboxChange = (field: 'sold', value: boolean): void => {
+  const handleCheckboxChange = (field: 'sold' | 'onAuction', value: boolean): void => {
     setData((prev) => ({ ...prev, [field]: value }))
     if (error) setError(null)
   }
@@ -144,7 +156,10 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       shippingCost: data.shippingCost ? parseFloat(data.shippingCost) : null,
       currency: data.currency || null,
       notes: data.notes.trim() || null,
-      sold: data.sold
+      sold: data.sold,
+      onAuction: data.onAuction,
+      auctionPrice: data.auctionPrice ? parseFloat(data.auctionPrice) : null,
+      salePrice: data.salePrice ? parseFloat(data.salePrice) : null
     })
   }
 
@@ -301,6 +316,41 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
           />
           <span className="text-sm font-medium text-gray-700">{t('coins.sold')}</span>
         </label>
+
+        {/* Auction checkbox */}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={data.onAuction}
+            onChange={(e) => handleCheckboxChange('onAuction', e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+          />
+          <span className="text-sm font-medium text-gray-700">{t('coins.onAuction')}</span>
+        </label>
+
+        {/* Auction price — shown only when onAuction is checked */}
+        {data.onAuction && (
+          <Input
+            label={t('coins.auctionPrice')}
+            type="number"
+            step="0.01"
+            value={data.auctionPrice}
+            onChange={(e) => handleChange('auctionPrice', e.target.value)}
+            placeholder="0.00"
+          />
+        )}
+
+        {/* Sale price — shown only when sold is checked */}
+        {data.sold && (
+          <Input
+            label={t('coins.salePrice')}
+            type="number"
+            step="0.01"
+            value={data.salePrice}
+            onChange={(e) => handleChange('salePrice', e.target.value)}
+            placeholder="0.00"
+          />
+        )}
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">

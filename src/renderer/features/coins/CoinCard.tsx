@@ -8,6 +8,11 @@ import { Edit } from '@/components/ui/icons/Edit'
 import { Delete } from '@/components/ui/icons/Delete'
 import { Coin as CoinIcon } from '@/components/ui/icons/Coin'
 import { Plus } from '@/components/ui/icons/Plus'
+import { Auc } from '@/components/ui/icons/Auc'
+import { Sold } from '@/components/ui/icons/Sold'
+
+const AUC_COLOR = 'text-orange-800'
+const SOLD_COLOR = 'text-green-700'
 
 interface CoinCardProps {
   coin: Coin
@@ -59,7 +64,9 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
   }
 
   return (
-    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group ${coin.sold ? 'opacity-60 grayscale' : ''}`} onClick={() => onSelect(coin)}>
+    <Card className={`p-3 cursor-pointer hover:shadow-md transition-shadow group relative ${coin.onAuction && !coin.sold ? 'bg-orange-50 border-orange-800' : ''}`} onClick={() => onSelect(coin)}>
+      {/* Content wrapper — gets opacity/grayscale for sold coins, but not the absolute-positioned icons */}
+      <div className={`${coin.sold && !coin.onAuction ? 'opacity-60' : ''}`}>
       {/* Top row: denomination, year, condition, price, actions */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -86,6 +93,18 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
             <span className="text-xs font-medium text-gray-600 shrink-0">
               {currencySymbol(coin.currency)}
               {coin.price.toFixed(2)}
+            </span>
+          )}
+          {coin.onAuction && !coin.sold && coin.auctionPrice !== null && (
+            <span className={`text-xs font-medium ${AUC_COLOR} shrink-0`}>
+              / {currencySymbol(coin.currency)}
+              {coin.auctionPrice.toFixed(2)}
+            </span>
+          )}
+          {coin.sold && coin.salePrice !== null && (
+            <span className={`text-xs font-medium ${SOLD_COLOR} shrink-0`}>
+              / {currencySymbol(coin.currency)}
+              {coin.salePrice.toFixed(2)}
             </span>
           )}
           {coin.purchasePlace && (
@@ -162,6 +181,19 @@ export function CoinCard({ coin, onEdit, onDelete, onSelect }: CoinCardProps): R
           <Plus className="w-5 h-5" />
         </button>
       </div>
+      </div>
+
+      {/* Auction / Sold indicators */}
+      {coin.onAuction && !coin.sold && (
+        <div className="absolute top-1 right-[54px] pointer-events-none">
+          <Auc className={`w-10 h-10 ${AUC_COLOR}`} />
+        </div>
+      )}
+      {coin.sold && (
+        <div className="absolute top-1 right-[54px] pointer-events-none">
+          <Sold className={`w-10 h-10 ${SOLD_COLOR}`} />
+        </div>
+      )}
     </Card>
   )
 }

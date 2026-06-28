@@ -102,6 +102,9 @@ export function listCoins(
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
+    onAuction: (row.on_auction as number) === 1,
+    auctionPrice: nullableNumber(row.auction_price),
+    salePrice: nullableNumber(row.sale_price),
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number
   }))
@@ -143,6 +146,9 @@ export function getCoin(id: string): Coin | undefined {
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
+    onAuction: (row.on_auction as number) === 1,
+    auctionPrice: nullableNumber(row.auction_price),
+    salePrice: nullableNumber(row.sale_price),
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number
   }
@@ -155,8 +161,9 @@ export function createCoin(input: CreateCoinInput): Coin {
 
   db.prepare(
     `INSERT INTO coins (id, collection_id, denomination, year, condition, composition,
-      purchase_date, purchase_place, price, shipping_cost, currency, country, notes, extra_data, sold, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      purchase_date, purchase_place, price, shipping_cost, currency, country, notes, extra_data,
+      sold, on_auction, auction_price, sale_price, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.collectionId,
@@ -173,6 +180,9 @@ export function createCoin(input: CreateCoinInput): Coin {
     input.notes ?? null,
     input.extraData ? JSON.stringify(input.extraData) : null,
     input.sold ? 1 : 0,
+    input.onAuction ? 1 : 0,
+    input.auctionPrice ?? null,
+    input.salePrice ?? null,
     now,
     now
   )
@@ -193,6 +203,9 @@ export function createCoin(input: CreateCoinInput): Coin {
     notes: input.notes ?? null,
     extraData: input.extraData ?? null,
     sold: input.sold ?? false,
+    onAuction: input.onAuction ?? false,
+    auctionPrice: input.auctionPrice ?? null,
+    salePrice: input.salePrice ?? null,
     createdAt: now,
     updatedAt: now
   }
@@ -220,12 +233,16 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
   if (input.notes !== undefined) fields.notes = input.notes ?? null
   if (input.extraData !== undefined) fields.extraData = input.extraData ?? null
   if (input.sold !== undefined) fields.sold = input.sold
+  if (input.onAuction !== undefined) fields.onAuction = input.onAuction
+  if (input.auctionPrice !== undefined) fields.auctionPrice = input.auctionPrice ?? null
+  if (input.salePrice !== undefined) fields.salePrice = input.salePrice ?? null
   fields.updatedAt = now
 
   db.prepare(
     `UPDATE coins SET collection_id = ?, denomination = ?, year = ?, condition = ?, composition = ?,
      purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?, currency = ?, country = ?,
-     notes = ?, extra_data = ?, sold = ?, updated_at = ? WHERE id = ?`
+     notes = ?, extra_data = ?, sold = ?, on_auction = ?, auction_price = ?, sale_price = ?,
+     updated_at = ? WHERE id = ?`
   ).run(
     fields.collectionId,
     fields.denomination,
@@ -241,6 +258,9 @@ export function updateCoin(input: UpdateCoinInput): Coin | undefined {
     fields.notes,
     fields.extraData ? JSON.stringify(fields.extraData) : null,
     fields.sold ? 1 : 0,
+    fields.onAuction ? 1 : 0,
+    fields.auctionPrice,
+    fields.salePrice,
     fields.updatedAt,
     input.id
   )
@@ -288,6 +308,9 @@ export function listAllCoins(): Coin[] {
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
+    onAuction: (row.on_auction as number) === 1,
+    auctionPrice: nullableNumber(row.auction_price),
+    salePrice: nullableNumber(row.sale_price),
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number
   }))
@@ -317,6 +340,9 @@ export function listCoinsByCollection(collectionId: string): Coin[] {
     notes: row.notes as string | null,
     extraData: optionalJSON(row.extra_data as string | null),
     sold: (row.sold as number) === 1,
+    onAuction: (row.on_auction as number) === 1,
+    auctionPrice: nullableNumber(row.auction_price),
+    salePrice: nullableNumber(row.sale_price),
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number
   }))
