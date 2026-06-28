@@ -6,8 +6,8 @@ export function useScrollRestoration(collectionId: string): void {
   const collectionIdRef = React.useRef(collectionId)
   collectionIdRef.current = collectionId
 
-  // Attach stable scroll listener — once per mount
-  React.useEffect(() => {
+  // Attach scroll listener — useLayoutEffect so mainRef is available before restoration
+  React.useLayoutEffect(() => {
     const main = document.querySelector<HTMLElement>('main')
     mainRef.current = main
     if (!main) return
