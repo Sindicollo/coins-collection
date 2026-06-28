@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.4.0
+
+### Added
+- Auction support — coins can be marked "on auction" with an auction price
+- Sold price field — separate `salePrice` stored and displayed alongside the sold flag
+- AUC icon rotated -45° on auction coin cards (orange)
+- SOLD icon rotated -45° on sold coin cards (green)
+- Auction and sale prices shown inline in the coin card top row
+- Auction checkbox and price fields in the coin edit form
+- Sold price field in the coin edit form (shown when sold is checked)
+- Auction/sale columns in Excel export
+- Auction/sale info in PDF export
+- Auction/sale fields in backup import
+
+### Changed
+- SOLD icon takes visual precedence over AUC — when a coin is sold, only SOLD is shown
+- Orange auction card background suppressed when the coin is sold
+- `opacity-60` instead of `opacity-60 grayscale` for sold cards — sale price text stays green
+- Icon containers moved outside the opacity/grayscale wrapper so they retain full color visibility
+
+### Fixed
+- `salePrice` was silently dropped when saving a coin via the form (CoinSaveData missing the field)
+- BackupCoin interface now includes optional `onAuction`, `auctionPrice`, `salePrice` fields
+- PDF export handles `undefined` new fields gracefully with `!= null` checks
+- Test fixtures updated with required `onAuction`, `auctionPrice`, `salePrice` fields
+
 ## v1.3.0
 
 ### Added
