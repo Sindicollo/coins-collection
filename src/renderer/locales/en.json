@@ -220,8 +220,21 @@
     "importAction": "Import",
     "cancel": "Cancel",
     "close": "Close",
+    "exportFailed": "Failed to create backup. Please try again.",
+    "importPreviewFailed": "Failed to read backup file. The file may be corrupted.",
+    "importFailed": "Failed to import backup. Please check the file and try again.",
     "exportProgress": "Export Backup",
-    "importProgress": "Import Backup"
+    "importProgress": "Import Backup",
+    "stageReading": "Reading data…",
+    "stageCopyingPhotos": "Copying photos…",
+    "stageArchiving": "Creating archive…",
+    "stageExtracting": "Extracting backup…",
+    "stageImportingCollections": "Importing collections…",
+    "stageImportingCoins": "Importing coins…",
+    "stageImportingPhotos": "Importing photos…",
+    "stageCopyingFiles": "Copying photo files…",
+    "stageFinalizing": "Finalizing…",
+    "stageDone": "Done!"
   },
   "export": {
     "title": "Export to Excel",

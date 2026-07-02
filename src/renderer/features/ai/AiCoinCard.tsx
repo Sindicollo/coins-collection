@@ -37,11 +37,11 @@ export function AiCoinCard({
     if (aiResult) {
       const parts: string[] = []
       if (aiResult.info) parts.push(aiResult.info)
-      if (aiResult.price) parts.push(`💲 ${t('ai.field.price', { defaultValue: 'Price' })}: ${aiResult.price}`)
-      if (aiResult.mintage) parts.push(`📊 ${t('ai.field.mintage', { defaultValue: 'Mintage' })}: ${aiResult.mintage}`)
-      if (aiResult.rarity) parts.push(`🔍 ${t('ai.field.rarity', { defaultValue: 'Rarity' })}: ${aiResult.rarity}`)
+      if (aiResult.price) parts.push(t('ai.field.priceFull', { defaultValue: '💲 Price: {{value}}', value: aiResult.price }))
+      if (aiResult.mintage) parts.push(t('ai.field.mintageFull', { defaultValue: '📊 Mintage: {{value}}', value: aiResult.mintage }))
+      if (aiResult.rarity) parts.push(t('ai.field.rarityFull', { defaultValue: '🔍 Rarity: {{value}}', value: aiResult.rarity }))
       if (aiResult.varieties && aiResult.varieties.length > 0) {
-        parts.push(`🔄 ${t('ai.field.varieties', { defaultValue: 'Varieties' })}: ${aiResult.varieties.join(', ')}`)
+        parts.push(t('ai.field.varietiesFull', { defaultValue: '🔄 Varieties: {{value}}', value: aiResult.varieties.join(', ') }))
       }
       const aiText = parts.join('\n')
       if (aiText) {

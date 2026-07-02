@@ -220,8 +220,21 @@
     "importAction": "Импортировать",
     "cancel": "Отмена",
     "close": "Закрыть",
+    "exportFailed": "Не удалось создать резервную копию. Попробуйте ещё раз.",
+    "importPreviewFailed": "Не удалось прочитать файл резервной копии. Возможно, файл повреждён.",
+    "importFailed": "Не удалось импортировать резервную копию. Проверьте файл и попробуйте снова.",
     "exportProgress": "Экспорт БД",
-    "importProgress": "Импорт БД"
+    "importProgress": "Импорт БД",
+    "stageReading": "Чтение данных…",
+    "stageCopyingPhotos": "Копирование фото…",
+    "stageArchiving": "Создание архива…",
+    "stageExtracting": "Распаковка…",
+    "stageImportingCollections": "Импорт коллекций…",
+    "stageImportingCoins": "Импорт монет…",
+    "stageImportingPhotos": "Импорт фото…",
+    "stageCopyingFiles": "Копирование файлов фото…",
+    "stageFinalizing": "Завершение…",
+    "stageDone": "Готово!"
   },
   "export": {
     "title": "Экспорт в Excel",

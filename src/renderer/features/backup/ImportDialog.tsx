@@ -11,17 +11,17 @@ interface ImportDialogProps {
   onCancel: () => void
 }
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString()
+function formatDate(timestamp: number, locale: string): string {
+  return new Date(timestamp).toLocaleString(locale)
 }
 
 export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialogProps): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   if (!preview) {
     return (
       <Modal open={open} onClose={onCancel} title={t('backup.importTitle')}>
-        <div className="py-8 text-center text-sm text-gray-500">{t('backup.loadingPreview')}</div>
+        <div className="py-8 text-center text-sm text-gray-500" role="status">{t('backup.loadingPreview')}</div>
       </Modal>
     )
   }
@@ -35,7 +35,7 @@ export function ImportDialog({ open, preview, onImport, onCancel }: ImportDialog
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
             <span className="font-medium">{t('backup.date')}</span>
-            <span>{formatDate(manifest.exportedAt)}</span>
+            <span>{formatDate(manifest.exportedAt, i18n.language)}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600">
             <span className="font-medium">{t('backup.appVersion')}</span>
