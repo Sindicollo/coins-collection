@@ -7,28 +7,44 @@ import type { Collection } from '@shared/types'
 
 export function ExportDialog(): React.ReactElement {
   const { t } = useTranslation()
-  const store = useExportStore()
+  const open = useExportStore((s) => s.open)
+  const collections = useExportStore((s) => s.collections)
+  const selectedIds = useExportStore((s) => s.selectedIds)
+  const exporting = useExportStore((s) => s.exporting)
+  const progress = useExportStore((s) => s.progress)
+  const error = useExportStore((s) => s.error)
+  const includeImages = useExportStore((s) => s.includeImages)
+  const includeSold = useExportStore((s) => s.includeSold)
+  const setCollections = useExportStore((s) => s.setCollections)
+  const toggleCollection = useExportStore((s) => s.toggleCollection)
+  const selectAll = useExportStore((s) => s.selectAll)
+  const deselectAll = useExportStore((s) => s.deselectAll)
+  const setIncludeImages = useExportStore((s) => s.setIncludeImages)
+  const setIncludeSold = useExportStore((s) => s.setIncludeSold)
+  const closeDialog = useExportStore((s) => s.closeDialog)
+  const exportExcel = useExportStore((s) => s.exportExcel)
 
   React.useEffect(() => {
-    if (store.open) {
+    if (open) {
       window.api.collections.list().then((list: unknown) => {
-        store.setCollections(list as Collection[])
+        setCollections(list as Collection[])
+      }).catch((err) => {
+        console.error('Failed to load collections:', err)
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.open])
+  }, [open, setCollections])
 
   const handleExport = (): void => {
-    store.exportExcel()
+    exportExcel()
   }
 
   const handleClose = (): void => {
-    store.closeDialog()
+    closeDialog()
   }
 
   return (
     <Modal
-      open={store.open}
+      open={open}
       onClose={handleClose}
       title={t('export.title')}
     >
@@ -39,18 +55,18 @@ export function ExportDialog(): React.ReactElement {
             {t('export.selectCollections')}
           </p>
           <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
-            {store.collections.length === 0 ? (
+            {collections.length === 0 ? (
               <p className="text-sm text-gray-400 p-3">{t('export.noCollections')}</p>
             ) : (
-              store.collections.map((c) => (
+              collections.map((c) => (
                 <label
                   key={c.id}
                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm"
                 >
                   <input
                     type="checkbox"
-                    checked={store.selectedIds.includes(c.id)}
-                    onChange={() => store.toggleCollection(c.id)}
+                    checked={selectedIds.includes(c.id)}
+                    onChange={() => toggleCollection(c.id)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-gray-700">{c.name}</span>
@@ -60,13 +76,13 @@ export function ExportDialog(): React.ReactElement {
           </div>
           <div className="flex gap-2 mt-2">
             <button
-              onClick={store.selectAll}
+              onClick={selectAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
               {t('export.selectAll')}
             </button>
             <button
-              onClick={store.deselectAll}
+              onClick={deselectAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
               {t('export.deselectAll')}
@@ -79,8 +95,8 @@ export function ExportDialog(): React.ReactElement {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={store.includeImages}
-              onChange={(e) => store.setIncludeImages(e.target.checked)}
+              checked={includeImages}
+              onChange={(e) => setIncludeImages(e.target.checked)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-gray-700">{t('export.includeImages')}</span>
@@ -88,8 +104,8 @@ export function ExportDialog(): React.ReactElement {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={store.includeSold}
-              onChange={(e) => store.setIncludeSold(e.target.checked)}
+              checked={includeSold}
+              onChange={(e) => setIncludeSold(e.target.checked)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-gray-700">{t('export.includeSold')}</span>
@@ -97,20 +113,20 @@ export function ExportDialog(): React.ReactElement {
         </div>
 
         {/* Progress */}
-        {store.progress && (
+        {progress && (
           <div className="border border-blue-200 bg-blue-50 rounded-md p-3">
             <p className="text-xs text-blue-700 font-medium">
-              {store.progress.stage}
+              {progress.stage}
             </p>
             <p className="text-xs text-blue-600 mt-0.5">
-              {store.progress.message}
+              {progress.message}
             </p>
             <div className="w-full bg-blue-200 rounded-full h-1.5 mt-2">
               <div
                 className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                 style={{
-                  width: store.progress.total > 0
-                    ? `${Math.round((store.progress.current / store.progress.total) * 100)}%`
+                  width: progress.total > 0
+                    ? `${Math.round((progress.current / progress.total) * 100)}%`
                     : '0%'
                 }}
               />
@@ -119,23 +135,23 @@ export function ExportDialog(): React.ReactElement {
         )}
 
         {/* Error */}
-        {store.error && (
+        {error && (
           <div className="rounded-md bg-red-50 border border-red-200 p-3">
-            <p className="text-xs text-red-700">{store.error}</p>
+            <p className="text-xs text-red-700">{error}</p>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex gap-2 justify-end pt-2">
-          <Button variant="ghost" size="sm" onClick={handleClose} disabled={store.exporting}>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={exporting}>
             {t('export.cancel')}
           </Button>
           <Button
             size="sm"
             onClick={handleExport}
-            disabled={store.selectedIds.length === 0 || store.exporting}
+            disabled={selectedIds.length === 0 || exporting}
           >
-            {store.exporting ? t('export.exporting') : t('export.export')}
+            {exporting ? t('export.exporting') : t('export.export')}
           </Button>
         </div>
       </div>

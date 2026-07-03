@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
 interface SheetPreview {
   name: string
   coinCount: number
@@ -84,7 +88,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
       setPreview(previewData)
       setStep('preview')
     } catch (err) {
-      setError(String(err))
+      setError(toErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -104,7 +108,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
       setResult(importResult)
       setStep('done')
     } catch (err) {
-      setError(String(err))
+      setError(toErrorMessage(err))
       setStep('preview')
     }
   }
@@ -123,7 +127,7 @@ export function ImportView({ open, onClose }: ImportViewProps): React.ReactEleme
       setResult(importResult)
       setStep('done')
     } catch (err) {
-      setError(String(err))
+      setError(toErrorMessage(err))
       setStep('preview')
     }
   }

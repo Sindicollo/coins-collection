@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { CoinCard } from '@/features/coins/CoinCard'
+import { clearPhotoDataCache } from '@/features/photos/photoDataCache'
 import type { Coin } from '@shared/types'
 
 const mockCoin: Coin = {
@@ -23,7 +24,8 @@ const mockCoin: Coin = {
   auctionPrice: null,
   salePrice: null,
   createdAt: 1000,
-  updatedAt: 1000
+  updatedAt: 1000,
+  composition: null
 }
 
 function renderWithRouter(ui: React.ReactElement) {
@@ -33,6 +35,7 @@ function renderWithRouter(ui: React.ReactElement) {
 describe('CoinCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    clearPhotoDataCache()
     window.api.photos.list = vi.fn().mockResolvedValue([])
     window.api.photos.getPhotoData = vi.fn().mockResolvedValue(null)
   })

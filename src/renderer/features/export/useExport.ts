@@ -90,12 +90,13 @@ export const useExportStore = create<ExportState & ExportActions>((set, get) => 
 
     set({ exporting: true, error: null, progress: null })
 
-    // Listen for progress events
-    const unsub = window.api.export.onProgress((data) => {
-      get().setProgress(data)
-    })
-
+    let unsub: (() => void) | null = null
     try {
+      // Listen for progress events
+      unsub = window.api.export.onProgress((data) => {
+        set({ progress: data })
+      })
+
       const result = await window.api.export.excel({
         collectionIds: state.selectedIds,
         includeSold: state.includeSold,
@@ -116,7 +117,7 @@ export const useExportStore = create<ExportState & ExportActions>((set, get) => 
         progress: null
       })
     } finally {
-      unsub()
+      unsub?.()
     }
   }
 }))

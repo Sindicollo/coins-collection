@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { usePhotoStore } from '@/features/photos/usePhotos'
+import * as photoDataCache from '@/features/photos/photoDataCache'
 import type { Photo } from '@shared/types'
+
+// Mock cache functions so we can verify invalidation calls without side effects
+vi.mock('@/features/photos/photoDataCache', async () => {
+  const actual = await vi.importActual<typeof photoDataCache>('@/features/photos/photoDataCache')
+  return {
+    ...actual,
+    invalidatePhotoDataCache: vi.fn(),
+    invalidatePhotoListCache: vi.fn()
+  }
+})
 
 const mockPhoto: Photo = {
   id: 'p1',
@@ -108,6 +119,14 @@ describe('usePhotos store', () => {
     expect(state.photos).toEqual([mockPhoto, mockPhoto2])
   })
 
+  it('uploadPhoto invalidates list cache', async () => {
+    vi.mocked(window.api.photos.create).mockResolvedValue([mockPhoto])
+
+    await usePhotoStore.getState().uploadPhoto('c1')
+
+    expect(vi.mocked(photoDataCache.invalidatePhotoListCache)).toHaveBeenCalledWith('c1')
+  })
+
   it('deletePhoto removes photo from state', async () => {
     window.api.photos.delete = vi.fn().mockResolvedValue(true)
     usePhotoStore.setState({ photos: [mockPhoto, mockPhoto2] })
@@ -118,6 +137,47 @@ describe('usePhotos store', () => {
     expect(state.photos).toEqual([mockPhoto2])
     expect(state.error).toBeNull()
     expect(window.api.photos.delete).toHaveBeenCalledWith('p1')
+  })
+
+  it('deletePhoto sets error when API returns false', async () => {
+    window.api.photos.delete = vi.fn().mockResolvedValue(false)
+    usePhotoStore.setState({ photos: [mockPhoto] })
+
+    await usePhotoStore.getState().deletePhoto('p1')
+
+    const state = usePhotoStore.getState()
+    expect(state.photos).toEqual([mockPhoto])
+    expect(state.error).toBeDefined()
+    expect(window.api.photos.delete).toHaveBeenCalledWith('p1')
+  })
+
+  it('deletePhoto sets error on API failure', async () => {
+    window.api.photos.delete = vi.fn().mockRejectedValue(new Error('Delete error'))
+    usePhotoStore.setState({ photos: [mockPhoto] })
+
+    await usePhotoStore.getState().deletePhoto('p1')
+
+    expect(usePhotoStore.getState().error).toBe('Delete error')
+  })
+
+  it('deletePhoto invalidates data and list caches', async () => {
+    window.api.photos.delete = vi.fn().mockResolvedValue(true)
+    usePhotoStore.setState({ photos: [mockPhoto, mockPhoto2] })
+
+    await usePhotoStore.getState().deletePhoto('p1')
+
+    expect(vi.mocked(photoDataCache.invalidatePhotoDataCache)).toHaveBeenCalledWith(['p1'])
+    expect(vi.mocked(photoDataCache.invalidatePhotoListCache)).toHaveBeenCalledWith('c1')
+  })
+
+  it('deletePhoto does not invalidate list cache when photo is not in state', async () => {
+    window.api.photos.delete = vi.fn().mockResolvedValue(true)
+    usePhotoStore.setState({ photos: [] })
+
+    await usePhotoStore.getState().deletePhoto('unknown')
+
+    expect(vi.mocked(photoDataCache.invalidatePhotoListCache)).not.toHaveBeenCalled()
+    expect(vi.mocked(photoDataCache.invalidatePhotoDataCache)).toHaveBeenCalledWith(['unknown'])
   })
 
   it('reset clears state', () => {
@@ -180,6 +240,14 @@ describe('usePhotos store', () => {
     expect(usePhotoStore.getState().error).toBe('Drop upload error')
   })
 
+  it('uploadPhotosFromPaths invalidates list cache', async () => {
+    vi.mocked(window.api.photos.createFromPaths).mockResolvedValue([mockPhoto])
+
+    await usePhotoStore.getState().uploadPhotosFromPaths('c1', ['/path/a.jpg'])
+
+    expect(vi.mocked(photoDataCache.invalidatePhotoListCache)).toHaveBeenCalledWith('c1')
+  })
+
   it('uploadFromFiles reads and adds photos on success', async () => {
     vi.mocked(window.api.photos.createFromFiles).mockResolvedValue([mockPhoto, mockPhoto2])
     usePhotoStore.setState({ photos: [] })
@@ -206,5 +274,13 @@ describe('usePhotos store', () => {
 
     await usePhotoStore.getState().uploadFromFiles('c1', [{ originalName: 'x.jpg', dataUrl: '' }])
     expect(usePhotoStore.getState().error).toBe('File read error')
+  })
+
+  it('uploadFromFiles invalidates list cache', async () => {
+    vi.mocked(window.api.photos.createFromFiles).mockResolvedValue([mockPhoto])
+
+    await usePhotoStore.getState().uploadFromFiles('c1', [{ originalName: 'x.jpg', dataUrl: 'data:image/jpeg;base64,/9j/4AAQ' }])
+
+    expect(vi.mocked(photoDataCache.invalidatePhotoListCache)).toHaveBeenCalledWith('c1')
   })
 })

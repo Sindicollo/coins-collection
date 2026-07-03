@@ -28,7 +28,11 @@ const mockCoin: Coin = {
   extraData: null,
   sold: false,
   createdAt: 1000,
-  updatedAt: 1000
+  updatedAt: 1000,
+  composition: null,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null
 }
 
 const mockResult: PaginatedResult<Coin> = {

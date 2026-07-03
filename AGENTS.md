@@ -2,7 +2,7 @@
 
 ## Behavioral rules
 
-- If the user proposes something incorrect, immediately say "Нет, вот правильный вариант:" and give the correct answer — no preambles like "да, почти" or "лучше".
+- If the user proposes something incorrect, immediately say "Нет, вот правильный вариант:" and give the correct answer — no preambles like "да, почти" or "лучше" or "отличный вариант".
 
 ## Project overview
 
@@ -11,27 +11,34 @@ Electron desktop app (React + TypeScript + SQLite) for managing coin collections
 ## Architecture
 
 ```
-src/main/        — Electron main process (DB, IPC handlers)
+src/main/        — Electron main process (DB, IPC handlers, export/import logic, LLM chains)
 src/preload/     — Context bridge (exposes `window.api`)
-src/renderer/    — React UI (components, features, hooks, styles, utils, lib, locales)
+src/renderer/    — React UI (components, features, hooks, utils, lib, locales)
 src/shared/      — Types and constants shared between main/renderer
 ```
 
-- **Main process** initializes SQLite (`better-sqlite3`), registers IPC handlers for countries/coins/photos/preferences, and creates the BrowserWindow.
+- **Main process** initializes SQLite (`better-sqlite3`), registers IPC handlers for collections/coins/photos/preferences/backup/export/import/llm, and creates the BrowserWindow.
 - **Renderer** communicates with main via `window.api` (preloaded bridge). Tests mock this object.
 - **Routing** uses `react-router-dom` with `HashRouter` (suited for Electron's `file://` protocol). Routes defined in `src/renderer/App.tsx`.
-- **Database** lives in `src/main/database/` with migrations and repository pattern.
-- **State management**: Zustand. Stores are colocated with features (e.g., `features/coins/useCoins.ts`).
-- **Styling**: Tailwind CSS. **i18n**: i18next + react-i18next.
+- **Database** lives in `src/main/database/` with migrations (V1–V8) and repository pattern.
+- **State management**: Zustand 5. Stores are colocated with features (e.g., `features/coins/useCoins.ts`).
+- **Styling**: Tailwind CSS. **i18n**: i18next + react-i18next (en/ru).
+- **Validation**: Zod for LLM output schemas and import parsing.
+- **DnD**: @dnd-kit for photo reordering.
 
 ## Features
 
 | Feature | Path | Main process | Renderer |
 |---------|------|-------------|----------|
-| Countries | `features/countries/` | IPC + repo | useCountries store, CountrySidebar, CountryList, CountryForm |
-| Coins | `features/coins/` | IPC + repo | useCoins store (pagination), CoinView, CoinList, CoinCard, CoinForm |
+| Collections | `features/collections/` | IPC + repo | CollectionSidebar, CollectionList, CollectionForm, useCollections |
+| Coins | `features/coins/` | IPC + repo | useCoins store (pagination), CoinView, CoinList, CoinCard, CoinForm, LlmTools |
 | Photos | `features/photos/` | IPC + repo (file copy to userData/photos/) | usePhotos store, PhotoGallery, Lightbox |
-| Preferences | IPC `preferences.ts` | repo `preferences.ts` | SettingsModal, default currency |
+| Preferences | IPC `preferences.ts` | repo `preferences.ts` | SettingsModal, currency |
+| Backup & Restore | `features/backup/` | IPC + export/import logic | BackupSection, ImportDialog, ProgressModal |
+| Export Excel | `features/export/` | IPC + collection-excel.ts | ExportDialog, useExport |
+| Export PDF | `features/export-pdf/` | IPC + collection-pdf.ts | ExportPdfDialog, useExportPdf |
+| Import spreadsheet | `features/import/` | IPC + xlsx-parser | ImportView |
+| AI/LLM | `features/ai/` | IPC + LangChain chains | AiPage, AiCoinCard, AiSettingsModal, useAiStore, queryBulk/querySingle |
 
 ## Developer commands
 
@@ -46,10 +53,11 @@ npm run typecheck        # Runs both typecheck:node and typecheck:web
 
 npm run test             # Vitest run (jsdom env)
 npm run test:watch       # Vitest watch mode
+npm run test:integration # Integration tests (vitest.integration.config.ts)
 npm run test:coverage    # Vitest with coverage (thresholds: 70/60/70/70)
 ```
 
-### Important: `pretest` rebuilds `better-sqlite3`
+### Important: `pretest` rebuilds `better-sqlite3` and `sharp`
 
 The `pretest` hook runs `npm rebuild better-sqlite3`. If native module errors appear during tests, run `npm run rebuild:electron` manually.
 
@@ -70,16 +78,17 @@ Run `npm run typecheck` to check both. They have different `lib` targets and JSX
 ## Testing
 
 - **Framework**: Vitest 3 + jsdom + React Testing Library
-- **Test files**: `tests/**/*.test.{ts,tsx}` organized by `features/`, `unit/`
+- **Test files**: `tests/**/*.test.{ts,tsx}` organized by `features/`, `unit/`, `integration/`
 - **Setup**: `tests/setup.ts` initializes i18n and mocks `window.api` with vi.fn() stubs
 - **Coverage thresholds**: lines 70%, branches 60%, functions 70%, statements 70%
 - **Excluded from coverage**: entry points (`src/main/index.ts`, `src/preload/index.ts`, `src/renderer/main.tsx`) and `.d.ts` files
 
 ### Writing tests
 
-- Mock `window.api` methods via `vi.mocked(window.api.countries.list).mockResolvedValue(...)` etc.
+- Mock `window.api` methods via `vi.mocked(window.api.collections.list).mockResolvedValue(...)` etc.
 - Components using `useNavigate` must be wrapped in `<MemoryRouter>`.
-- The preload bridge API shape is defined in `src/preload/index.d.ts` — keep mocks in sync.
+- The preload bridge API shape is defined in `src/shared/types/electron-api.ts` — keep mocks in sync.
+- **mountedRef guard**: when testing components that use `useRef(true)` for unmount protection, ensure the effect body resets the ref (`mountedRef.current = true`), otherwise React 18 Strict Mode double-invocation will leave it `false`.
 
 ## Code style
 
