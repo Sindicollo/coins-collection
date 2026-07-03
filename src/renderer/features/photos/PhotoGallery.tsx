@@ -18,6 +18,7 @@ import { Delete } from '@/components/ui/icons/Delete'
 import { Plus } from '@/components/ui/icons/Plus'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { fetchAndCachePhotoData } from './photoDataCache'
 import type { Photo, DropFileInput } from '@shared/types'
 
 interface PhotoGalleryProps {
@@ -28,7 +29,14 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
   const { coinId } = useParams<{ coinId: string; collectionId: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const store = usePhotoStore()
+  const photos = usePhotoStore((s) => s.photos)
+  const loading = usePhotoStore((s) => s.loading)
+  const error = usePhotoStore((s) => s.error)
+  const loadPhotos = usePhotoStore((s) => s.loadPhotos)
+  const uploadPhoto = usePhotoStore((s) => s.uploadPhoto)
+  const deletePhoto = usePhotoStore((s) => s.deletePhoto)
+  const reorderPhotos = usePhotoStore((s) => s.reorderPhotos)
+  const uploadFromFiles = usePhotoStore((s) => s.uploadFromFiles)
 
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null)
   const [isDragOver, setIsDragOver] = React.useState(false)
@@ -51,10 +59,9 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
 
   React.useEffect(() => {
     if (coinId) {
-      store.loadPhotos(coinId)
+      loadPhotos(coinId)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coinId])
+  }, [coinId, loadPhotos])
 
   // Native DOM event listeners for file drop from OS.
   // We use native events because React's SyntheticEvent wrapping can strip
@@ -103,7 +110,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       }
 
       if (fileInfos.length > 0) {
-        await store.uploadFromFiles(currentCoinId, fileInfos)
+        await uploadFromFiles(currentCoinId, fileInfos)
       } else {
         usePhotoStore.setState({ error: t('photos.dropError') })
       }
@@ -121,14 +128,14 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
 
   const handleAddPhoto = async (): Promise<void> => {
     if (coinId) {
-      await store.uploadPhoto(coinId)
+      await uploadPhoto(coinId)
     }
   }
 
   const handleDeletePhoto = async (id: string): Promise<void> => {
-    await store.deletePhoto(id)
+    await deletePhoto(id)
     if (lightboxIndex !== null) {
-      const afterDelete = store.photos.filter((p) => p.id !== id)
+      const afterDelete = photos.filter((p) => p.id !== id)
       if (afterDelete.length === 0) {
         setLightboxIndex(null)
       } else if (lightboxIndex >= afterDelete.length) {
@@ -155,19 +162,19 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
 
     if (!over || active.id === over.id) return
 
-    const oldIndex = store.photos.findIndex((p) => p.id === active.id)
-    const newIndex = store.photos.findIndex((p) => p.id === over.id)
+    const oldIndex = photos.findIndex((p) => p.id === active.id)
+    const newIndex = photos.findIndex((p) => p.id === over.id)
 
     if (oldIndex === -1 || newIndex === -1) return
 
-    const reordered = arrayMove(store.photos, oldIndex, newIndex)
-    const prevPhotos = store.photos
+    const reordered = arrayMove(photos, oldIndex, newIndex)
+    const prevPhotos = photos
 
     // Optimistic update
     usePhotoStore.setState({ photos: reordered })
 
     if (coinId) {
-      store.reorderPhotos(coinId, reordered.map((p) => p.id)).catch(() => {
+      reorderPhotos(coinId, reordered.map((p) => p.id)).catch(() => {
         // Rollback on failure
         usePhotoStore.setState({ photos: prevPhotos })
       })
@@ -185,12 +192,12 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
   const navigateLightbox = (direction: 1 | -1): void => {
     if (lightboxIndex === null) return
     const newIndex = lightboxIndex + direction
-    if (newIndex >= 0 && newIndex < store.photos.length) {
+    if (newIndex >= 0 && newIndex < photos.length) {
       setLightboxIndex(newIndex)
     }
   }
 
-  const photoIds = store.photos.map((p) => p.id)
+  const photoIds = photos.map((p) => p.id)
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
@@ -202,7 +209,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
            </Button>
           <h1 className="text-lg font-semibold text-white">{t('photos.title')}</h1>
           <span className="text-sm text-gray-400">
-            {store.photos.length > 0 && `${store.photos.length} ${t('photos.photo', { count: store.photos.length })}`}
+            {photos.length > 0 && `${photos.length} ${t('photos.photo', { count: photos.length })}`}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -221,7 +228,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
       >
-        {store.loading ? (
+        {loading ? (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="aspect-square rounded-lg overflow-hidden bg-gray-800">
@@ -229,10 +236,10 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
               </div>
             ))}
           </div>
-        ) : store.error ? (
+        ) : error ? (
           <div className="flex flex-col items-center justify-center h-full text-red-400">
-            <p>{store.error}</p>
-            <Button variant="ghost" size="sm" onClick={() => coinId && store.loadPhotos(coinId)} className="mt-2">
+            <p>{error}</p>
+            <Button variant="ghost" size="sm" onClick={() => coinId && loadPhotos(coinId)} className="mt-2">
               {t('coins.retry')}
             </Button>
           </div>
@@ -240,7 +247,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <SortableContext items={photoIds} strategy={rectSortingStrategy}>
               <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {store.photos.map((photo, index) => (
+                {photos.map((photo, index) => (
                   <SortablePhotoThumbnail
                     key={photo.id}
                     photo={photo}
@@ -254,7 +261,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
           </DndContext>
         )}
 
-        {!store.loading && !store.error && store.photos.length === 0 && (
+        {!loading && !error && photos.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
             <PhotoIcon className="w-16 h-16 mb-4 text-gray-600" />
             <p className="text-lg">{t('photos.noPhotos')}</p>
@@ -266,7 +273,7 @@ export function PhotoGallery({ onOpenSettings }: PhotoGalleryProps): React.React
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <Lightbox
-          photos={store.photos}
+          photos={photos}
           currentIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onDelete={(id) => handleDeletePhoto(id)}
@@ -328,7 +335,7 @@ function PhotoThumbnailInner({
   const [showDelete, setShowDelete] = React.useState(false)
 
   React.useEffect(() => {
-    window.api.photos.getPhotoData(photo.id).then((dataUrl: string | null) => {
+    fetchAndCachePhotoData(photo.id).then((dataUrl: string | null) => {
       if (dataUrl) {
         setImgSrc(dataUrl)
       }
