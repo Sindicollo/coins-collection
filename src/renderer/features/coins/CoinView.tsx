@@ -136,8 +136,8 @@ export function CoinView({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      {/* Header — sticky so it remains visible while scrolling the coin list */}
+      <div className="flex items-start justify-between pb-4 sticky top-0 z-10 bg-gray-50 pt-6 -mt-6">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-primary-800 truncate">{collectionName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
