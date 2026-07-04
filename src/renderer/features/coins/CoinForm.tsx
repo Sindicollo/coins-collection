@@ -100,9 +100,15 @@ interface CoinFormProps {
 export function CoinForm({ open, coin, defaultCurrency, collections, countrySuggestions, onSave, onClose }: CoinFormProps): React.ReactElement {
   const { t } = useTranslation()
   const isEdit = !!coin
-  const [data, setData] = React.useState<CoinFormData>(coinToFormData(coin, defaultCurrency))
+  const [data, setData] = React.useState<CoinFormData>(() => coinToFormData(coin, defaultCurrency))
   const [error, setError] = React.useState<string | null>(null)
   const notesRef = React.useRef<HTMLTextAreaElement>(null)
+  const fieldId = React.useId()
+
+  // Reset error when the form opens
+  React.useEffect(() => {
+    if (open) setError(null)
+  }, [open])
 
   // Auto-resize notes textarea
   const autoResizeNotes = React.useCallback(() => {
@@ -116,11 +122,6 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
   React.useEffect(() => {
     autoResizeNotes()
   }, [data.notes, autoResizeNotes])
-
-  React.useEffect(() => {
-    setData(coinToFormData(coin, defaultCurrency))
-    setError(null)
-  }, [coin, open, defaultCurrency])
 
   const handleChange = (field: keyof CoinFormData, value: string): void => {
     setData((prev) => ({ ...prev, [field]: value }))
@@ -150,7 +151,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       year: data.year ? parseInt(data.year, 10) : null,
       condition: data.condition || null,
       composition: data.composition || null,
-      purchaseDate: data.purchaseDate ? new Date(data.purchaseDate).getTime() : null,
+      purchaseDate: data.purchaseDate ? new Date(data.purchaseDate + 'T00:00:00').getTime() : null,
       purchasePlace: data.purchasePlace.trim() || null,
       price: data.price ? parseFloat(data.price) : null,
       shippingCost: data.shippingCost ? parseFloat(data.shippingCost) : null,
@@ -172,10 +173,11 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Collection select */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">
+          <label htmlFor={`${fieldId}-collection`} className="text-sm font-medium text-gray-700">
             {t('collections.title')}
           </label>
           <select
+            id={`${fieldId}-collection`}
             value={data.collectionId}
             onChange={(e) => handleChange('collectionId', e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md text-sm
@@ -194,7 +196,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
           label={t('coins.denomination')}
           value={data.denomination}
           onChange={(e) => handleChange('denomination', e.target.value)}
-          placeholder="e.g. 1 рубль, 50 cents"
+          placeholder={t('coins.denominationPlaceholder', { defaultValue: 'e.g. 1 рубль, 50 cents' })}
           error={error ?? undefined}
           autoFocus
         />
@@ -204,7 +206,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
           value={data.country}
           onChange={(v) => handleChange('country', v)}
           suggestions={countrySuggestions}
-          placeholder="e.g. UK, Russia, USA..."
+          placeholder={t('coins.countryPlaceholder', { defaultValue: 'e.g. UK, Russia, USA…' })}
         />
 
         <div className="grid grid-cols-2 gap-3">
@@ -213,13 +215,14 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             type="number"
             value={data.year}
             onChange={(e) => handleChange('year', e.target.value)}
-            placeholder="e.g. 1990"
+            placeholder={t('coins.yearPlaceholder', { defaultValue: 'e.g. 1990' })}
           />
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">
+            <label htmlFor={`${fieldId}-condition`} className="text-sm font-medium text-gray-700">
               {t('coins.condition')}
             </label>
             <select
+              id={`${fieldId}-condition`}
               value={data.condition}
               onChange={(e) => handleChange('condition', e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm
@@ -237,10 +240,11 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
 
         {/* Composition / metal */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">
+          <label htmlFor={`${fieldId}-composition`} className="text-sm font-medium text-gray-700">
             {t('coins.composition', { defaultValue: 'Composition' })}
           </label>
           <select
+            id={`${fieldId}-composition`}
             value={data.composition}
             onChange={(e) => handleChange('composition', e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md text-sm
@@ -265,10 +269,11 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             placeholder="0.00"
           />
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">
+            <label htmlFor={`${fieldId}-currency`} className="text-sm font-medium text-gray-700">
               {t('coins.currency')}
             </label>
             <select
+              id={`${fieldId}-currency`}
               value={data.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm
@@ -303,7 +308,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
           label={t('coins.purchasePlace')}
           value={data.purchasePlace}
           onChange={(e) => handleChange('purchasePlace', e.target.value)}
-          placeholder="eBay, Мешок, аукцион..."
+          placeholder={t('coins.purchasePlaceholder', { defaultValue: 'eBay, Мешок, аукцион…' })}
         />
 
         {/* Sold checkbox */}
@@ -329,7 +334,7 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
         </label>
 
         {/* Auction price — shown only when onAuction is checked */}
-        {data.onAuction && (
+        {data.onAuction ? (
           <Input
             label={t('coins.auctionPrice')}
             type="number"
@@ -338,10 +343,10 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             onChange={(e) => handleChange('auctionPrice', e.target.value)}
             placeholder="0.00"
           />
-        )}
+        ) : null}
 
         {/* Sale price — shown only when sold is checked */}
-        {data.sold && (
+        {data.sold ? (
           <Input
             label={t('coins.salePrice')}
             type="number"
@@ -350,13 +355,14 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             onChange={(e) => handleChange('salePrice', e.target.value)}
             placeholder="0.00"
           />
-        )}
+        ) : null}
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium text-gray-700">
             {t('coins.notes')}
           </label>
           <textarea
+            id={`${fieldId}-notes`}
             ref={notesRef}
             value={data.notes}
             onChange={(e) => handleChange('notes', e.target.value)}

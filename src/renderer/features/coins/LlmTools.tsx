@@ -22,16 +22,24 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
   const copyTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const mountedRef = React.useRef(true)
 
   React.useEffect(() => {
+    mountedRef.current = true
     setLoadError(null)
     window.api.llm
       .getExportData(collectionId)
-      .then(setExportData)
+      .then((data) => {
+        if (mountedRef.current) setExportData(data)
+      })
       .catch((err) => {
+        if (!mountedRef.current) return
         console.error(err)
         setLoadError(t('coins.llmLoadError', { defaultValue: 'Failed to load collection data' }))
       })
+    return () => {
+      mountedRef.current = false
+    }
   }, [collectionId, t])
 
   React.useEffect(() => {
@@ -52,6 +60,8 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
         setLastExported(filePath)
         onExported?.(filePath)
       }
+    } catch (err) {
+      console.error('Export failed:', err)
     } finally {
       setExporting(false)
     }
@@ -65,6 +75,8 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
         setLastResult({ updated: result.updated, skipped: result.skipped })
         onImported?.(result.updated, result.skipped)
       }
+    } catch (err) {
+      console.error('Import failed:', err)
     } finally {
       setImporting(false)
     }
@@ -91,7 +103,7 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
             onClick={handleExport}
             disabled={exporting}
           >
-            {exporting ? '...' : t('coins.exportLlm', { defaultValue: 'Export for LLM' })}
+            {exporting ? t('coins.exporting', { defaultValue: 'Exporting…' }) : t('coins.exportLlm', { defaultValue: 'Export for LLM' })}
           </Button>
           <HelpTooltip text={t('coins.llmExportTooltip')} />
         </div>
@@ -103,7 +115,7 @@ export function LlmTools({ collectionId, onExported, onImported }: LlmToolsProps
             onClick={handleImport}
             disabled={importing}
           >
-            {importing ? '...' : t('coins.importLlm', { defaultValue: 'Import from LLM' })}
+            {importing ? t('coins.importing', { defaultValue: 'Importing…' }) : t('coins.importLlm', { defaultValue: 'Import from LLM' })}
           </Button>
           <HelpTooltip text={t('coins.llmImportTooltip')} />
         </div>

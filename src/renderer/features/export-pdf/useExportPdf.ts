@@ -94,11 +94,12 @@ export const useExportPdfStore = create<ExportPdfState & ExportPdfActions>((set,
 
     set({ exporting: true, error: null, progress: null })
 
-    const unsub = window.api.export.onProgress((data) => {
-      get().setProgress(data)
-    })
-
+    let unsub: (() => void) | null = null
     try {
+      unsub = window.api.export.onProgress((data) => {
+        set({ progress: data })
+      })
+
       const result = await window.api.export.pdf({
         collectionIds: state.selectedIds,
         includeSold: state.includeSold,
@@ -119,7 +120,7 @@ export const useExportPdfStore = create<ExportPdfState & ExportPdfActions>((set,
         progress: null
       })
     } finally {
-      unsub()
+      unsub?.()
     }
   }
 }))

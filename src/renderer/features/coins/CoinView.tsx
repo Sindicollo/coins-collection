@@ -52,9 +52,22 @@ export function CoinView({
   collections,
   onCollectionChange
 }: CoinViewProps): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const store = useCoinStore()
+
+  // Use individual selectors to avoid re-rendering on unrelated store changes
+  const coins = useCoinStore((s) => s.coins)
+  const loading = useCoinStore((s) => s.loading)
+  const loadingMore = useCoinStore((s) => s.loadingMore)
+  const hasMore = useCoinStore((s) => s.hasMore)
+  const error = useCoinStore((s) => s.error)
+  const loadedCollectionId = useCoinStore((s) => s.loadedCollectionId)
+  const loadCoins = useCoinStore((s) => s.loadCoins)
+  const loadMore = useCoinStore((s) => s.loadMore)
+  const reset = useCoinStore((s) => s.reset)
+  const addCoin = useCoinStore((s) => s.addCoin)
+  const updateCoin = useCoinStore((s) => s.updateCoin)
+  const deleteCoin = useCoinStore((s) => s.deleteCoin)
 
   const [showForm, setShowForm] = React.useState(false)
   const [editCoin, setEditCoin] = React.useState<Coin | undefined>(undefined)
@@ -67,17 +80,18 @@ export function CoinView({
 
   // Load country name suggestions for autocomplete
   React.useEffect(() => {
-    window.api.coins.listCountries().then(setCountrySuggestions)
+    window.api.coins.listCountries().then(setCountrySuggestions).catch(() => {
+      // Silently fail — empty suggestions just means no autocomplete
+    })
   }, [])
 
   // Load coins when collection changes (or on first mount)
-  const { loadedCollectionId, reset, loadCoins: load } = store
   React.useEffect(() => {
     if (!loadedCollectionId || loadedCollectionId !== collectionId) {
       reset()
-      load(collectionId)
+      loadCoins(collectionId)
     }
-  }, [collectionId, loadedCollectionId, reset, load])
+  }, [collectionId, loadedCollectionId, reset, loadCoins])
 
   // Load total purchase cost for the collection (re-load on coin list changes)
   React.useEffect(() => {
@@ -85,7 +99,7 @@ export function CoinView({
     if (promise) {
       promise.then(setTotals).catch((err) => console.warn('Failed to load totals:', err))
     }
-  }, [collectionId, store.coins.length])
+  }, [collectionId, coins.length])
 
   const handleOpenCreate = (): void => {
     setEditCoin(undefined)
@@ -100,11 +114,11 @@ export function CoinView({
   const handleSave = (data: CoinSaveData): void => {
     const collectionChanged = editCoin && data.collectionId !== editCoin.collectionId
 
-    if (editCoin) {
-      store.updateCoin({ id: editCoin.id, ...data })
-    } else {
-      store.addCoin(data)
-    }
+    // State is reset optimistically; errors are logged and visible in CoinList
+    const savePromise = editCoin
+      ? updateCoin({ id: editCoin.id, ...data })
+      : addCoin(data)
+    savePromise?.catch((err) => console.error('Failed to save coin:', err))
     setShowForm(false)
     setEditCoin(undefined)
 
@@ -115,22 +129,22 @@ export function CoinView({
 
   const handleDeleteConfirm = (): void => {
     if (coinToDelete) {
-      store.deleteCoin(coinToDelete.id)
+      deleteCoin(coinToDelete.id)?.catch((err) => console.error('Failed to delete coin:', err))
       setCoinToDelete(null)
     }
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      {/* Header — sticky so it remains visible while scrolling the coin list */}
+      <div className="flex items-start justify-between pb-4 sticky top-0 z-10 bg-gray-50 pt-6 -mt-6">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-primary-800 truncate">{collectionName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {totals.length > 0
               ? t('coins.totalCost', {
                   cost: totals
-                    .map((t) => `${t.total.toLocaleString('ru-RU')} ${currencySymbol(t.currency)}`)
+                    .map((total) => `${total.total.toLocaleString(i18n.language === 'ru' ? 'ru-RU' : undefined)} ${currencySymbol(total.currency)}`)
                     .join(', ')
                 })
               : t('coins.title')}
@@ -156,20 +170,21 @@ export function CoinView({
       {/* List */}
       <div className="flex-1 min-h-0 -mx-6 px-6">
         <CoinList
-          coins={store.coins}
-          loading={store.loading}
-          loadingMore={store.loadingMore}
-          hasMore={store.hasMore}
-          error={store.error}
-          onLoadMore={() => store.loadMore(collectionId)}
+          coins={coins}
+          loading={loading}
+          loadingMore={loadingMore}
+          hasMore={hasMore}
+          error={error}
+          onLoadMore={() => loadMore(collectionId)}
           onEdit={handleOpenEdit}
           onDelete={setCoinToDelete}
           onSelect={handleOpenEdit}
         />
       </div>
 
-      {/* Create/Edit form */}
+      {/* Create/Edit form — key forces remount when switching between coins */}
       <CoinForm
+        key={editCoin?.id ?? 'new'}
         open={showForm}
         coin={editCoin}
         defaultCurrency={defaultCurrency}

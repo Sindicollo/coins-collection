@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AiCoinInfo } from '@shared/types'
+import type { AiCoinInfo, QueryType } from '@shared/types'
 import * as aiApi from './api'
 
 interface AiState {
@@ -15,8 +15,8 @@ interface AiState {
 }
 
 interface AiActions {
-  queryBulk: (collectionId: string, queryType: string) => Promise<void>
-  querySingle: (coinId: string, queryType: string) => Promise<AiCoinInfo | null>
+  queryBulk: (collectionId: string, queryType: QueryType) => Promise<void>
+  querySingle: (coinId: string, queryType: QueryType) => Promise<AiCoinInfo | null>
   clearResults: () => void
   clearCoinResult: (coinId: string) => void
   appendCoinToNotes: (coinId: string) => Promise<string | null>
@@ -50,7 +50,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
   bulkRunning: false,
   coinLoading: {},
 
-  queryBulk: async (collectionId: string, queryType: string) => {
+  queryBulk: async (collectionId: string, queryType: QueryType) => {
     console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
 
     // Clear previous results and set up progress
@@ -101,13 +101,12 @@ export const useAiStore = create<AiStore>((set, get) => ({
     }
   },
 
-  querySingle: async (coinId: string, queryType: string) => {
+  querySingle: async (coinId: string, queryType: QueryType) => {
     set({ error: null, coinLoading: { ...get().coinLoading, [coinId]: true } })
     try {
       const result = await aiApi.querySingle(coinId, queryType)
       set((state) => ({
         results: { ...state.results, [coinId]: result },
-        loading: false,
         coinLoading: { ...state.coinLoading, [coinId]: false }
       }))
       return result
@@ -115,7 +114,6 @@ export const useAiStore = create<AiStore>((set, get) => ({
       const message = err instanceof Error ? err.message : String(err)
       set({
         error: message || 'Failed to query LLM',
-        loading: false,
         coinLoading: { ...get().coinLoading, [coinId]: false }
       })
       return null

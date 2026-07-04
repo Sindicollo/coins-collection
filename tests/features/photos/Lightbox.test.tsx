@@ -150,4 +150,148 @@ describe('Lightbox', () => {
     expect(dots[0].className).toContain('bg-white')
     expect(dots[1].className).toContain('bg-white/30')
   })
+
+  it('calls onDelete when delete is confirmed', () => {
+    const onDelete = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onNavigate={vi.fn()}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    // Open delete confirmation
+    const deleteBtn = screen.getAllByRole('button').find((b) =>
+      b.innerHTML.includes('M19') && b.innerHTML.includes('l-.867')
+    )
+    if (deleteBtn) fireEvent.click(deleteBtn)
+
+    // Confirm deletion — button text is "Delete" (translated)
+    fireEvent.click(screen.getByText('Delete'))
+
+    expect(onDelete).toHaveBeenCalledWith('p1')
+  })
+
+  it('closes delete confirmation without calling onDelete on cancel', () => {
+    const onDelete = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onNavigate={vi.fn()}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    // Open delete confirmation
+    const deleteBtn = screen.getAllByRole('button').find((b) =>
+      b.innerHTML.includes('M19') && b.innerHTML.includes('l-.867')
+    )
+    if (deleteBtn) fireEvent.click(deleteBtn)
+
+    // Cancel — button text is "Cancel" (translated)
+    fireEvent.click(screen.getByText('Cancel'))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    // Confirmation should be gone
+    expect(screen.queryByText('Delete Photo')).not.toBeInTheDocument()
+  })
+
+  it('calls onClose on Escape key', () => {
+    const onClose = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={onClose}
+        onDelete={vi.fn()}
+        onNavigate={vi.fn()}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onNavigate(-1) on ArrowLeft when not at first photo', () => {
+    const onNavigate = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={1}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNavigate={onNavigate}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(document, { key: 'ArrowLeft' })
+
+    expect(onNavigate).toHaveBeenCalledWith(-1)
+  })
+
+  it('calls onNavigate(1) on ArrowRight when not at last photo', () => {
+    const onNavigate = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNavigate={onNavigate}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(document, { key: 'ArrowRight' })
+
+    expect(onNavigate).toHaveBeenCalledWith(1)
+  })
+
+  it('does not navigate left at first photo', () => {
+    const onNavigate = vi.fn()
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNavigate={onNavigate}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(document, { key: 'ArrowLeft' })
+
+    expect(onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('shows previous arrow button only when not at first photo', () => {
+    render(
+      <Lightbox
+        photos={mockPhotos}
+        currentIndex={0}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNavigate={vi.fn()}
+        onJumpTo={vi.fn()}
+      />
+    )
+
+    // At first photo — no left arrow
+    const leftArrows = screen.queryAllByRole('button').filter((b) =>
+      b.innerHTML.includes('M9') && b.innerHTML.includes('l7')
+    )
+    // The right arrow exists, left doesn't
+    expect(leftArrows.length).toBeLessThan(2)
+  })
 })

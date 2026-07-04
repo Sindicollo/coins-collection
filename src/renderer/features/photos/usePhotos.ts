@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { Photo, DropFileInput } from '@shared/types'
 import * as photoApi from './api'
+import { invalidatePhotoDataCache, invalidatePhotoListCache } from './photoDataCache'
+import i18n from '@/lib/i18n'
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -30,7 +32,7 @@ const initialState: PhotoState = {
   error: null
 }
 
-export const usePhotoStore = create<Store>((set) => {
+export const usePhotoStore = create<Store>((set, get) => {
   function appendUploadedPhotos(photos: Photo[]) {
     if (photos.length > 0) {
       set((state) => ({ photos: [...state.photos, ...photos] }))
@@ -54,6 +56,7 @@ export const usePhotoStore = create<Store>((set) => {
       set({ error: null })
       try {
         const photos = await photoApi.uploadPhoto(coinId)
+        invalidatePhotoListCache(coinId)
         appendUploadedPhotos(photos)
       } catch (err) {
         set({ error: toErrorMessage(err) })
@@ -64,6 +67,7 @@ export const usePhotoStore = create<Store>((set) => {
       set({ error: null })
       try {
         const photos = await photoApi.uploadPhotosFromPaths(coinId, filePaths)
+        invalidatePhotoListCache(coinId)
         appendUploadedPhotos(photos)
       } catch (err) {
         set({ error: toErrorMessage(err) })
@@ -74,6 +78,7 @@ export const usePhotoStore = create<Store>((set) => {
       set({ error: null })
       try {
         const photos = await photoApi.uploadFromFiles(coinId, files)
+        invalidatePhotoListCache(coinId)
         appendUploadedPhotos(photos)
       } catch (err) {
         set({ error: toErrorMessage(err) })
@@ -85,9 +90,12 @@ export const usePhotoStore = create<Store>((set) => {
       try {
         const deleted = await photoApi.deletePhoto(id)
         if (!deleted) {
-          set({ error: 'Не удалось удалить фото' })
+          set({ error: i18n.t('photos.deleteError', 'Не удалось удалить фото') })
           return
         }
+        const coinId = get().photos.find((p) => p.id === id)?.coinId
+        if (coinId) invalidatePhotoListCache(coinId)
+        invalidatePhotoDataCache([id])
         set((state) => ({ photos: state.photos.filter((p) => p.id !== id) }))
       } catch (err) {
         set({ error: toErrorMessage(err) })

@@ -136,6 +136,45 @@ i18n.use(initReactI18next).init({
           loadError: 'Failed to load image',
           dropError: 'Could not detect dropped files'
         },
+        ai: {
+          title: 'AI',
+          back: 'Back',
+          bulkPrices: 'Learn Prices',
+          bulkMintage: 'Learn Mintage',
+          bulkInfo: 'Learn General Info',
+          manualInput: 'Manual Input',
+          settingsButton: 'Settings',
+          querying: 'Querying...',
+          queryingCollection: 'Asking AI about {{type}}...',
+          loadingCoins: 'Loading coins...',
+          pasteJson: 'Paste JSON response from AI chat (array of objects with "id" field):',
+          parseJson: 'Parse JSON',
+          appendToNotes: 'Append to Notes',
+          clearResult: 'Clear',
+          queryPrice: 'eBay price',
+          queryMintage: 'Mintage',
+          queryInfo: 'Info',
+          progress: 'Processed {{processed}} of {{total}} coins',
+          stop: 'Stop',
+          field: {
+            price: 'Price',
+            mintage: 'Mintage',
+            rarity: 'Rarity',
+            varieties: 'Varieties'
+          },
+          settings: {
+            title: 'AI Settings',
+            provider: 'Provider',
+            baseUrl: 'Base URL',
+            model: 'Model',
+            apiKey: 'API Key',
+            testConnection: 'Test Connection',
+            testOk: 'Connection successful!',
+            testFailed: 'Connection failed',
+            webSearch: 'Enable web search',
+            webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
+          }
+        },
         backup: {
           title: 'Backup & Restore',
           sectionBackup: 'Backup',
@@ -160,8 +199,21 @@ i18n.use(initReactI18next).init({
           importAction: 'Import',
           cancel: 'Cancel',
           close: 'Close',
+          exportFailed: 'Failed to create backup.',
+          importPreviewFailed: 'Failed to read backup file.',
+          importFailed: 'Failed to import backup.',
           exportProgress: 'Export Backup',
-          importProgress: 'Import Backup'
+          importProgress: 'Import Backup',
+          stageReading: 'Reading data…',
+          stageCopyingPhotos: 'Copying photos…',
+          stageArchiving: 'Creating archive…',
+          stageExtracting: 'Extracting backup…',
+          stageImportingCollections: 'Importing collections…',
+          stageImportingCoins: 'Importing coins…',
+          stageImportingPhotos: 'Importing photos…',
+          stageCopyingFiles: 'Copying photo files…',
+          stageFinalizing: 'Finalizing…',
+          stageDone: 'Done!'
         },
         export: {
           title: 'Export to Excel',
@@ -231,51 +283,12 @@ if (typeof window !== 'undefined') {
       setCurrency: vi.fn(),
       getCurrencies: vi.fn()
     },
-        import: {
-          selectFile: vi.fn(),
-          preview: vi.fn(),
-          execute: vi.fn(),
-          executeNoYear: vi.fn()
-        },
-        ai: {
-          title: 'AI',
-          back: 'Back',
-          bulkPrices: 'Learn Prices',
-          bulkMintage: 'Learn Mintage',
-          bulkInfo: 'Learn General Info',
-          manualInput: 'Manual Input',
-          settingsButton: 'Settings',
-          querying: 'Querying...',
-          queryingCollection: 'Asking AI about {{type}}...',
-          loadingCoins: 'Loading coins...',
-          pasteJson: 'Paste JSON response from AI chat (array of objects with "id" field):',
-          parseJson: 'Parse JSON',
-          appendToNotes: 'Append to Notes',
-          clearResult: 'Clear',
-          queryPrice: 'eBay price',
-          queryMintage: 'Mintage',
-          queryInfo: 'Info',
-          progress: 'Processed {{processed}} of {{total}} coins',
-          stop: 'Stop',
-          field: {
-            price: 'Price',
-            mintage: 'Mintage',
-            rarity: 'Rarity',
-            varieties: 'Varieties'
-          },
-          settings: {
-            title: 'AI Settings',
-            provider: 'Provider',
-            baseUrl: 'Base URL',
-            model: 'Model',
-            apiKey: 'API Key',
-            testConnection: 'Test Connection',
-            testOk: 'Connection successful!',
-            testFailed: 'Connection failed',
-            webSearch: 'Enable web search',
-            webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
-          }
-        },
+    import: {
+      selectFile: vi.fn(),
+      preview: vi.fn(),
+      execute: vi.fn(),
+      executeNoYear: vi.fn()
+    },
     llm: {
       getExportData: vi.fn(),
       exportAll: vi.fn(),

@@ -23,18 +23,21 @@ export function useScrollRestoration(collectionId: string): void {
   }, [])
 
   // Restore scroll position + auto-load pages if needed
-  const { loading, coins, hasMore } = useCoinStore()
+  const loading = useCoinStore((s) => s.loading)
+  const coinsLength = useCoinStore((s) => s.coins.length)
+  const hasMore = useCoinStore((s) => s.hasMore)
   React.useLayoutEffect(() => {
     const main = mainRef.current
-    if (!main || loading || coins.length === 0) return
+    if (!main || loading || coinsLength === 0) return
 
     const saved = useCoinStore.getState().scrollPositions[collectionId]
     if (!saved) return
 
     main.scrollTop = saved
     // Content too short for the saved position — load more pages
+    // Defer to avoid state update during layout effect commit phase
     if (main.scrollTop < saved && hasMore) {
-      useCoinStore.getState().loadMore(collectionId)
+      queueMicrotask(() => useCoinStore.getState().loadMore(collectionId))
     }
-  }, [loading, coins.length, collectionId, hasMore])
+  }, [loading, coinsLength, collectionId, hasMore])
 }

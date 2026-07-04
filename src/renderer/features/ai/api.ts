@@ -1,4 +1,4 @@
-import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult } from '@shared/types'
+import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, QueryType } from '@shared/types'
 import i18n from '@/lib/i18n'
 
 function getLocale(): string {
@@ -7,12 +7,12 @@ function getLocale(): string {
 
 export async function queryBulk(
   collectionId: string,
-  queryType: string
+  queryType: QueryType
 ): Promise<AiCoinInfo[]> {
   console.log('[aiApi] queryBulk:', { collectionId, queryType })
   const query: AiBulkQuery = {
     collectionId,
-    queryType: queryType as AiBulkQuery['queryType'],
+    queryType,
     locale: getLocale()
   }
   const result = await window.api.llm.queryBulk(query)
@@ -22,11 +22,11 @@ export async function queryBulk(
 
 export async function querySingle(
   coinId: string,
-  queryType: string
+  queryType: QueryType
 ): Promise<AiCoinInfo> {
   const query: AiSingleQuery = {
     coinId,
-    queryType: queryType as AiSingleQuery['queryType'],
+    queryType,
     locale: getLocale()
   }
   return window.api.llm.querySingle(query)

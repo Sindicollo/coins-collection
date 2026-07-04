@@ -37,6 +37,7 @@ export function AiPage(): React.ReactElement {
 
   const [coins, setCoins] = React.useState<Coin[]>([])
   const [coinsLoading, setCoinsLoading] = React.useState(true)
+  const [coinsError, setCoinsError] = React.useState<string | null>(null)
   const [showSettings, setShowSettings] = React.useState(false)
   const [showManualInput, setShowManualInput] = React.useState(false)
   const [collectionName, setCollectionName] = React.useState('')
@@ -54,7 +55,9 @@ export function AiPage(): React.ReactElement {
         if (cancelled) return
         setCoins(result.items)
       } catch (err) {
-        console.error('Failed to load coins for AI page:', err)
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[AiPage] Failed to load coins:', message)
+        if (!cancelled) setCoinsError(t('ai.loadError', { defaultValue: 'Failed to load coins: {{message}}', message }))
       } finally {
         if (!cancelled) setCoinsLoading(false)
       }
@@ -75,12 +78,13 @@ export function AiPage(): React.ReactElement {
     return () => {
       cancelled = true
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionId])
 
   // Clear AI results when collection changes
   React.useEffect(() => {
     clearResults()
-  }, [collectionId, clearResults])
+  }, [collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset coin store on unmount so CoinView reloads up-to-date data
   React.useEffect(() => {
@@ -89,7 +93,7 @@ export function AiPage(): React.ReactElement {
     }
   }, [collectionId])
 
-  const handleBulkQuery = (queryType: string): void => {
+  const handleBulkQuery = (queryType: QueryType): void => {
     console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })
     if (!collectionId) {
       console.warn('[AiPage] No collectionId, skipping query')
@@ -114,11 +118,14 @@ export function AiPage(): React.ReactElement {
     navigate('/')
   }
 
-  const bulkActions: { type: string; label: string; emoji: string }[] = [
-    { type: 'prices', label: t('ai.bulkPrices', { defaultValue: 'Learn Prices' }), emoji: '💰' },
-    { type: 'mintage', label: t('ai.bulkMintage', { defaultValue: 'Learn Mintage' }), emoji: '📊' },
-    { type: 'info', label: t('ai.bulkInfo', { defaultValue: 'Learn General Info' }), emoji: 'ℹ' }
-  ]
+  const bulkActions = React.useMemo<{ type: QueryType; label: string; emoji: string }[]>(
+    () => [
+      { type: 'prices', label: t('ai.bulkPrices', { defaultValue: 'Learn Prices' }), emoji: '💰' },
+      { type: 'mintage', label: t('ai.bulkMintage', { defaultValue: 'Learn Mintage' }), emoji: '📊' },
+      { type: 'info', label: t('ai.bulkInfo', { defaultValue: 'Learn General Info' }), emoji: 'ℹ' }
+    ],
+    [t]
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -185,6 +192,12 @@ export function AiPage(): React.ReactElement {
       {error && (
         <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
           {error}
+        </div>
+      )}
+
+      {coinsError && (
+        <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          {coinsError}
         </div>
       )}
 

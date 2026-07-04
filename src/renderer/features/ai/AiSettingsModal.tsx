@@ -57,17 +57,23 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.warn('[AiSettingsModal] Test connection failed:', message)
-      setTestResult({ ok: false, error: 'Connection test failed' })
+      setTestResult({ ok: false, error: message })
     } finally {
       setTesting(false)
     }
   }
 
+  const [saveError, setSaveError] = React.useState<string | null>(null)
+
   const handleClose = async (): Promise<void> => {
+    setSaveError(null)
     try {
       await aiApi.setConfig(config)
     } catch (err) {
-      console.warn('[AiSettingsModal] Failed to save config:', err)
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn('[AiSettingsModal] Failed to save config:', message)
+      setSaveError(message || 'Failed to save config')
+      return // don't close on error
     }
     setLoaded(false)
     onClose()
@@ -161,6 +167,13 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps): React.
             {testResult.ok
               ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
               : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
+          </div>
+        )}
+
+        {/* Save error */}
+        {saveError && (
+          <div className="text-xs px-3 py-2 rounded-md bg-red-50 text-red-700 border border-red-200">
+            {t('ai.settings.saveError', { defaultValue: 'Failed to save: {{message}}', message: saveError })}
           </div>
         )}
 

@@ -7,28 +7,46 @@ import type { Collection } from '@shared/types'
 
 export function ExportPdfDialog(): React.ReactElement {
   const { t } = useTranslation()
-  const store = useExportPdfStore()
+  const open = useExportPdfStore((s) => s.open)
+  const collections = useExportPdfStore((s) => s.collections)
+  const selectedIds = useExportPdfStore((s) => s.selectedIds)
+  const exporting = useExportPdfStore((s) => s.exporting)
+  const progress = useExportPdfStore((s) => s.progress)
+  const error = useExportPdfStore((s) => s.error)
+  const includeImages = useExportPdfStore((s) => s.includeImages)
+  const includeSold = useExportPdfStore((s) => s.includeSold)
+  const includePurchaseInfo = useExportPdfStore((s) => s.includePurchaseInfo)
+  const setCollections = useExportPdfStore((s) => s.setCollections)
+  const toggleCollection = useExportPdfStore((s) => s.toggleCollection)
+  const selectAll = useExportPdfStore((s) => s.selectAll)
+  const deselectAll = useExportPdfStore((s) => s.deselectAll)
+  const setIncludeImages = useExportPdfStore((s) => s.setIncludeImages)
+  const setIncludeSold = useExportPdfStore((s) => s.setIncludeSold)
+  const setIncludePurchaseInfo = useExportPdfStore((s) => s.setIncludePurchaseInfo)
+  const closeDialog = useExportPdfStore((s) => s.closeDialog)
+  const exportPdf = useExportPdfStore((s) => s.exportPdf)
 
   React.useEffect(() => {
-    if (store.open) {
+    if (open) {
       window.api.collections.list().then((list: unknown) => {
-        store.setCollections(list as Collection[])
+        setCollections(list as Collection[])
+      }).catch((err) => {
+        console.error('Failed to load collections:', err)
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.open])
+  }, [open, setCollections])
 
   const handleExport = (): void => {
-    store.exportPdf()
+    exportPdf()
   }
 
   const handleClose = (): void => {
-    store.closeDialog()
+    closeDialog()
   }
 
   return (
     <Modal
-      open={store.open}
+      open={open}
       onClose={handleClose}
       title={t('exportPdf.title')}
     >
@@ -39,18 +57,18 @@ export function ExportPdfDialog(): React.ReactElement {
             {t('exportPdf.selectCollections')}
           </p>
           <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
-            {store.collections.length === 0 ? (
+            {collections.length === 0 ? (
               <p className="text-sm text-gray-400 p-3">{t('exportPdf.noCollections')}</p>
             ) : (
-              store.collections.map((c) => (
+              collections.map((c) => (
                 <label
                   key={c.id}
                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm"
                 >
                   <input
                     type="checkbox"
-                    checked={store.selectedIds.includes(c.id)}
-                    onChange={() => store.toggleCollection(c.id)}
+                    checked={selectedIds.includes(c.id)}
+                    onChange={() => toggleCollection(c.id)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-gray-700">{c.name}</span>
@@ -60,13 +78,13 @@ export function ExportPdfDialog(): React.ReactElement {
           </div>
           <div className="flex gap-2 mt-2">
             <button
-              onClick={store.selectAll}
+              onClick={selectAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
               {t('exportPdf.selectAll')}
             </button>
             <button
-              onClick={store.deselectAll}
+              onClick={deselectAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
               {t('exportPdf.deselectAll')}
@@ -79,8 +97,8 @@ export function ExportPdfDialog(): React.ReactElement {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={store.includeImages}
-              onChange={(e) => store.setIncludeImages(e.target.checked)}
+              checked={includeImages}
+              onChange={(e) => setIncludeImages(e.target.checked)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-gray-700">{t('exportPdf.includeImages')}</span>
@@ -88,8 +106,8 @@ export function ExportPdfDialog(): React.ReactElement {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={store.includeSold}
-              onChange={(e) => store.setIncludeSold(e.target.checked)}
+              checked={includeSold}
+              onChange={(e) => setIncludeSold(e.target.checked)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-gray-700">{t('exportPdf.includeSold')}</span>
@@ -104,8 +122,8 @@ export function ExportPdfDialog(): React.ReactElement {
               <input
                 type="radio"
                 name="purchaseInfo"
-                checked={!store.includePurchaseInfo}
-                onChange={() => store.setIncludePurchaseInfo(false)}
+                checked={!includePurchaseInfo}
+                onChange={() => setIncludePurchaseInfo(false)}
                 className="text-blue-600 focus:ring-blue-500"
               />
               <span className="text-gray-700">{t('exportPdf.purchaseInfoNo')}</span>
@@ -114,8 +132,8 @@ export function ExportPdfDialog(): React.ReactElement {
               <input
                 type="radio"
                 name="purchaseInfo"
-                checked={store.includePurchaseInfo}
-                onChange={() => store.setIncludePurchaseInfo(true)}
+                checked={includePurchaseInfo}
+                onChange={() => setIncludePurchaseInfo(true)}
                 className="text-blue-600 focus:ring-blue-500"
               />
               <span className="text-gray-700">{t('exportPdf.purchaseInfoYes')}</span>
@@ -124,20 +142,20 @@ export function ExportPdfDialog(): React.ReactElement {
         </div>
 
         {/* Progress */}
-        {store.progress && (
+        {progress && (
           <div className="border border-blue-200 bg-blue-50 rounded-md p-3">
             <p className="text-xs text-blue-700 font-medium">
-              {store.progress.stage}
+              {progress.stage}
             </p>
             <p className="text-xs text-blue-600 mt-0.5">
-              {store.progress.message}
+              {progress.message}
             </p>
             <div className="w-full bg-blue-200 rounded-full h-1.5 mt-2">
               <div
                 className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                 style={{
-                  width: store.progress.total > 0
-                    ? `${Math.round((store.progress.current / store.progress.total) * 100)}%`
+                  width: progress.total > 0
+                    ? `${Math.round((progress.current / progress.total) * 100)}%`
                     : '0%'
                 }}
               />
@@ -146,23 +164,23 @@ export function ExportPdfDialog(): React.ReactElement {
         )}
 
         {/* Error */}
-        {store.error && (
+        {error && (
           <div className="rounded-md bg-red-50 border border-red-200 p-3">
-            <p className="text-xs text-red-700">{store.error}</p>
+            <p className="text-xs text-red-700">{error}</p>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex gap-2 justify-end pt-2">
-          <Button variant="ghost" size="sm" onClick={handleClose} disabled={store.exporting}>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={exporting}>
             {t('exportPdf.cancel')}
           </Button>
           <Button
             size="sm"
             onClick={handleExport}
-            disabled={store.selectedIds.length === 0 || store.exporting}
+            disabled={selectedIds.length === 0 || exporting}
           >
-            {store.exporting ? t('exportPdf.exporting') : t('exportPdf.export')}
+            {exporting ? t('exportPdf.exporting') : t('exportPdf.export')}
           </Button>
         </div>
       </div>

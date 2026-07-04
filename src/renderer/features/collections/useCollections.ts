@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import { create } from 'zustand'
 import type { Collection } from '@shared/types'
 import * as collectionApi from './api'
@@ -33,7 +32,8 @@ const useCollectionStore = create<CollectionStore>((set) => ({
     try {
       const collections = await collectionApi.fetchCollections()
       set({ collections, loading: false })
-    } catch {
+    } catch (err) {
+      console.error('Failed to load collections:', err)
       set({ error: 'collections.errors.loadFailed', loading: false })
     }
   },
@@ -47,7 +47,8 @@ const useCollectionStore = create<CollectionStore>((set) => ({
         selectedCollectionId: collection.id
       }))
       return collection
-    } catch {
+    } catch (err) {
+      console.error('Failed to add collection:', err)
       set({ error: 'collections.errors.createFailed' })
       return null
     }
@@ -63,7 +64,8 @@ const useCollectionStore = create<CollectionStore>((set) => ({
         }))
       }
       return updated
-    } catch {
+    } catch (err) {
+      console.error('Failed to update collection:', err)
       set({ error: 'collections.errors.updateFailed' })
       return null
     }
@@ -80,7 +82,8 @@ const useCollectionStore = create<CollectionStore>((set) => ({
         }))
       }
       return success
-    } catch {
+    } catch (err) {
+      console.error('Failed to delete collection:', err)
       set({ error: 'collections.errors.deleteFailed' })
       return false
     }
@@ -88,9 +91,19 @@ const useCollectionStore = create<CollectionStore>((set) => ({
 }))
 
 export function useCollectionManager() {
-  const {
+  const collections = useCollectionStore((s) => s.collections)
+  const selectedCollectionId = useCollectionStore((s) => s.selectedCollectionId)
+  const loading = useCollectionStore((s) => s.loading)
+  const error = useCollectionStore((s) => s.error)
+  const selectCollection = useCollectionStore((s) => s.selectCollection)
+  const loadCollections = useCollectionStore((s) => s.loadCollections)
+  const addCollection = useCollectionStore((s) => s.addCollection)
+  const updateCollection = useCollectionStore((s) => s.updateCollection)
+  const deleteCollection = useCollectionStore((s) => s.deleteCollection)
+
+  return {
     collections,
-    selectedCollectionId,
+    selectedId: selectedCollectionId,
     loading,
     error,
     selectCollection,
@@ -98,17 +111,5 @@ export function useCollectionManager() {
     addCollection,
     updateCollection,
     deleteCollection
-  } = useCollectionStore()
-
-  return {
-    collections,
-    selectedId: selectedCollectionId,
-    loading,
-    error,
-    selectCollection: useCallback((id: string) => selectCollection(id), [selectCollection]),
-    loadCollections: useCallback(() => loadCollections(), [loadCollections]),
-    addCollection: useCallback((name: string) => addCollection(name), [addCollection]),
-    updateCollection: useCallback((id: string, name: string) => updateCollection(id, name), [updateCollection]),
-    deleteCollection: useCallback((id: string) => deleteCollection(id), [deleteCollection])
   }
 }

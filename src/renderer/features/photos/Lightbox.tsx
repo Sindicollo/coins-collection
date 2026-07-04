@@ -7,6 +7,7 @@ import { ArrowRight } from '@/components/ui/icons/ArrowRight'
 import { Delete } from '@/components/ui/icons/Delete'
 import { Download } from '@/components/ui/icons/Download'
 import { Photo as PhotoIcon } from '@/components/ui/icons/Photo'
+import { fetchAndCachePhotoData } from './photoDataCache'
 import type { Photo } from '@shared/types'
 
 interface LightboxProps {
@@ -49,7 +50,7 @@ export function Lightbox({
     setConfirmDelete(false)
 
     if (photo) {
-      window.api.photos.getPhotoData(photo.id).then((dataUrl: string | null) => {
+      fetchAndCachePhotoData(photo.id).then((dataUrl: string | null) => {
         if (dataUrl) {
           setImgSrc(dataUrl)
         }
