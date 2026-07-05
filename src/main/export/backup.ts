@@ -7,6 +7,7 @@ import {
   getAllCoins,
   getAllPhotos,
   getAllPreferences,
+  getAllNotes,
   getLocalStats
 } from '../database/repositories/export'
 import type { BackupManifest } from '@shared/types'
@@ -70,6 +71,7 @@ export async function exportBackup(
     const collections = getAllCollections()
     const coins = getAllCoins()
     const photos = getAllPhotos()
+    const notes = getAllNotes()
     const preferences = getAllPreferences()
     const manifest = createManifest(ver)
 
@@ -78,6 +80,7 @@ export async function exportBackup(
     writeFileSync(join(tmpDir, 'collections.json'), JSON.stringify(collections, null, 2))
     writeFileSync(join(tmpDir, 'coins.json'), JSON.stringify(coins, null, 2))
     writeFileSync(join(tmpDir, 'photos.json'), JSON.stringify(photos, null, 2))
+    writeFileSync(join(tmpDir, 'notes.json'), JSON.stringify(notes, null, 2))
     writeFileSync(join(tmpDir, 'preferences.json'), JSON.stringify(preferences, null, 2))
 
     // Stage 3: Copy photo files

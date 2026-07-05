@@ -20,7 +20,6 @@ interface CoinFormData {
   price: string
   shippingCost: string
   currency: string
-  notes: string
   sold: boolean
   onAuction: boolean
   auctionPrice: string
@@ -41,7 +40,6 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
       price: '',
       shippingCost: '',
       currency: defaultCurrency,
-      notes: '',
       sold: false,
       onAuction: false,
       auctionPrice: '',
@@ -62,7 +60,6 @@ function coinToFormData(coin?: Coin, defaultCurrency = 'RUB'): CoinFormData {
     price: coin.price?.toString() ?? '',
     shippingCost: coin.shippingCost?.toString() ?? '',
     currency: coin.currency ?? defaultCurrency,
-    notes: coin.notes ?? '',
     sold: coin.sold,
     onAuction: coin.onAuction,
     auctionPrice: coin.auctionPrice?.toString() ?? '',
@@ -88,7 +85,6 @@ interface CoinFormProps {
     price: number | null
     shippingCost: number | null
     currency: string | null
-    notes: string | null
     sold: boolean
     onAuction: boolean
     auctionPrice: number | null
@@ -102,26 +98,12 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
   const isEdit = !!coin
   const [data, setData] = React.useState<CoinFormData>(() => coinToFormData(coin, defaultCurrency))
   const [error, setError] = React.useState<string | null>(null)
-  const notesRef = React.useRef<HTMLTextAreaElement>(null)
   const fieldId = React.useId()
 
   // Reset error when the form opens
   React.useEffect(() => {
     if (open) setError(null)
   }, [open])
-
-  // Auto-resize notes textarea
-  const autoResizeNotes = React.useCallback(() => {
-    const el = notesRef.current
-    if (el) {
-      el.style.height = 'auto'
-      el.style.height = `${Math.max(56, el.scrollHeight)}px`
-    }
-  }, [])
-
-  React.useEffect(() => {
-    autoResizeNotes()
-  }, [data.notes, autoResizeNotes])
 
   const handleChange = (field: keyof CoinFormData, value: string): void => {
     setData((prev) => ({ ...prev, [field]: value }))
@@ -156,7 +138,6 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
       price: data.price ? parseFloat(data.price) : null,
       shippingCost: data.shippingCost ? parseFloat(data.shippingCost) : null,
       currency: data.currency || null,
-      notes: data.notes.trim() || null,
       sold: data.sold,
       onAuction: data.onAuction,
       auctionPrice: data.auctionPrice ? parseFloat(data.auctionPrice) : null,
@@ -356,21 +337,6 @@ export function CoinForm({ open, coin, defaultCurrency, collections, countrySugg
             placeholder="0.00"
           />
         ) : null}
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium text-gray-700">
-            {t('coins.notes')}
-          </label>
-          <textarea
-            id={`${fieldId}-notes`}
-            ref={notesRef}
-            value={data.notes}
-            onChange={(e) => handleChange('notes', e.target.value)}
-            rows={1}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm resize-none min-h-[56px]
-              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
-        </div>
 
         <div className="flex gap-2 justify-end pt-2">
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>

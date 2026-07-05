@@ -2,7 +2,8 @@ import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { app } from 'electron'
 import { getCollection, listCoinsByCollection, listPhotos } from '../database/repositories'
-import type { Photo } from '@shared/types'
+import { listCoinNotes } from '../database/repositories/coin-notes'
+import type { Photo, CoinNote } from '@shared/types'
 import type { CollectOptions, CollectedCollection } from './types'
 
 /**
@@ -54,16 +55,28 @@ export async function collectExportData(
     const coins = includeSold ? allCoins : allCoins.filter((c) => !c.sold)
 
     const photosMap = new Map<string, Photo[]>()
+    const notesMap = new Map<string, CoinNote[]>()
     if (includeImages) {
       for (const coin of coins) {
         const coinPhotos = listPhotos(coin.id)
         if (coinPhotos.length > 0) {
           photosMap.set(coin.id, coinPhotos)
         }
+        const coinNotes = listCoinNotes(coin.id)
+        if (coinNotes.length > 0) {
+          notesMap.set(coin.id, coinNotes)
+        }
+      }
+    } else {
+      for (const coin of coins) {
+        const coinNotes = listCoinNotes(coin.id)
+        if (coinNotes.length > 0) {
+          notesMap.set(coin.id, coinNotes)
+        }
       }
     }
 
-    result.push({ collection, coins, photosMap })
+    result.push({ collection, coins, photosMap, notesMap })
     onProgress?.('Preparing', ci + 1, totalCollections, `Collection: ${collection.name}`)
   }
 

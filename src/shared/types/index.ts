@@ -1,5 +1,6 @@
 export * from './collection'
 export * from './coin'
+export * from './coin-note'
 export * from './photo'
 export * from './electron-api'
 export * from './backup'

@@ -10,6 +10,7 @@ import {
 } from './xlsx-parser'
 import * as collectionRepo from '../database/repositories/collections'
 import * as coinRepo from '../database/repositories/coins'
+import * as noteRepo from '../database/repositories/coin-notes'
 import * as photoRepo from '../database/repositories/photos'
 import { getDatabase } from '../database'
 import { uuidv4 } from '../database/repositories/uuid'
@@ -168,9 +169,17 @@ export async function importSpreadsheet(
             shippingCost: coin.shippingCost,
             purchaseDate: coin.purchaseDate,
             purchasePlace: coin.purchasePlace,
-            notes: coin.notes,
             currency: 'RUB'
           })
+
+          // Create a note if the spreadsheet had notes/comments
+          if (coin.notes) {
+            noteRepo.createCoinNote({
+              coinId: created.id,
+              title: null,
+              content: coin.notes
+            })
+          }
           result.coinsCreated++
 
           // Import embedded images from xlsx
@@ -312,9 +321,17 @@ export async function importSpreadsheetNoYear(
             shippingCost: coin.shippingCost,
             purchaseDate: coin.purchaseDate,
             purchasePlace: coin.purchasePlace,
-            notes: coin.notes,
             currency: 'RUB'
           })
+
+          // Create a note if the spreadsheet had notes/comments
+          if (coin.notes) {
+            noteRepo.createCoinNote({
+              coinId: created.id,
+              title: null,
+              content: coin.notes
+            })
+          }
           result.coinsCreated++
 
           // Import embedded images from xlsx

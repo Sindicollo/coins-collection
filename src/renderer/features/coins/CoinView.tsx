@@ -38,7 +38,6 @@ type CoinSaveData = {
   price: number | null
   shippingCost: number | null
   currency: string | null
-  notes: string | null
   sold: boolean
   onAuction: boolean
   auctionPrice: number | null
@@ -178,7 +177,7 @@ export function CoinView({
           onLoadMore={() => loadMore(collectionId)}
           onEdit={handleOpenEdit}
           onDelete={setCoinToDelete}
-          onSelect={handleOpenEdit}
+          onSelect={(coin) => navigate(`/coins/${coin.collectionId}/coin/${coin.id}`)}
         />
       </div>
 

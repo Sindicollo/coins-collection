@@ -6,7 +6,7 @@ import { app } from 'electron'
 import { t } from './l10n'
 import { collectExportData, getExportTempDir, buildExportFilename } from './common'
 import type { ProgressCallback } from './types'
-import type { Coin } from '@shared/types'
+import type { Coin, CoinNote } from '@shared/types'
 
 // ── Constants ───────────────────────────────────────────
 const IMAGE_MAX_HEIGHT = 400
@@ -43,7 +43,7 @@ export function formatDate(ts: number | null): string {
 /**
  * Build a flat row data object from a coin for the Excel sheet.
  */
-export function buildExcelRow(coin: Coin): Record<string, string | number | null> {
+export function buildExcelRow(coin: Coin, notesText = ''): Record<string, string | number | null> {
   return {
     denomination: coin.denomination,
     year: coin.year ?? '',
@@ -55,12 +55,25 @@ export function buildExcelRow(coin: Coin): Record<string, string | number | null
     shippingCost: coin.shippingCost ?? '',
     currency: coin.currency ?? '',
     totalCost: (coin.price ?? 0) + (coin.shippingCost ?? 0),
-    notes: coin.notes ?? '',
+    notes: notesText,
     sold: coin.sold ? '\u2713' : '',
     onAuction: coin.onAuction ? '\u2713' : '',
     auctionPrice: coin.auctionPrice ?? '',
     salePrice: coin.salePrice ?? ''
   }
+}
+
+/**
+ * Concatenate notes into a single text block.
+ */
+function formatNotes(notes: CoinNote[]): string {
+  if (notes.length === 0) return ''
+  return notes
+    .map((n) => {
+      const title = n.title ? `[${n.title}]\n` : ''
+      return `${title}${n.content}`
+    })
+    .join('\n\n---\n\n')
 }
 
 /**
@@ -125,8 +138,8 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
 
   const totalCollections = collectionsData.length
 
-  for (let ci = 0; ci < totalCollections; ci++) {
-    const { collection, coins, photosMap } = collectionsData[ci]
+    for (let ci = 0; ci < totalCollections; ci++) {
+    const { collection, coins, photosMap, notesMap } = collectionsData[ci]
 
     const name = sanitizeSheetName(collection.name)
     const ws = wb.addWorksheet(name)
@@ -141,7 +154,9 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
       const coin = coins[ri]
       const rowNum = ri + 2 // 1-indexed + header
 
-      const rowData = buildExcelRow(coin)
+      const coinNotes = notesMap.get(coin.id) ?? []
+      const notesText = formatNotes(coinNotes)
+      const rowData = buildExcelRow(coin, notesText)
 
       if (includeImages) {
         rowData.obverse = ''
@@ -151,7 +166,6 @@ export async function exportCollectionsToExcel(options: ExportOptions): Promise<
       const row = ws.addRow(rowData)
 
       // Calculate row height based on text length in Notes
-      const notesText = coin.notes ?? ''
       const baseHeight = 20
       const notesHeight =
         notesText.length > 60

@@ -60,10 +60,15 @@ function repairTruncatedJson(json: string): string {
     } else if (ch === '}' || ch === ']') {
       if (stack.length > 0 && stack[stack.length - 1] === ch) {
         stack.pop()
+        // If the top-level bracket pair just closed, truncate here (ignore trailing text)
+        if (stack.length === 0) {
+          return json.slice(0, i + 1)
+        }
       }
     }
   }
 
+  // If we reach the end and the top-level bracket isn't closed, add missing brackets
   let repaired = json
   if (inString) repaired += '"'
   while (stack.length > 0) repaired += stack.pop()!

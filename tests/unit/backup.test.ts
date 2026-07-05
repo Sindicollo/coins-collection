@@ -144,7 +144,6 @@ describe('exportBackup', () => {
     expect(coin.year).toBeNull()
     expect(coin.condition).toBeNull()
     expect(coin.price).toBeNull()
-    expect(coin.notes).toBeNull()
     expect(coin.country).toBe('Russia')
   })
 

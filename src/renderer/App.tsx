@@ -6,6 +6,7 @@ import { SettingsModal } from './components/common/SettingsModal'
 import { Coin } from '@/components/ui/icons/Coin'
 import { CollectionSidebar } from './features/collections/CollectionSidebar'
 import { CoinView } from './features/coins/CoinView'
+import { CoinDetailPage } from './features/coins/CoinDetailPage'
 import { PhotoGallery } from './features/photos/PhotoGallery'
 import { ExportDialog } from './features/export/ExportDialog'
 import { ExportPdfDialog } from './features/export-pdf/ExportPdfDialog'
@@ -97,6 +98,17 @@ function App(): React.ReactElement {
               onOpenSettings={() => setShowSettings(true)}
             >
               <AiPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/coins/:collectionId/coin/:coinId"
+          element={
+            <AppLayout
+              sidebar={<CollectionSidebar />}
+              onOpenSettings={() => setShowSettings(true)}
+            >
+              <CoinDetailPage />
             </AppLayout>
           }
         />

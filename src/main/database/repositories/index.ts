@@ -15,9 +15,17 @@ export {
   deleteCoin,
   listDistinctCountries,
   listAllCoins,
-  getCollectionTotalCost,
-  bulkAppendLlmInfo
+  getCollectionTotalCost
 } from './coins'
+
+export {
+  listCoinNotes,
+  getCoinNote,
+  createCoinNote,
+  updateCoinNote,
+  deleteCoinNote,
+  countNotesByCoin
+} from './coin-notes'
 
 export {
   listPhotos,

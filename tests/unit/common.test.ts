@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const mockGetCollection = vi.hoisted(() => vi.fn())
 const mockListCoinsByCollection = vi.hoisted(() => vi.fn())
 const mockListPhotos = vi.hoisted(() => vi.fn())
+const mockListCoinNotes = vi.hoisted(() => vi.fn())
 
 vi.mock('electron', () => ({
   app: {
@@ -40,7 +41,13 @@ vi.mock('../../src/main/database', () => ({
 vi.mock('../../src/main/database/repositories', () => ({
   getCollection: mockGetCollection,
   listCoinsByCollection: mockListCoinsByCollection,
-  listPhotos: mockListPhotos
+  listPhotos: mockListPhotos,
+  listCoinNotes: mockListCoinNotes
+}))
+
+// Also mock the direct import of coin-notes
+vi.mock('../../src/main/database/repositories/coin-notes', () => ({
+  listCoinNotes: mockListCoinNotes
 }))
 
 import { buildExportFilename, collectExportData } from '../../src/main/export/common'
@@ -76,6 +83,7 @@ describe('collectExportData', () => {
     mockGetCollection.mockReset()
     mockListCoinsByCollection.mockReset()
     mockListPhotos.mockReset()
+    mockListCoinNotes.mockReset().mockReturnValue([])
   })
 
   afterEach(() => {

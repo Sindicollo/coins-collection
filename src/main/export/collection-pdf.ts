@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import sharp from 'sharp'
 import { app } from 'electron'
-import type { Coin, Photo } from '@shared/types'
+import type { Coin, Photo, CoinNote } from '@shared/types'
 import { t } from './l10n'
 import { collectExportData, getExportTempDir, buildExportFilename } from './common'
 import type { ProgressCallback } from './types'
@@ -86,11 +86,14 @@ export function buildCoinMainLine(coin: Coin, locale: 'en' | 'ru'): string {
   return parts.join('  \u00B7  ')
 }
 
-export function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru'): string[] {
+export function buildCoinDetailLines(coin: Coin, locale: 'en' | 'ru', notes: CoinNote[] = []): string[] {
   const lines: string[] = []
   if (coin.country) lines.push(`${t(locale, 'country')}: ${coin.country}`)
   if (coin.condition) lines.push(`${t(locale, 'condition')}: ${coin.condition}`)
-  if (coin.notes) lines.push(`${t(locale, 'notes')}: ${coin.notes}`)
+  if (notes.length > 0) {
+    const notesText = notes.map((n) => n.title ? `[${n.title}] ${n.content}` : n.content).join('; ')
+    lines.push(`${t(locale, 'notes')}: ${notesText}`)
+  }
   return lines
 }
 
@@ -288,7 +291,7 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
 
   // ── Content: collections ──────────────────────────────────
   for (let ci = 0; ci < collectionsData.length; ci++) {
-    const { collection, coins, photosMap } = collectionsData[ci]
+    const { collection, coins, photosMap, notesMap } = collectionsData[ci]
 
     doc.addPage()
     doc.outline.addItem(collection.name)
@@ -365,7 +368,8 @@ export async function exportCollectionsToPdf(options: ExportPdfOptions): Promise
       doc.moveDown(0.2)
 
       // ── Detail lines ──────────────────────────────────────
-      const detailLines = buildCoinDetailLines(coin, locale)
+      const coinNotes = notesMap.get(coin.id) ?? []
+      const detailLines = buildCoinDetailLines(coin, locale, coinNotes)
       if (detailLines.length > 0) {
         doc.font(FONT).fontSize(10)
         for (const line of detailLines) {

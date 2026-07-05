@@ -12,7 +12,6 @@ export interface Coin {
   currency: string | null
   country: string | null
   composition: CoinComposition | null
-  notes: string | null
   extraData: Record<string, unknown> | null
   sold: boolean
   onAuction: boolean
@@ -42,7 +41,6 @@ export interface CreateCoinInput {
   shippingCost?: number | null
   currency?: string | null
   country?: string | null
-  notes?: string | null
   extraData?: Record<string, unknown> | null
   sold?: boolean
   onAuction?: boolean
