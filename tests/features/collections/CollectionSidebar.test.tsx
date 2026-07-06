@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { CollectionSidebar } from '@/features/collections/CollectionSidebar'
 import type { Collection } from '@shared/types'
 
@@ -38,10 +39,18 @@ describe('CollectionSidebar', () => {
     vi.clearAllMocks()
   })
 
+  function renderSidebar(): ReturnType<typeof render> {
+    return render(
+      <MemoryRouter>
+        <CollectionSidebar />
+      </MemoryRouter>
+    )
+  }
+
   // --- Happy path: initial render ---
 
   it('renders the header and add button', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     expect(screen.getByText('Collections')).toBeInTheDocument()
     expect(screen.getByText('Add Collection')).toBeInTheDocument()
@@ -51,7 +60,7 @@ describe('CollectionSidebar', () => {
   // --- Happy path: show add form ---
 
   it('shows add form when "Add Collection" button is clicked', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByText('Add Collection'))
 
@@ -62,7 +71,7 @@ describe('CollectionSidebar', () => {
   // --- Happy path: add collection submits with name ---
 
   it('calls addCollection with trimmed name when Add is clicked', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByText('Add Collection'))
 
@@ -76,7 +85,7 @@ describe('CollectionSidebar', () => {
   // --- Edge case: empty name does not call addCollection ---
 
   it('does not call addCollection when name is empty or whitespace', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByText('Add Collection'))
 
@@ -95,7 +104,7 @@ describe('CollectionSidebar', () => {
   // --- Edge case: delete confirmation modal ---
 
   it('shows delete modal and calls deleteCollection on confirm', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     // Trigger delete from the mocked CollectionList
     fireEvent.click(screen.getByTestId('delete-btn'))
@@ -113,7 +122,7 @@ describe('CollectionSidebar', () => {
   // --- Edge case: cancel delete ---
 
   it('closes delete modal without calling deleteCollection', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByTestId('delete-btn'))
     expect(screen.getByText('Delete Collection')).toBeInTheDocument()
@@ -129,7 +138,7 @@ describe('CollectionSidebar', () => {
   // --- Edge case: edit panel opens ---
 
   it('opens edit panel when edit button is clicked', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByTestId('edit-btn'))
 
@@ -142,7 +151,7 @@ describe('CollectionSidebar', () => {
   // --- Edge case: Escape key closes add form ---
 
   it('closes add form on Escape key', () => {
-    render(<CollectionSidebar />)
+    renderSidebar()
 
     fireEvent.click(screen.getByText('Add Collection'))
     expect(screen.getByPlaceholderText('Collection name...')).toBeInTheDocument()
