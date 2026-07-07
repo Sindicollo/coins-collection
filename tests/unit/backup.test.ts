@@ -144,7 +144,6 @@ describe('exportBackup', () => {
     expect(coin.year).toBeNull()
     expect(coin.condition).toBeNull()
     expect(coin.price).toBeNull()
-    expect(coin.notes).toBeNull()
     expect(coin.country).toBe('Russia')
   })
 
@@ -231,7 +230,11 @@ describe('importBackup', () => {
     expect(result.success).toBe(true)
     const db = new Database(targetDb)
     const coin = db.prepare('SELECT * FROM coins WHERE id = ?').get('e1') as Record<string, unknown>
-    expect(coin.notes).toBe('test note')
+    // notes are now migrated to coin_notes table (column still exists in schema but unused)
+    expect(coin.notes).toBeNull()
+    const note = db.prepare('SELECT * FROM coin_notes WHERE coin_id = ?').get('e1') as Record<string, unknown> | undefined
+    expect(note).toBeDefined()
+    expect(note!.content).toBe('test note')
     expect(coin.extra_data).toBe('{"weight":"10g"}')
     db.close()
   })

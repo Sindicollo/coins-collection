@@ -12,6 +12,7 @@ import { registerLlmHandlers } from './ipc/llm'
 import { registerBackupHandlers } from './ipc/backup'
 import { registerExportHandlers } from './ipc/export'
 import { registerExportPdfHandlers } from './ipc/export-pdf'
+import { registerCoinNoteHandlers } from './ipc/coin-notes'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -64,6 +65,7 @@ app.whenReady().then(() => {
   registerBackupHandlers()
   registerExportHandlers()
   registerExportPdfHandlers()
+  registerCoinNoteHandlers()
 
   createWindow()
 

@@ -1,6 +1,7 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
-import { listCoinsByCollection, getCoin, bulkAppendLlmInfo, type LlmNoteUpdate } from '../database/repositories/coins'
+import { listCoinsByCollection, getCoin } from '../database/repositories/coins'
+import { createCoinNote } from '../database/repositories/coin-notes'
 import type { LlmExportCoin, AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, LlmBulkProgress, Coin } from '@shared/types'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
@@ -83,13 +84,13 @@ export function registerLlmHandlers(): void {
         return null
       }
 
-      const updates: LlmNoteUpdate[] = parsed
+      const updates: Array<{ id: string; info: string }> = parsed
         .filter(
-          (item): item is LlmNoteUpdate =>
+          (item): item is { id: string; info: string } =>
             typeof item === 'object' &&
             item !== null &&
-            typeof (item as LlmNoteUpdate).id === 'string' &&
-            typeof (item as LlmNoteUpdate).info === 'string'
+            typeof (item as { id: string }).id === 'string' &&
+            typeof (item as { info: string }).info === 'string'
         )
 
       const skippedByFormat = parsed.length - updates.length
@@ -97,7 +98,21 @@ export function registerLlmHandlers(): void {
         console.warn(`[llm] Skipped ${skippedByFormat} items with invalid structure`)
       }
 
-      const { updated, skipped } = bulkAppendLlmInfo(updates)
+      let updated = 0
+      let skipped = 0
+      for (const item of updates) {
+        const coin = getCoin(item.id)
+        if (!coin) {
+          skipped++
+          continue
+        }
+        createCoinNote({
+          coinId: item.id,
+          title: 'AI Import',
+          content: item.info
+        })
+        updated++
+      }
       return { updated, skipped, filePath }
     }
   )

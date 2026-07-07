@@ -36,9 +36,16 @@ interface BackupCoin {
   purchaseDate: number | null; purchasePlace: string | null
   price: number | null; shippingCost: number | null
   currency: string | null; country: string | null
-  notes: string | null; extraData: string | null
+  extraData: string | null; composition: string | null
   sold: boolean; createdAt: number; updatedAt: number
   onAuction?: boolean; auctionPrice?: number | null; salePrice?: number | null
+  /** @deprecated legacy field from old backups — written to dead column */
+  notes?: string | null
+}
+
+interface BackupNote {
+  id: string; coinId: string; title: string | null
+  content: string; createdAt: number; updatedAt: number
 }
 
 interface BackupPhoto {
@@ -64,7 +71,7 @@ function getDb(options?: ImportOptions): { db: Database.Database; closeDb: boole
 }
 
 /** Read and parse all JSON files from the extracted backup directory. */
-function readBackupData(tmpDir: string): { collections: BackupCollection[]; coins: BackupCoin[]; photos: BackupPhoto[] } {
+function readBackupData(tmpDir: string): { collections: BackupCollection[]; coins: BackupCoin[]; photos: BackupPhoto[]; notes: BackupNote[] } {
   const collections: BackupCollection[] = JSON.parse(
     readFileSync(join(tmpDir, 'collections.json'), 'utf-8')
   )
@@ -74,7 +81,13 @@ function readBackupData(tmpDir: string): { collections: BackupCollection[]; coin
   const photos: BackupPhoto[] = JSON.parse(
     readFileSync(join(tmpDir, 'photos.json'), 'utf-8')
   )
-  return { collections, coins, photos }
+  // notes.json may not exist in older backups
+  let notes: BackupNote[] = []
+  const notesPath = join(tmpDir, 'notes.json')
+  if (existsSync(notesPath)) {
+    notes = JSON.parse(readFileSync(notesPath, 'utf-8'))
+  }
+  return { collections, coins, photos, notes }
 }
 
 // ---------------------------------------------------------------------------
@@ -126,18 +139,22 @@ function importCoins(
   const insert = db.prepare(
     `INSERT OR IGNORE INTO coins
      (id, collection_id, denomination, year, condition, purchase_date,
-      purchase_place, price, shipping_cost, currency, country, notes, extra_data,
+      purchase_place, price, shipping_cost, currency, country, extra_data,
       sold, on_auction, auction_price, sale_price, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
   const update = db.prepare(
     `UPDATE coins SET
      collection_id = ?, denomination = ?, year = ?, condition = ?,
      purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?,
-     currency = ?, country = ?, notes = ?, extra_data = ?, sold = ?,
+     currency = ?, country = ?, extra_data = ?, sold = ?,
      on_auction = ?, auction_price = ?, sale_price = ?,
      updated_at = ?
      WHERE id = ?`
+  )
+
+  const legacyNoteInsert = db.prepare(
+    'INSERT OR IGNORE INTO coin_notes (id, coin_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
   )
 
   db.transaction(() => {
@@ -149,7 +166,7 @@ function importCoins(
         const values = [
           coin.collectionId, coin.denomination, coin.year, coin.condition,
           coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
-          coin.currency, coin.country, coin.notes, coin.extraData, sold,
+          coin.currency, coin.country, coin.extraData, sold,
           onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
           coin.updatedAt, coin.id
         ]
@@ -159,11 +176,18 @@ function importCoins(
         } else {
           insert.run(coin.id, coin.collectionId, coin.denomination, coin.year, coin.condition,
             coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
-            coin.currency, coin.country, coin.notes, coin.extraData, sold,
+            coin.currency, coin.country, coin.extraData, sold,
             onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
             coin.createdAt, coin.updatedAt)
           result.imported.coins++
         }
+
+        // Migrate legacy notes from old backups
+        if (coin.notes) {
+          legacyNoteInsert.run(uuidv4(), coin.id, null, coin.notes, coin.updatedAt, coin.updatedAt)
+          result.imported.notes++
+        }
+
         processed++
       } catch (err) {
         result.errors.push(`Failed to import coin ${coin.id}: ${err}`)
@@ -209,6 +233,45 @@ function importPhotos(
   })()
 
   onProgress?.('importing-photos', processed, photos.length, 'Photo metadata done.')
+}
+
+function importNotes(
+  db: Database.Database,
+  notes: BackupNote[],
+  result: ImportResult,
+  onProgress: ImportOptions['onProgress']
+): void {
+  if (notes.length === 0) return
+
+  let processed = 0
+  onProgress?.('importing-notes', 0, notes.length, 'Importing notes...')
+
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO coin_notes (id, coin_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+  const update = db.prepare(
+    'UPDATE coin_notes SET title = ?, content = ?, updated_at = ? WHERE id = ?'
+  )
+
+  db.transaction(() => {
+    for (const note of notes) {
+      try {
+        const existing = db.prepare('SELECT id FROM coin_notes WHERE id = ?').get(note.id) as { id: string } | undefined
+        if (existing) {
+          update.run(note.title, note.content, note.updatedAt, note.id)
+          result.updated.notes++
+        } else {
+          insert.run(note.id, note.coinId, note.title, note.content, note.createdAt, note.updatedAt)
+          result.imported.notes++
+        }
+        processed++
+      } catch (err) {
+        result.errors.push(`Failed to import note ${note.id}: ${err}`)
+      }
+    }
+  })()
+
+  onProgress?.('importing-notes', processed, notes.length, 'Notes done.')
 }
 
 // ---------------------------------------------------------------------------
@@ -297,8 +360,8 @@ export async function importBackup(
 
   const result: ImportResult = {
     success: false,
-    imported: { collections: 0, coins: 0, photos: 0 },
-    updated: { collections: 0, coins: 0, photos: 0 },
+    imported: { collections: 0, coins: 0, photos: 0, notes: 0 },
+    updated: { collections: 0, coins: 0, photos: 0, notes: 0 },
     errors: []
   }
 
@@ -311,12 +374,13 @@ export async function importBackup(
     JSON.parse(readFileSync(join(tmpDir, 'manifest.json'), 'utf-8'))
 
     // Parse backup data
-    const { collections, coins, photos } = readBackupData(tmpDir)
+    const { collections, coins, photos, notes } = readBackupData(tmpDir)
 
     // Merge each entity type
     importCollections(db, collections, result, onProgress)
     importCoins(db, coins, result, onProgress)
     importPhotos(db, photos, result, onProgress)
+    importNotes(db, notes, result, onProgress)
     copyPhotoFiles(tmpDir, photosDir, photos, onProgress)
 
     onProgress?.('done', 1, 1, 'Import complete!')

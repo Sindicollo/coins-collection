@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DropFileInput } from '@shared/types/photo'
+import type { CreateCoinNoteInput, UpdateCoinNoteInput } from '@shared/types'
 
 // Expose IPC methods to the renderer process
 const api = {
@@ -19,6 +20,14 @@ const api = {
     delete: (id: string) => ipcRenderer.invoke('coin:delete', id),
     listCountries: () => ipcRenderer.invoke('coin:listCountries'),
     totalCost: (collectionId: string) => ipcRenderer.invoke('coin:totalCost', collectionId)
+  },
+  notes: {
+    list: (coinId: string) => ipcRenderer.invoke('note:list', coinId),
+    get: (id: string) => ipcRenderer.invoke('note:get', id),
+    create: (input: CreateCoinNoteInput) => ipcRenderer.invoke('note:create', input),
+    update: (input: UpdateCoinNoteInput) => ipcRenderer.invoke('note:update', input),
+    delete: (id: string) => ipcRenderer.invoke('note:delete', id),
+    countByCoin: (coinId: string) => ipcRenderer.invoke('note:countByCoin', coinId)
   },
   photos: {
     list: (coinId: string) => ipcRenderer.invoke('photo:list', coinId),

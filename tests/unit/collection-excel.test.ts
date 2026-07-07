@@ -55,7 +55,6 @@ const fullCoin: Coin = {
   year: 1999,
   condition: 'UNC',
   country: 'Russia',
-  notes: 'Nice coin',
   purchaseDate: 946684800000,
   purchasePlace: 'eBay',
   price: 50,
@@ -74,7 +73,6 @@ const minimalCoin: Coin = {
   year: null,
   condition: null,
   country: null,
-  notes: null,
   purchaseDate: null,
   purchasePlace: null,
   price: null,
@@ -159,7 +157,7 @@ describe('buildExcelRow', () => {
     expect(row.shippingCost).toBe(5)
     expect(row.currency).toBe('RUB')
     expect(row.totalCost).toBe(55) // 50 + 5
-    expect(row.notes).toBe('Nice coin')
+    expect(row.notes).toBe('')
     expect(row.sold).toBe('')
   })
 
@@ -240,7 +238,8 @@ describe('exportCollectionsToExcel', () => {
       {
         collection: { id: 'c1', name: 'Test Coll', createdAt: 0, updatedAt: 0 },
         coins: [fullCoin],
-        photosMap: new Map()
+        photosMap: new Map(),
+        notesMap: new Map()
       }
     ])
 
@@ -282,7 +281,8 @@ describe('exportCollectionsToExcel', () => {
       {
         collection: { id: 'c1', name: 'Test', createdAt: 0, updatedAt: 0 },
         coins: [fullCoin],
-        photosMap: new Map()
+        photosMap: new Map([['coin-1', [{ id: 'p1', coinId: 'coin-1', filename: 'test.jpg', position: 0 }]]]),
+        notesMap: new Map()
       }
     ])
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CollectionList } from './CollectionList'
 import { Modal } from '@/components/ui/Modal'
@@ -25,6 +26,8 @@ export function CollectionSidebar(): React.ReactElement {
 
   const [showAddForm, setShowAddForm] = React.useState(false)
   const [newName, setNewName] = React.useState('')
+  const navigate = useNavigate()
+
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null)
 
   const [editingCollection, setEditingCollection] = React.useState<Collection | null>(null)
@@ -82,6 +85,11 @@ export function CollectionSidebar(): React.ReactElement {
   const handleCancelMouseDown = (e: React.MouseEvent): void => {
     e.preventDefault()
     handleCancelEdit()
+  }
+
+  const handleSelectCollection = (id: string): void => {
+    selectCollection(id)
+    navigate('/')
   }
 
   const handleDeleteConfirm = (): void => {
@@ -150,7 +158,7 @@ export function CollectionSidebar(): React.ReactElement {
           selectedId={selectedId}
           loading={loading}
           error={error}
-          onSelect={selectCollection}
+          onSelect={handleSelectCollection}
           onEdit={handleStartEdit}
           onDelete={setCollectionToDelete}
         />

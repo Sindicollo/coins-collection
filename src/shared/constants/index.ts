@@ -15,6 +15,14 @@ export const IPC_CHANNELS = {
     LIST_DISTINCT_COUNTRIES: 'coin:listCountries',
     TOTAL_COST: 'coin:totalCost'
   },
+  NOTE: {
+    LIST: 'note:list',
+    GET: 'note:get',
+    CREATE: 'note:create',
+    UPDATE: 'note:update',
+    DELETE: 'note:delete',
+    COUNT_BY_COIN: 'note:countByCoin'
+  },
   PHOTO: {
     LIST: 'photo:list',
     GET_PATH: 'photo:get-path',

@@ -68,7 +68,31 @@ const MIGRATIONS: string[] = [
     ALTER TABLE coins ADD COLUMN auction_price REAL;
   `,
   // V8: Sale price
-  `ALTER TABLE coins ADD COLUMN sale_price REAL;`
+  `ALTER TABLE coins ADD COLUMN sale_price REAL;`,
+  // V9: Coin notes — move single notes field to separate table
+  `
+    CREATE TABLE IF NOT EXISTS coin_notes (
+      id TEXT PRIMARY KEY,
+      coin_id TEXT NOT NULL REFERENCES coins(id) ON DELETE CASCADE,
+      title TEXT,
+      content TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_coin_notes_coin ON coin_notes(coin_id, updated_at DESC);
+
+    -- Migrate existing notes to coin_notes
+    INSERT INTO coin_notes (id, coin_id, title, content, created_at, updated_at)
+    SELECT
+      lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),
+      id,
+      NULL,
+      notes,
+      created_at,
+      updated_at
+    FROM coins
+    WHERE notes IS NOT NULL AND notes != '';
+  `
 ]
 
 export function runMigrations(db: Database.Database): void {

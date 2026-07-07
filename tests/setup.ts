@@ -54,8 +54,14 @@ i18n.use(initReactI18next).init({
         },
         settings: {
           title: 'Settings',
+          general: 'General',
+          language: 'Language',
+          ai: 'AI',
           defaultCurrency: 'Default currency',
           currencyHint: 'New coins will use this currency by default.'
+        },
+        actions: {
+          label: 'Actions'
         },
         coins: {
           title: 'Coins',
@@ -102,6 +108,8 @@ i18n.use(initReactI18next).init({
             denominationRequired: 'Denomination is required'
           },
           retry: 'Retry',
+          back: 'Back',
+          notFound: 'Coin not found',
           composition: 'Composition',
           compositions: {
             gold: 'Gold',
@@ -134,7 +142,8 @@ i18n.use(initReactI18next).init({
           deleteTitle: 'Delete Photo',
           deleteConfirm: 'Are you sure you want to delete this photo?',
           loadError: 'Failed to load image',
-          dropError: 'Could not detect dropped files'
+          dropError: 'Could not detect dropped files',
+          viewGallery: 'Gallery'
         },
         ai: {
           title: 'AI',
@@ -171,6 +180,7 @@ i18n.use(initReactI18next).init({
             testConnection: 'Test Connection',
             testOk: 'Connection successful!',
             testFailed: 'Connection failed',
+            saveError: 'Failed to save: {{message}}',
             webSearch: 'Enable web search',
             webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
           }
@@ -241,6 +251,26 @@ i18n.use(initReactI18next).init({
           cancel: 'Cancel',
           export: 'Export PDF',
           exporting: 'Exporting…'
+        },
+        tabs: {
+          details: 'Details',
+          notes: 'Notes',
+          photos: 'Photos'
+        },
+        notes: {
+          title: 'Notes',
+          add: 'Add Note',
+          empty: 'No notes yet',
+          readMore: 'Read more',
+          created: 'Created',
+          modified: 'Modified',
+          titlePlaceholder: 'Title (optional)',
+          contentPlaceholder: 'Note content…',
+          aiEbay: 'eBay prices',
+          aiInfo: 'Coin info',
+          aiMintage: 'Mintage',
+          aiResult: 'AI Result',
+          aiEmpty: 'AI returned no data. Try again or check API key.'
         }
       }
     }
@@ -267,6 +297,14 @@ if (typeof window !== 'undefined') {
       delete: vi.fn(),
       listCountries: vi.fn(),
       totalCost: vi.fn()
+    },
+    notes: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      countByCoin: vi.fn()
     },
     photos: {
       list: vi.fn(),

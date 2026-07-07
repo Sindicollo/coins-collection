@@ -1,4 +1,4 @@
-import type { Collection, Coin, Photo } from '@shared/types'
+import type { Collection, Coin, Photo, CoinNote } from '@shared/types'
 
 export type ProgressCallback = (
   stage: string,
@@ -18,4 +18,5 @@ export interface CollectedCollection {
   collection: Collection
   coins: Coin[]
   photosMap: Map<string, Photo[]>
+  notesMap: Map<string, CoinNote[]>
 }

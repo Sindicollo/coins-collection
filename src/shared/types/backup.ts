@@ -27,11 +27,13 @@ export interface ImportResult {
     collections: number
     coins: number
     photos: number
+    notes: number
   }
   updated: {
     collections: number
     coins: number
     photos: number
+    notes: number
   }
   errors: string[]
 }
@@ -44,7 +46,7 @@ export interface ExportProgress {
 }
 
 export interface ImportProgress {
-  stage: 'extracting' | 'importing-collections' | 'importing-coins' | 'importing-photos' | 'copying-files' | 'finalizing' | 'done'
+  stage: 'extracting' | 'importing-collections' | 'importing-coins' | 'importing-photos' | 'importing-notes' | 'copying-files' | 'finalizing' | 'done'
   current: number
   total: number
   message: string

@@ -30,28 +30,17 @@ export function AiCoinCard({
   const conditionLabel = coin.condition ? t(`coins.conditions.${coin.condition}`) : null
 
   const textareaContent = React.useMemo(() => {
-    const lines: string[] = []
-    if (coin.notes) {
-      lines.push(coin.notes)
+    if (!aiResult) return ''
+    const parts: string[] = []
+    if (aiResult.info) parts.push(aiResult.info)
+    if (aiResult.price) parts.push(t('ai.field.priceFull', { defaultValue: '💲 Price: {{value}}', value: aiResult.price }))
+    if (aiResult.mintage) parts.push(t('ai.field.mintageFull', { defaultValue: '📊 Mintage: {{value}}', value: aiResult.mintage }))
+    if (aiResult.rarity) parts.push(t('ai.field.rarityFull', { defaultValue: '🔍 Rarity: {{value}}', value: aiResult.rarity }))
+    if (aiResult.varieties && aiResult.varieties.length > 0) {
+      parts.push(t('ai.field.varietiesFull', { defaultValue: '🔄 Varieties: {{value}}', value: aiResult.varieties.join(', ') }))
     }
-    if (aiResult) {
-      const parts: string[] = []
-      if (aiResult.info) parts.push(aiResult.info)
-      if (aiResult.price) parts.push(t('ai.field.priceFull', { defaultValue: '💲 Price: {{value}}', value: aiResult.price }))
-      if (aiResult.mintage) parts.push(t('ai.field.mintageFull', { defaultValue: '📊 Mintage: {{value}}', value: aiResult.mintage }))
-      if (aiResult.rarity) parts.push(t('ai.field.rarityFull', { defaultValue: '🔍 Rarity: {{value}}', value: aiResult.rarity }))
-      if (aiResult.varieties && aiResult.varieties.length > 0) {
-        parts.push(t('ai.field.varietiesFull', { defaultValue: '🔄 Varieties: {{value}}', value: aiResult.varieties.join(', ') }))
-      }
-      const aiText = parts.join('\n')
-      if (aiText) {
-        if (lines.length > 0) lines.push('')
-        lines.push('--- AI ---')
-        lines.push(aiText)
-      }
-    }
-    return lines.join('\n')
-  }, [coin.notes, aiResult, t])
+    return parts.join('\n')
+  }, [aiResult, t])
 
   const [appendingId, setAppendingId] = React.useState<string | null>(null)
 

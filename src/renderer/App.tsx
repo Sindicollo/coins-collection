@@ -6,12 +6,11 @@ import { SettingsModal } from './components/common/SettingsModal'
 import { Coin } from '@/components/ui/icons/Coin'
 import { CollectionSidebar } from './features/collections/CollectionSidebar'
 import { CoinView } from './features/coins/CoinView'
+import { CoinDetailPage } from './features/coins/CoinDetailPage'
 import { PhotoGallery } from './features/photos/PhotoGallery'
 import { ExportDialog } from './features/export/ExportDialog'
 import { ExportPdfDialog } from './features/export-pdf/ExportPdfDialog'
 import { AiPage } from './features/ai'
-import { useExportStore } from './features/export/useExport'
-import { useExportPdfStore } from './features/export-pdf/useExportPdf'
 import { useCollectionManager } from './features/collections/useCollections'
 
 function HomeView(): React.ReactElement {
@@ -50,28 +49,6 @@ function HomeView(): React.ReactElement {
 function App(): React.ReactElement {
   const [showSettings, setShowSettings] = React.useState(false)
   const [defaultCurrency, setDefaultCurrency] = React.useState('RUB')
-  const exportOpen = useExportStore((s) => s.open)
-  const exportError = useExportStore((s) => s.error)
-  const exportPdfOpen = useExportPdfStore((s) => s.open)
-  const exportPdfError = useExportPdfStore((s) => s.error)
-
-  // Close settings after successful Excel export (dialog closes)
-  const prevExportOpen = React.useRef(exportOpen)
-  React.useEffect(() => {
-    if (prevExportOpen.current && !exportOpen && !exportError) {
-      setShowSettings(false)
-    }
-    prevExportOpen.current = exportOpen
-  }, [exportOpen, exportError])
-
-  // Close settings after successful PDF export (dialog closes)
-  const prevExportPdfOpen = React.useRef(exportPdfOpen)
-  React.useEffect(() => {
-    if (prevExportPdfOpen.current && !exportPdfOpen && !exportPdfError) {
-      setShowSettings(false)
-    }
-    prevExportPdfOpen.current = exportPdfOpen
-  }, [exportPdfOpen, exportPdfError])
 
   React.useEffect(() => {
     window.api.preferences.getCurrency().then(setDefaultCurrency)
@@ -97,6 +74,17 @@ function App(): React.ReactElement {
               onOpenSettings={() => setShowSettings(true)}
             >
               <AiPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/coins/:collectionId/coin/:coinId"
+          element={
+            <AppLayout
+              sidebar={<CollectionSidebar />}
+              onOpenSettings={() => setShowSettings(true)}
+            >
+              <CoinDetailPage />
             </AppLayout>
           }
         />

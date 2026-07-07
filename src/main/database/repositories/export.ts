@@ -1,5 +1,5 @@
 import { getDatabase } from '..'
-import type { Collection, Photo } from '@shared/types'
+import type { Collection, Photo, CoinNote } from '@shared/types'
 
 interface CollectionRow {
   id: string
@@ -20,9 +20,12 @@ interface CoinRow {
   shipping_cost: number | null
   currency: string | null
   country: string | null
-  notes: string | null
   extra_data: string | null
   sold: number
+  composition: string | null
+  on_auction: number
+  auction_price: number | null
+  sale_price: number | null
   created_at: number
   updated_at: number
 }
@@ -34,6 +37,15 @@ interface PhotoRow {
   original_name: string | null
   position: number
   created_at: number
+}
+
+interface CoinNoteRow {
+  id: string
+  coin_id: string
+  title: string | null
+  content: string
+  created_at: number
+  updated_at: number
 }
 
 export interface AllData {
@@ -50,13 +62,17 @@ export interface AllData {
     shippingCost: number | null
     currency: string | null
     country: string | null
-    notes: string | null
+    composition: string | null
     extraData: string | null
     sold: boolean
+    onAuction: boolean
+    auctionPrice: number | null
+    salePrice: number | null
     createdAt: number
     updatedAt: number
   }>
   photos: Photo[]
+  notes: CoinNote[]
   preferences: Record<string, string>
 }
 
@@ -94,9 +110,28 @@ export function getAllCoins(): AllData['coins'] {
     shippingCost: nullableNumber(r.shipping_cost),
     currency: r.currency,
     country: r.country,
-    notes: r.notes,
+    composition: r.composition,
     extraData: r.extra_data,
     sold: r.sold === 1,
+    onAuction: r.on_auction === 1,
+    auctionPrice: nullableNumber(r.auction_price),
+    salePrice: nullableNumber(r.sale_price),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }))
+}
+
+export function getAllNotes(): CoinNote[] {
+  const db = getDatabase()
+  const rows = db
+    .prepare('SELECT * FROM coin_notes ORDER BY created_at')
+    .all() as CoinNoteRow[]
+
+  return rows.map((r) => ({
+    id: r.id,
+    coinId: r.coin_id,
+    title: r.title ?? null,
+    content: r.content,
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }))

@@ -44,7 +44,7 @@ import {
   buildCoinDetailLines,
   buildPurchaseLine
 } from '../../src/main/export/collection-pdf'
-import type { Coin } from '@shared/types'
+import type { Coin, CoinNote } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -57,7 +57,6 @@ const fullCoin: Coin = {
   year: 1946,
   condition: 'XF',
   country: 'United Kingdom',
-  notes: 'Minor toning on reverse',
   purchaseDate: 946684800000,
   purchasePlace: 'eBay',
   price: 12.5,
@@ -73,6 +72,10 @@ const fullCoin: Coin = {
   composition: 'other'
 }
 
+const fullCoinNotes: CoinNote[] = [
+  { id: 'n1', coinId: 'coin-1', title: null, content: 'Minor toning on reverse', createdAt: 1000, updatedAt: 1000 }
+]
+
 const minimalCoin: Coin = {
   id: 'coin-2',
   collectionId: 'coll-1',
@@ -80,7 +83,6 @@ const minimalCoin: Coin = {
   year: null,
   condition: null,
   country: null,
-  notes: null,
   purchaseDate: null,
   purchasePlace: null,
   price: null,
@@ -137,7 +139,7 @@ describe('buildCoinMainLine', () => {
 
 describe('buildCoinDetailLines', () => {
   it('happy path — returns all present fields', () => {
-    const lines = buildCoinDetailLines(fullCoin, 'en')
+    const lines = buildCoinDetailLines(fullCoin, 'en', fullCoinNotes)
     expect(lines).toEqual([
       'Country: United Kingdom',
       'Condition: XF',
@@ -146,12 +148,12 @@ describe('buildCoinDetailLines', () => {
   })
 
   it('edge case — minimal coin returns empty array', () => {
-    const lines = buildCoinDetailLines(minimalCoin, 'en')
+    const lines = buildCoinDetailLines(minimalCoin, 'en', [])
     expect(lines).toEqual([])
   })
 
   it('uses Russian locale', () => {
-    const lines = buildCoinDetailLines(fullCoin, 'ru')
+    const lines = buildCoinDetailLines(fullCoin, 'ru', fullCoinNotes)
     expect(lines[0]).toBe('Страна: United Kingdom')
     expect(lines[1]).toBe('Состояние: XF')
     expect(lines[2]).toBe('Заметки: Minor toning on reverse')
