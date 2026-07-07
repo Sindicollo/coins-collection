@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { Settings } from '@/components/ui/icons/Settings'
+import { ActionsDropdown } from '@/components/common/ActionsDropdown'
 
 interface HeaderProps {
   onOpenSettings: () => void
@@ -16,6 +16,7 @@ export function Header({ onOpenSettings }: HeaderProps): React.ReactElement {
         {t('app.title')}
       </h1>
       <div className="flex items-center gap-1">
+        <ActionsDropdown />
         <button
           onClick={onOpenSettings}
           className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
@@ -23,7 +24,6 @@ export function Header({ onOpenSettings }: HeaderProps): React.ReactElement {
         >
           <Settings className="w-4 h-4" />
         </button>
-        <LanguageSwitcher />
       </div>
     </header>
   )

@@ -54,8 +54,14 @@ i18n.use(initReactI18next).init({
         },
         settings: {
           title: 'Settings',
+          general: 'General',
+          language: 'Language',
+          ai: 'AI',
           defaultCurrency: 'Default currency',
           currencyHint: 'New coins will use this currency by default.'
+        },
+        actions: {
+          label: 'Actions'
         },
         coins: {
           title: 'Coins',
@@ -174,6 +180,7 @@ i18n.use(initReactI18next).init({
             testConnection: 'Test Connection',
             testOk: 'Connection successful!',
             testFailed: 'Connection failed',
+            saveError: 'Failed to save: {{message}}',
             webSearch: 'Enable web search',
             webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
           }
@@ -262,6 +269,7 @@ i18n.use(initReactI18next).init({
           aiEbay: 'eBay prices',
           aiInfo: 'Coin info',
           aiMintage: 'Mintage',
+          aiResult: 'AI Result',
           aiEmpty: 'AI returned no data. Try again or check API key.'
         }
       }

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { AiCoinCard } from './AiCoinCard'
-import { AiSettingsModal } from './AiSettingsModal'
 import { useAiStore } from './useAiStore'
 import { useCoinStore } from '@/features/coins/useCoins'
 import { LlmTools } from '@/features/coins/LlmTools'
@@ -38,7 +37,6 @@ export function AiPage(): React.ReactElement {
   const [coins, setCoins] = React.useState<Coin[]>([])
   const [coinsLoading, setCoinsLoading] = React.useState(true)
   const [coinsError, setCoinsError] = React.useState<string | null>(null)
-  const [showSettings, setShowSettings] = React.useState(false)
   const [showManualInput, setShowManualInput] = React.useState(false)
   const [collectionName, setCollectionName] = React.useState('')
 
@@ -170,10 +168,6 @@ export function AiPage(): React.ReactElement {
           {showManualInput ? '▲' : '▼'}{' '}
           {t('ai.manualInput', { defaultValue: 'Manual Input' })}
         </Button>
-
-        <Button size="sm" variant="ghost" onClick={() => setShowSettings(true)}>
-          ⚙ {t('ai.settingsButton', { defaultValue: 'Settings' })}
-        </Button>
       </div>
 
       {/* Loading / error indicators */}
@@ -282,10 +276,7 @@ export function AiPage(): React.ReactElement {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Settings modal */}
-      <AiSettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+    </div>
     </div>
   )
 }
