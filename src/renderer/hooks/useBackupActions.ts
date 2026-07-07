@@ -18,7 +18,7 @@ interface UseBackupActionsReturn {
   handleExport: () => Promise<void>
   handleImportClick: () => Promise<void>
   handleImportExecute: () => Promise<void>
-  importZipPathRef: React.MutableRefObject<string | null>
+  resetImport: () => void
 }
 
 export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
@@ -46,17 +46,26 @@ export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
     }
   }, [])
 
+  const scheduleProgressClose = React.useCallback(() => {
+    timerRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        setProgressOpen(false)
+        setProgress(null)
+      }
+    }, 1500)
+  }, [])
+
   const handleExport = React.useCallback(async () => {
     setError(null)
     setProgressTitle(t('backup.exportProgress'))
     setProgressOpen(true)
     setProgress(null)
 
-    unsubscribeRef.current = window.api.backup.onExportProgress((data) => {
-      if (mountedRef.current) setProgress(data)
-    })
-
     try {
+      unsubscribeRef.current = window.api.backup.onExportProgress((data) => {
+        if (mountedRef.current) setProgress(data)
+      })
+
       await window.api.backup.exportExecute()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -67,16 +76,9 @@ export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
     } finally {
       unsubscribeRef.current?.()
       unsubscribeRef.current = null
-      if (mountedRef.current) {
-        timerRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            setProgressOpen(false)
-            setProgress(null)
-          }
-        }, 1500)
-      }
+      if (mountedRef.current) scheduleProgressClose()
     }
-  }, [t, logPrefix])
+  }, [t, logPrefix, scheduleProgressClose])
 
   const handleImportClick = React.useCallback(async () => {
     setError(null)
@@ -112,11 +114,11 @@ export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
     setProgressOpen(true)
     setProgress(null)
 
-    unsubscribeRef.current = window.api.backup.onImportProgress((data) => {
-      if (mountedRef.current) setProgress(data)
-    })
-
     try {
+      unsubscribeRef.current = window.api.backup.onImportProgress((data) => {
+        if (mountedRef.current) setProgress(data)
+      })
+
       const result = await window.api.backup.importExecute(zipPath)
       if (!result.success || result.errors.length > 0) {
         console.error(`${logPrefix} Import completed with errors:`, result.errors)
@@ -134,16 +136,16 @@ export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
       unsubscribeRef.current?.()
       unsubscribeRef.current = null
       importZipPathRef.current = null
-      if (mountedRef.current) {
-        timerRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            setProgressOpen(false)
-            setProgress(null)
-          }
-        }, 1500)
-      }
+      if (mountedRef.current) scheduleProgressClose()
     }
-  }, [t, logPrefix])
+  }, [t, logPrefix, scheduleProgressClose])
+
+  const resetImport = React.useCallback(() => {
+    importZipPathRef.current = null
+    setImportDialogOpen(false)
+    setPreview(null)
+    setError(null)
+  }, [])
 
   return {
     importDialogOpen,
@@ -160,6 +162,6 @@ export function useBackupActions(logPrefix: string): UseBackupActionsReturn {
     handleExport,
     handleImportClick,
     handleImportExecute,
-    importZipPathRef
+    resetImport
   }
 }
