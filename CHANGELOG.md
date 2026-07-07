@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.5.0
+
+### Added
+- Multiple notes per coin — separate notes table with titles, editing, and delete
+- AI query results saved as coin notes (eBay prices, coin info, mintage)
+- Notes tab on coin detail page (alongside Details and Photos)
+- Back button to navigate from coin detail page to parent collection
+
+### Changed
+- Settings reorganized into two tabs: General (language, currency) and AI
+- Actions (backup, export) moved to a separate dropdown in the header
+- Language switcher moved from header to Settings → General tab
+- Settings and Actions buttons now use consistent styling (icon + text label)
+- Sticky header in coin list when scrolling
+- Improved backup import: legacy coin notes migrated to the new notes table
+
+### Fixed
+- Scroll position was lost when navigating back from a coin to the list
+- Notes without titles could not be expanded ("Read more" button was missing)
+- Excel export formula injection prevented for note content
+- Code quality: error handling, cursor cleanup, and element unmount race conditions
+
 ## v1.4.0
 
 ### Added
