@@ -2,14 +2,27 @@ import { ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants'
 import { listCoinsByCollection, getCoin } from '../database/repositories/coins'
 import { createCoinNote } from '../database/repositories/coin-notes'
-import type { LlmExportCoin, AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, LlmBulkProgress, Coin } from '@shared/types'
+import type {
+  LlmExportCoin,
+  AiCoinInfo,
+  AiBulkQuery,
+  AiSingleQuery,
+  LlmConfig,
+  LlmTestResult,
+  LlmBulkProgress,
+  Coin
+} from '@shared/types'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { createLlmModel } from '../llm/providers'
-import { queryBulkCoins, querySingleCoin } from '../llm/chains'
-import { loadLlmConfig, saveLlmConfig } from '../llm/config'
-import { HumanMessage } from '@langchain/core/messages'
+import { queryBulkCoins, querySingleCoin, querySingleCoinWithSearch } from '../llm/chains'
+import { loadLlmConfig, saveLlmConfig, saveBulkSession, clearBulkSession, loadBulkSession } from '../llm/config'
+import { createSearchTool, testSearchProvider } from '../llm/search'
+import { saveAiNote } from '../llm/notes'
+import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+import type { DynamicTool } from '@langchain/core/tools'
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -27,8 +40,31 @@ function buildExportData(collectionId: string): LlmExportCoin[] {
   }))
 }
 
+/**
+ * Determine what search path to use based on config.
+ *
+ * Returns:
+ *   'agentic'   — bind search tool, use manual tool-call loop (tavily/brave/ddg/searxng)
+ *   'builtin'   — OpenRouter server-side search (fetch-hack in providers.ts)
+ *   'none'      — no web search
+ */
+function getSearchPath(config?: Partial<LlmConfig>): 'agentic' | 'builtin' | 'none' {
+  const cfg = config ? { ...loadLlmConfig(), ...config } : loadLlmConfig()
+  if (!cfg.enableWebSearch) return 'none'
+  if (!cfg.search) return 'none'
+  if (cfg.search.provider === 'none') return 'none'
+  if (cfg.search.provider === 'openrouter_builtin') return 'builtin'
+  return 'agentic'
+}
+
+function createSearchToolFromConfig(config?: Partial<LlmConfig>): DynamicTool | null {
+  const cfg = config ? { ...loadLlmConfig(), ...config } : loadLlmConfig()
+  if (!cfg.search || cfg.search.provider === 'none' || cfg.search.provider === 'openrouter_builtin') return null
+  return createSearchTool(cfg.search)
+}
+
 export function registerLlmHandlers(): void {
-  // --- Existing handlers ---
+  // --- Existing handlers (unchanged) ---
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.GET_EXPORT_DATA,
@@ -41,7 +77,6 @@ export function registerLlmHandlers(): void {
     IPC_CHANNELS.LLM.EXPORT_ALL,
     async (_event, collectionId: string): Promise<string | null> => {
       const exportData = buildExportData(collectionId)
-
       const now = new Date()
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const defaultFilename = `collection-export-${dateStr}.json`
@@ -52,7 +87,6 @@ export function registerLlmHandlers(): void {
       })
 
       if (result.canceled || !result.filePath) return null
-
       writeFileSync(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8')
       return result.filePath
     }
@@ -67,13 +101,11 @@ export function registerLlmHandlers(): void {
       })
 
       if (result.canceled || result.filePaths.length === 0) return null
-
       const filePath = result.filePaths[0]
 
       let parsed: unknown
       try {
-        const content = readFileSync(filePath, 'utf-8')
-        parsed = JSON.parse(content)
+        parsed = JSON.parse(readFileSync(filePath, 'utf-8'))
       } catch (err) {
         console.error('[llm] Failed to read or parse file:', err)
         return null
@@ -84,123 +116,223 @@ export function registerLlmHandlers(): void {
         return null
       }
 
-      const updates: Array<{ id: string; info: string }> = parsed
-        .filter(
-          (item): item is { id: string; info: string } =>
-            typeof item === 'object' &&
-            item !== null &&
-            typeof (item as { id: string }).id === 'string' &&
-            typeof (item as { info: string }).info === 'string'
-        )
-
-      const skippedByFormat = parsed.length - updates.length
-      if (skippedByFormat > 0) {
-        console.warn(`[llm] Skipped ${skippedByFormat} items with invalid structure`)
-      }
+      const updates: Array<{ id: string; info: string }> = parsed.filter(
+        (item): item is { id: string; info: string } =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as { id: string }).id === 'string' &&
+          typeof (item as { info: string }).info === 'string'
+      )
 
       let updated = 0
       let skipped = 0
       for (const item of updates) {
         const coin = getCoin(item.id)
-        if (!coin) {
-          skipped++
-          continue
-        }
-        createCoinNote({
-          coinId: item.id,
-          title: 'AI Import',
-          content: item.info
-        })
+        if (!coin) { skipped++; continue }
+        createCoinNote({ coinId: item.id, title: 'AI Import', content: item.info })
         updated++
       }
       return { updated, skipped, filePath }
     }
   )
 
-  // --- New AI query handlers ---
+  // --- AI query handlers ---
 
-  // Rate limiter: max 5 requests per minute = 12s between starts
   const BATCH_SIZE = 5
-  const MIN_INTERVAL_MS = 12000 // 5 req/min
+  const MIN_INTERVAL_MS = 12000 // OpenRouter rate limit: 5 req/min
 
-  // Store active bulk query state for cancellation
   const activeQueries = new Map<string, { cancel: () => void }>()
+
+  // ── BULK query ───────────────────────────────────────────────
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_BULK,
     async (event, query: AiBulkQuery): Promise<AiCoinInfo[]> => {
       const queryKey = `${query.collectionId}:${query.queryType}`
-      console.log('[llm:ipc] QUERY_BULK:', { collectionId: query.collectionId, queryType: query.queryType })
+      console.log('[llm:ipc] QUERY_BULK:', {
+        collectionId: query.collectionId,
+        queryType: query.queryType,
+        excludeCoinIds: query.excludeCoinIds?.length || 0
+      })
 
-      const coins = listCoinsByCollection(query.collectionId)
+      let coins = listCoinsByCollection(query.collectionId)
       console.log('[llm:ipc] coins loaded:', coins.length)
+
+      // Filter out already-processed coins (resume)
+      if (query.excludeCoinIds && query.excludeCoinIds.length > 0) {
+        const exclude = new Set(query.excludeCoinIds)
+        coins = coins.filter((c) => !exclude.has(c.id))
+        console.log('[llm:ipc] after exclude filter:', coins.length)
+      }
+
       if (coins.length === 0) {
+        clearBulkSession(query.collectionId, query.queryType)
         return []
       }
 
       const locale = query.locale || 'en'
-      const allResults: AiCoinInfo[] = []
-      const batches: Coin[][] = []
-      for (let i = 0; i < coins.length; i += BATCH_SIZE) {
-        batches.push(coins.slice(i, i + BATCH_SIZE))
-      }
-
+      const searchPath = getSearchPath(query.config)
       let cancelled = false
       activeQueries.set(queryKey, { cancel: () => { cancelled = true } })
 
       try {
-        for (let i = 0; i < batches.length; i++) {
-          if (cancelled) {
-            console.log('[llm:ipc] Query cancelled, stopping at batch', i + 1, 'of', batches.length)
-            break
-          }
+        if (searchPath === 'agentic') {
+          // ── Agentic path: one coin at a time with tool-calling ──
+          const searchTool = createSearchToolFromConfig(query.config)!
+          const allResults: AiCoinInfo[] = []
 
-          const batchStart = Date.now()
-          console.log(`[llm:ipc] Processing batch ${i + 1}/${batches.length} (${batches[i].length} coins)`)
+          // Initialize session (existing processed + new coin IDs as we go)
+          const existingExcluded = query.excludeCoinIds || []
+          const processedIds = new Set(existingExcluded)
 
-          const model = createLlmModel(query.config)
-          const batchResults = await queryBulkCoins(model, batches[i], query.queryType, locale)
-          allResults.push(...batchResults)
+          for (let i = 0; i < coins.length; i++) {
+            if (cancelled) {
+              console.log('[llm:ipc] Agentic bulk cancelled at coin', i + 1, 'of', coins.length)
+              // Save partial session for resume
+              saveBulkSession({
+                collectionId: query.collectionId,
+                queryType: query.queryType,
+                processedCoinIds: [...processedIds],
+                startedAt: Date.now()
+              })
+              break
+            }
 
-          // Emit progress
-          event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
-            processed: allResults.length,
-            total: coins.length,
-            currentBatch: i + 1,
-            totalBatches: batches.length,
-            results: batchResults
-          } satisfies LlmBulkProgress)
+            const coin = coins[i]
+            const model = createLlmModel(query.config)
+            const result = await querySingleCoinWithSearch(
+              model,
+              searchTool,
+              coin,
+              query.queryType,
+              locale
+            )
+            allResults.push(result)
+            processedIds.add(coin.id)
 
-          // Rate limit: wait if needed before next batch
-          if (i < batches.length - 1 && !cancelled) {
-            const elapsed = Date.now() - batchStart
-            const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
-            if (wait > 0) {
-              console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
-              await sleep(wait)
+            // Auto-save to DB (S2 pattern)
+            try {
+              saveAiNote(coin.id, query.queryType, result.info || JSON.stringify(result))
+              saveBulkSession({
+                collectionId: query.collectionId,
+                queryType: query.queryType,
+                processedCoinIds: [...processedIds],
+                startedAt: Date.now()
+              })
+            } catch (err) {
+              console.error('[llm:ipc] Failed to save AI note:', err)
+            }
+
+            // Emit per-coin progress
+            event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
+              processed: allResults.length,
+              total: coins.length,
+              currentBatch: i + 1,
+              totalBatches: coins.length,
+              results: [result]
+            } satisfies LlmBulkProgress)
+
+            // Rate limit for OpenRouter provider
+            if (i < coins.length - 1 && !cancelled && query.config?.provider === 'openrouter') {
+              await sleep(MIN_INTERVAL_MS)
             }
           }
+
+          if (!cancelled) {
+            clearBulkSession(query.collectionId, query.queryType)
+          }
+          console.log('[llm:ipc] Agentic bulk complete:', allResults.length, 'results')
+          return allResults
+        }
+
+        if (searchPath === 'builtin') {
+          // ── OpenRouter built-in path: batched with fetch-hack ──
+          const allResults: AiCoinInfo[] = []
+          const batches: Coin[][] = []
+          for (let i = 0; i < coins.length; i += BATCH_SIZE) {
+            batches.push(coins.slice(i, i + BATCH_SIZE))
+          }
+
+          for (let i = 0; i < batches.length; i++) {
+            if (cancelled) {
+              console.log('[llm:ipc] Builtin bulk cancelled at batch', i + 1, 'of', batches.length)
+              break
+            }
+
+            const batchStart = Date.now()
+            const model = createLlmModel(query.config)
+            const batchResults = await queryBulkCoins(model, batches[i], query.queryType, locale)
+            allResults.push(...batchResults)
+
+            event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
+              processed: allResults.length,
+              total: coins.length,
+              currentBatch: i + 1,
+              totalBatches: batches.length,
+              results: batchResults
+            } satisfies LlmBulkProgress)
+
+            if (i < batches.length - 1 && !cancelled) {
+              await sleep(Math.max(0, MIN_INTERVAL_MS - (Date.now() - batchStart)))
+            }
+          }
+          return allResults
+        }
+
+        // ── No-search path: batched ──
+        {
+          const allResults: AiCoinInfo[] = []
+          const batches: Coin[][] = []
+          for (let i = 0; i < coins.length; i += BATCH_SIZE) {
+            batches.push(coins.slice(i, i + BATCH_SIZE))
+          }
+
+          for (let i = 0; i < batches.length; i++) {
+            if (cancelled) {
+              console.log('[llm:ipc] No-search bulk cancelled at batch', i + 1, 'of', batches.length)
+              break
+            }
+
+            const batchStart = Date.now()
+            const model = createLlmModel(query.config)
+            const batchResults = await queryBulkCoins(model, batches[i], query.queryType, locale)
+            allResults.push(...batchResults)
+
+            event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
+              processed: allResults.length,
+              total: coins.length,
+              currentBatch: i + 1,
+              totalBatches: batches.length,
+              results: batchResults
+            } satisfies LlmBulkProgress)
+
+            if (i < batches.length - 1 && !cancelled) {
+              await sleep(Math.max(0, MIN_INTERVAL_MS - (Date.now() - batchStart)))
+            }
+          }
+          return allResults
         }
       } finally {
         activeQueries.delete(queryKey)
       }
-
-      console.log('[llm:ipc] Bulk query complete:', allResults.length, 'results')
-      return allResults
     }
   )
 
-  // Cancel active bulk query
+  // ── Cancel bulk ──────────────────────────────────────────────
+
   ipcMain.handle(
     IPC_CHANNELS.LLM.CANCEL_BULK,
     async (_event, collectionId: string): Promise<void> => {
-    for (const [key, query] of activeQueries) {
-      if (key.startsWith(collectionId)) {
-        query.cancel()
-        activeQueries.delete(key)
+      for (const [key, query] of activeQueries) {
+        if (key.startsWith(collectionId)) {
+          query.cancel()
+          activeQueries.delete(key)
+        }
       }
     }
-  })
+  )
+
+  // ── SINGLE query ─────────────────────────────────────────────
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_SINGLE,
@@ -210,17 +342,25 @@ export function registerLlmHandlers(): void {
         throw new Error(`Coin not found: ${query.coinId}`)
       }
 
+      const searchPath = getSearchPath(query.config)
+
+      if (searchPath === 'agentic') {
+        const searchTool = createSearchToolFromConfig(query.config)!
+        const model = createLlmModel(query.config)
+        return querySingleCoinWithSearch(model, searchTool, coin, query.queryType, query.locale || 'en')
+      }
+
+      // builtin or none: use existing path (builtin handles search via fetch-hack)
       const model = createLlmModel(query.config)
       return querySingleCoin(model, coin, query.queryType, query.locale || 'en')
     }
   )
 
-  ipcMain.handle(
-    IPC_CHANNELS.LLM.GET_CONFIG,
-    async (): Promise<LlmConfig> => {
-      return loadLlmConfig()
-    }
-  )
+  // ── Config ───────────────────────────────────────────────────
+
+  ipcMain.handle(IPC_CHANNELS.LLM.GET_CONFIG, async (): Promise<LlmConfig> => {
+    return loadLlmConfig()
+  })
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.SET_CONFIG,
@@ -228,6 +368,24 @@ export function registerLlmHandlers(): void {
       saveLlmConfig(config)
     }
   )
+
+  // ── Bulk session (resume) ────────────────────────────────────
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.GET_BULK_SESSION,
+    async (_event, collectionId: string, queryType: string) => {
+      return loadBulkSession(collectionId, queryType as 'prices' | 'mintage' | 'info')
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.CLEAR_BULK_SESSION,
+    async (_event, collectionId: string, queryType: string): Promise<void> => {
+      clearBulkSession(collectionId, queryType as 'prices' | 'mintage' | 'info')
+    }
+  )
+
+  // ── Test connection (extended) ───────────────────────────────
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.TEST_CONNECTION,
@@ -241,15 +399,17 @@ export function registerLlmHandlers(): void {
           baseUrl: effectiveConfig.baseUrl,
           apiKey: hasKey ? `***${effectiveConfig.apiKey.slice(-4)}` : '(missing)'
         })
+
         if (!hasKey) {
           return { ok: false, error: 'API key is not set. Open AI Settings and enter your API key.' }
         }
+
         const model = createLlmModel(config)
+
+        // Step 1: Basic model connectivity
         try {
           await model.invoke([new HumanMessage('Reply with just the word "OK"')])
         } catch (invokeErr) {
-          // LangChain bug: some API responses with empty choices cause
-          // "Cannot read properties of undefined (reading 'message')"
           if (
             invokeErr instanceof TypeError &&
             String(invokeErr.message).includes("reading 'message'")
@@ -262,9 +422,49 @@ export function registerLlmHandlers(): void {
           }
           throw invokeErr
         }
-        return { ok: true }
+
+        // Step 2: If web search is enabled (agentic path), check tool-calling support
+        const searchPath = getSearchPath(config)
+        let toolCallSupported: boolean | undefined
+        let searchProviderOk: boolean | undefined
+
+        if (searchPath === 'agentic') {
+          const searchTool = createSearchToolFromConfig(config)
+          if (searchTool) {
+            // 2a: Test search provider connectivity
+            const searchTest = await testSearchProvider(config!.search!)
+            searchProviderOk = searchTest.ok
+
+            // 2b: Test that the model supports tool-calling
+            try {
+              if (!model.bindTools) {
+                toolCallSupported = false
+              } else {
+                const boundModel = model.bindTools([searchTool]) as unknown as BaseChatModel
+                const testMessages = [
+                  new SystemMessage(
+                    'You MUST call the web_search tool right now. Search for "test query" and report the results. Do NOT answer without calling the tool first.'
+                  ),
+                  new HumanMessage('Call web_search tool to search for "test query".')
+                ] as unknown as Parameters<BaseChatModel['invoke']>[0]
+                const testResponse = await boundModel.invoke(testMessages)
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const testToolCalls: any[] =
+                  (testResponse as any).tool_calls ||
+                  testResponse.additional_kwargs?.tool_calls ||
+                  []
+
+                toolCallSupported = testToolCalls.length > 0
+              }
+            } catch {
+              toolCallSupported = false
+            }
+          }
+        }
+
+        return { ok: true, toolCallSupported, searchProviderOk }
       } catch (err) {
-        // Dump full error for debugging
         try {
           console.error('[llm] Full error:', {
             name: (err as Error).name,
@@ -278,13 +478,10 @@ export function registerLlmHandlers(): void {
         let message = 'Unknown error'
         if (err instanceof Error) {
           message = err.message
-          if (err.cause) {
-            console.error('[llm] Error cause:', err.cause)
-          }
+          if (err.cause) console.error('[llm] Error cause:', err.cause)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const status = (err as any).status
-          if (typeof status === 'number') {
-            message = `HTTP ${status}: ${message}`
+          if (typeof (err as any).status === 'number') {
+            message = `HTTP ${(err as any).status}: ${message}`
           }
         } else if (typeof err === 'string') {
           message = err

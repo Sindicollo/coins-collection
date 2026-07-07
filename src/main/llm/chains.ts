@@ -1,6 +1,8 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import type { BaseMessage } from '@langchain/core/messages'
+import { ToolMessage, SystemMessage, HumanMessage } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import type { DynamicTool } from '@langchain/core/tools'
 import { AiCoinInfoArraySchema, AiCoinInfoSchema } from './schemas'
 import type { AiCoinInfo, QueryType } from '@shared/types'
 import type { Coin } from '@shared/types'
@@ -357,4 +359,150 @@ export async function querySingleCoin(
 
   const rawText = await invokeAndExtract(chain, { coin: coinText })
   return extractAndValidateSingle(rawText)
+}
+
+// ── Tool-calling loop (agentic search path) ──────────────────────
+
+/**
+ * Run a model with bound tools in a manual agent loop.
+ *
+ * The model is invoked repeatedly: each time it emits tool_calls,
+ * we execute them and feed results back as ToolMessages, then
+ * invoke again. Stops when the model returns content without
+ * further tool_calls (or maxIterations is reached).
+ */
+async function invokeWithTools(
+  boundModel: BaseChatModel,
+  messages: BaseMessage[],
+  tools: DynamicTool[],
+  maxIterations = 6
+): Promise<string> {
+  for (let i = 0; i < maxIterations; i++) {
+    const response = await boundModel.invoke(messages)
+
+    // LC normalizes OpenAI tool calls: { name, args, type, id }
+    // (the raw OpenAI format { function: { name, arguments } } is
+    //  also accessible via additional_kwargs.tool_calls for compat)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolCalls: any[] =
+      (response as any).tool_calls ||
+      response.additional_kwargs?.tool_calls ||
+      []
+
+    if (toolCalls.length === 0) {
+      return getMessageText(response)
+    }
+
+    // Execute each tool call and collect results
+    const toolMessages: ToolMessage[] = []
+    for (const tc of toolCalls) {
+      const fn = tc.function || tc
+      const name = fn.name || tc.name
+      const rawArgs = fn.args || fn.arguments
+      const args =
+        typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs || {}
+
+      const tool = tools.find((t) => t.name === name)
+      if (tool) {
+        const input = args.query || args.input || JSON.stringify(args)
+        const result = await tool.invoke(input)
+        toolMessages.push(
+          new ToolMessage({
+            content: String(result),
+            tool_call_id: tc.id || name || `call_${i}`
+          })
+        )
+      }
+    }
+
+    messages = [...messages, response, ...toolMessages]
+  }
+
+  throw new Error(
+    `Tool-call loop exceeded max iterations (${maxIterations}). ` +
+      'The model may be stuck in a loop — try a different model or disable web search.'
+  )
+}
+
+// ── Agentic search functions ────────────────────────────────────
+
+/**
+ * Query a single coin with web search via tool-calling agent.
+ *
+ * Binds the search tool, constructs system+user messages, runs
+ * the agentic loop, then parses the final JSON response.
+ */
+export async function querySingleCoinWithSearch(
+  model: BaseChatModel,
+  searchTool: DynamicTool,
+  coin: Coin,
+  queryType: QueryType,
+  locale = 'en'
+): Promise<AiCoinInfo> {
+  console.log('[chains] querySingleCoinWithSearch:', {
+    coinId: coin.id,
+    queryType,
+    locale
+  })
+
+  const promptText = getPrompt(locale, queryType, true)
+  const coinText = formatSingleCoinForPrompt(coin)
+  const lang = locale.startsWith('ru') ? 'ru' : 'en'
+  const coinLabel = lang === 'ru' ? 'Монета' : 'Coin'
+
+  const messages: BaseMessage[] = [
+    new SystemMessage(promptText),
+    new HumanMessage(`${coinLabel}:\n${coinText}`)
+  ]
+
+  if (!model.bindTools) {
+    throw new Error('Model does not support tool binding (bindTools is not available)')
+  }
+  // bindTools returns Runnable<...>, but invoke accepts the same message format.
+  // We use bind and cast back to BaseChatModel for the invoke interface.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const boundModel = model.bindTools([searchTool]) as any as BaseChatModel
+  const rawText = await invokeWithTools(boundModel, messages, [searchTool])
+
+  return extractAndValidateSingle(rawText)
+}
+
+/**
+ * Bulk query with web search. Each coin is processed individually
+ * via `querySingleCoinWithSearch`, with progress reported after every coin.
+ *
+ * This replaces the no-search bulk path (which batches 5 coins per LLM call)
+ * because each coin with web search needs its own tool-call loop.
+ */
+export async function queryBulkCoinsWithSearch(
+  model: BaseChatModel,
+  searchTool: DynamicTool,
+  coins: Coin[],
+  queryType: QueryType,
+  locale = 'en',
+  onProgress?: (result: AiCoinInfo, index: number, total: number) => void
+): Promise<AiCoinInfo[]> {
+  console.log('[chains] queryBulkCoinsWithSearch:', {
+    coinCount: coins.length,
+    queryType,
+    locale
+  })
+
+  const results: AiCoinInfo[] = []
+
+  for (let i = 0; i < coins.length; i++) {
+    const result = await querySingleCoinWithSearch(
+      model,
+      searchTool,
+      coins[i],
+      queryType,
+      locale
+    )
+    results.push(result)
+    if (onProgress) {
+      onProgress(result, i + 1, coins.length)
+    }
+  }
+
+  return results
 }
