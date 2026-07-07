@@ -168,6 +168,8 @@ i18n.use(initReactI18next).init({
           resumeHint: 'Saved session: {{processed}} of {{total}} coins processed.',
           resume: 'Resume',
           discardSession: 'Discard',
+          largeBulkWarning: 'Web search is enabled. Continue?',
+          eta: '≈{{minutes}}m left',
           field: {
             price: 'Price',
             mintage: 'Mintage',

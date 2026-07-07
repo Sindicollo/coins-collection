@@ -155,6 +155,8 @@
     "resumeHint": "Saved session: {{processed}} of {{total}} coins processed.",
     "resume": "Resume",
     "discardSession": "Discard",
+    "largeBulkWarning": "Web search is enabled. Processing {{count}} coins may take ~{{minutes}} minutes. Continue?",
+    "eta": "≈{{minutes}}m left",
     "field": {
       "price": "Price",
       "mintage": "Mintage",

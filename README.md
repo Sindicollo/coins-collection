@@ -16,6 +16,36 @@ English/russian interface.
 - **Backup & Restore** — export your entire database to a ZIP archive (JSON + photos), import back with smart merge
 - **i18n** — English and Russian UI
 - **Offline-first** — all data stored locally in SQLite, no cloud required
+- **AI Assistant** — query LLMs (OpenRouter, LM Studio, Ollama) for coin prices, mintage data, and numismatic info. Optional web search via Tavily, Brave, DuckDuckGo, or SearXNG.
+
+## Web Search Setup (for AI Pricing)
+
+By default, AI queries use only the model's training data. To enable real-time web search (recent auction prices, catalog numbers), configure a search provider in **Settings → AI → Search Configuration**.
+
+### Supported providers
+
+| Provider | Free tier | Setup |
+|----------|-----------|-------|
+| **Tavily** | 1000 queries/month | [API key](https://tavily.com) |
+| **Brave Search** | 2000 queries/month | [API key](https://api.search.brave.com) |
+| **DuckDuckGo** | Unlimited (rate-limited) | None |
+| **SearXNG** | Unlimited (self-host) | Instance URL (Docker: `docker run -p 8080:8080 searxng/searxng`) |
+| **OpenRouter Built-in** | n/a | OpenRouter key only; server-side search |
+
+### Requirements for local models (LM Studio/Ollama)
+
+The local model must support **OpenAI tool-calling** format. Tested with:
+- **Qwen2.5** (7B+ recommended)
+- **Llama 3.1+** (8B+)
+- **Phi-3.5-mini+**
+- **Mistral v0.3+**
+
+If your model doesn't support tool-calling, web search is automatically skipped and the model answers from training data only. Use **Test Connection** in Settings to verify.
+
+### Tips
+- For bulk pricing with web search: expect **8–15 sec per coin** (search + LLM round-trip). Time a single coin first to gauge bulk duration.
+- Use **Resume** to continue a stopped bulk — processed coins are auto-saved, no work is lost on cancel or crash.
+- DuckDuckGo is rate-limited: recommended for testing only, not large bulks.
 
 ## Download
 

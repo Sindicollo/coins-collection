@@ -14,6 +14,10 @@ interface AiState {
   coinLoading: Record<string, boolean>
   /** Active saved session to resume (if any) */
   resumeSession: BulkSessionState | null
+  /** Timestamp when bulk started (for ETA calculation) */
+  bulkStartTime: number
+  /** Estimated time per coin in ms (from last run) */
+  lastCoinTime: number
 }
 
 interface AiActions {
@@ -58,6 +62,8 @@ export const useAiStore = create<AiStore>((set, get) => ({
   bulkRunning: false,
   coinLoading: {},
   resumeSession: null,
+  bulkStartTime: 0,
+  lastCoinTime: 0,
 
   queryBulk: async (collectionId: string, queryType: QueryType) => {
     console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
@@ -70,7 +76,8 @@ export const useAiStore = create<AiStore>((set, get) => ({
       bulkProgress: 0,
       bulkTotal: 0,
       bulkRunning: true,
-      resumeSession: null
+      resumeSession: null,
+      bulkStartTime: Date.now()
     })
 
     // Listen for progress events
@@ -80,10 +87,13 @@ export const useAiStore = create<AiStore>((set, get) => ({
         for (const item of data.results) {
           newResults[item.id] = item
         }
+        const elapsed = Date.now() - state.bulkStartTime
+        const perCoin = data.processed > 0 ? elapsed / data.processed : 0
         return {
           results: newResults,
           bulkProgress: data.processed,
-          bulkTotal: data.total
+          bulkTotal: data.total,
+          lastCoinTime: perCoin
         }
       })
     })
@@ -96,7 +106,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
         for (const item of results) {
           newResults[item.id] = item
         }
-        return { results: newResults, loading: false, bulkRunning: false }
+        return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -121,7 +131,8 @@ export const useAiStore = create<AiStore>((set, get) => ({
       bulkProgress: 0,
       bulkTotal: 0,
       bulkRunning: true,
-      resumeSession: null
+      resumeSession: null,
+      bulkStartTime: Date.now()
     })
 
     const unsubscribe = window.api.llm.onBulkProgress((data) => {
@@ -130,10 +141,13 @@ export const useAiStore = create<AiStore>((set, get) => ({
         for (const item of data.results) {
           newResults[item.id] = item
         }
+        const elapsed = Date.now() - state.bulkStartTime
+        const perCoin = data.processed > 0 ? elapsed / data.processed : 0
         return {
           results: newResults,
           bulkProgress: data.processed,
-          bulkTotal: data.total
+          bulkTotal: data.total,
+          lastCoinTime: perCoin
         }
       })
     })
@@ -146,7 +160,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
         for (const item of results) {
           newResults[item.id] = item
         }
-        return { results: newResults, loading: false, bulkRunning: false }
+        return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

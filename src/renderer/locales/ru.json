@@ -155,6 +155,8 @@
     "resumeHint": "Сохранённая сессия: обработано {{processed}} из {{total}} монет.",
     "resume": "Продолжить",
     "discardSession": "Сбросить",
+    "largeBulkWarning": "Веб-поиск включён. Обработка {{count}} монет займёт ~{{minutes}} минут. Продолжить?",
+    "eta": "≈{{minutes}} мин",
     "field": {
       "price": "Цена",
       "mintage": "Тираж",

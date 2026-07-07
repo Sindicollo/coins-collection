@@ -25,6 +25,7 @@ export function AiPage(): React.ReactElement {
     bulkRunning,
     coinLoading,
     resumeSession,
+    lastCoinTime,
     queryBulk,
     resumeBulk,
     querySingle,
@@ -111,12 +112,32 @@ export function AiPage(): React.ReactElement {
     }
   }, [collectionId])
 
-  const handleBulkQuery = (queryType: QueryType): void => {
+  const handleBulkQuery = async (queryType: QueryType): Promise<void> => {
     console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })
     if (!collectionId) {
       console.warn('[AiPage] No collectionId, skipping query')
       return
     }
+
+    // Warn if many coins with web search enabled
+    try {
+      const cfg = await window.api.llm.getConfig()
+      if (cfg.enableWebSearch && coins.length > 20) {
+        const estimatedSec = coins.length * 10
+        const mins = Math.ceil(estimatedSec / 60)
+        const ok = window.confirm(
+          t('ai.largeBulkWarning', {
+            defaultValue: `Web search is enabled. Processing ${coins.length} coins may take ~${mins} minutes (≈10 sec per coin). Continue?`,
+            count: coins.length,
+            minutes: mins
+          })
+        )
+        if (!ok) return
+      }
+    } catch {
+      // If we can't read config, proceed anyway
+    }
+
     queryBulk(collectionId, queryType)
   }
 
@@ -260,6 +281,14 @@ export function AiPage(): React.ReactElement {
             </span>
             <span className="text-xs text-blue-500">
               {bulkTotal > 0 ? Math.round((bulkProgress / bulkTotal) * 100) : 0}%
+              {lastCoinTime > 0 && bulkProgress > 0 && bulkProgress < bulkTotal && (
+                <span className="ml-2">
+                  {t('ai.eta', {
+                    defaultValue: '≈{{minutes}}m left',
+                    minutes: Math.max(1, Math.round((lastCoinTime * (bulkTotal - bulkProgress)) / 60000))
+                  })}
+                </span>
+              )}
             </span>
           </div>
           <div className="w-full bg-blue-200 rounded-full h-2">
