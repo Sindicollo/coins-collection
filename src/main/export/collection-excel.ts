@@ -41,6 +41,14 @@ export function formatDate(ts: number | null): string {
 }
 
 /**
+ * Prevent Excel Formula Injection by prefixing cells starting with =, +, -, @
+ */
+function sanitizeExcelCell(value: string): string {
+  if (/^[=+\-@]/.test(value)) return "'" + value
+  return value
+}
+
+/**
  * Build a flat row data object from a coin for the Excel sheet.
  */
 export function buildExcelRow(coin: Coin, notesText = ''): Record<string, string | number | null> {
@@ -55,7 +63,7 @@ export function buildExcelRow(coin: Coin, notesText = ''): Record<string, string
     shippingCost: coin.shippingCost ?? '',
     currency: coin.currency ?? '',
     totalCost: (coin.price ?? 0) + (coin.shippingCost ?? 0),
-    notes: notesText,
+    notes: notesText ? sanitizeExcelCell(notesText) : '',
     sold: coin.sold ? '\u2713' : '',
     onAuction: coin.onAuction ? '\u2713' : '',
     auctionPrice: coin.auctionPrice ?? '',

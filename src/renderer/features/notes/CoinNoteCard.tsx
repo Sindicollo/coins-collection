@@ -19,10 +19,9 @@ function displayTitle(note: CoinNote): string {
   return firstLine.slice(0, 47) + '...'
 }
 
-function previewText(content: string, hasTitle: boolean): string {
+function previewText(content: string, _hasTitle: boolean): string {
   const lines = content.split('\n')
-  const start = hasTitle ? 0 : 0
-  const text = lines.slice(start).join(' ').trim()
+  const text = lines.join(' ').trim()
   if (text.length <= 120) return text
   return text.slice(0, 117) + '...'
 }
@@ -147,12 +146,12 @@ export function CoinNoteCard({ note, onUpdate, onDelete }: CoinNoteCardProps): R
           </div>
 
           {(expanded || !note.title) && (
-            <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm text-gray-600 mt-2               whitespace-pre-wrap break-all leading-relaxed">
               {expanded ? note.content : previewText(note.content, !!note.title)}
             </p>
           )}
 
-          {!expanded && note.title && note.content.length > 120 && (
+          {!expanded && note.content.length > 120 && (
             <button
               onClick={() => setExpanded(true)}
               className="text-xs text-primary-500 hover:text-primary-600 mt-1"

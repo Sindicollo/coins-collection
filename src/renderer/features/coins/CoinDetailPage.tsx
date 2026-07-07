@@ -30,6 +30,8 @@ export function CoinDetailPage(): React.ReactElement {
   }, [])
 
   React.useEffect(() => {
+    let cancelled = false
+
     if (!coinId) {
       setError('No coin ID provided')
       setLoading(false)
@@ -42,22 +44,26 @@ export function CoinDetailPage(): React.ReactElement {
     window.api.coins
       .get(coinId)
       .then((data) => {
-        setCoin(data)
+        if (!cancelled) setCoin(data)
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err))
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
     window.api.notes
       .countByCoin(coinId)
-      .then(setNoteCount)
-      .catch(() => setNoteCount(0))
+      .then((count) => { if (!cancelled) setNoteCount(count) })
+      .catch(() => { if (!cancelled) setNoteCount(0) })
 
     window.api.photos
       .list(coinId)
-      .then((list) => setPhotoCount(list.length))
-      .catch(() => setPhotoCount(0))
+      .then((list) => { if (!cancelled) setPhotoCount(list.length) })
+      .catch(() => { if (!cancelled) setPhotoCount(0) })
+
+    return () => { cancelled = true }
   }, [coinId])
 
   const handleCoinUpdated = (updated: CoinType): void => {

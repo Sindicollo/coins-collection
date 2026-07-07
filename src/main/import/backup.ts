@@ -139,18 +139,22 @@ function importCoins(
   const insert = db.prepare(
     `INSERT OR IGNORE INTO coins
      (id, collection_id, denomination, year, condition, purchase_date,
-      purchase_place, price, shipping_cost, currency, country, notes, extra_data,
+      purchase_place, price, shipping_cost, currency, country, extra_data,
       sold, on_auction, auction_price, sale_price, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
   const update = db.prepare(
     `UPDATE coins SET
      collection_id = ?, denomination = ?, year = ?, condition = ?,
      purchase_date = ?, purchase_place = ?, price = ?, shipping_cost = ?,
-     currency = ?, country = ?, notes = ?, extra_data = ?, sold = ?,
+     currency = ?, country = ?, extra_data = ?, sold = ?,
      on_auction = ?, auction_price = ?, sale_price = ?,
      updated_at = ?
      WHERE id = ?`
+  )
+
+  const legacyNoteInsert = db.prepare(
+    'INSERT OR IGNORE INTO coin_notes (id, coin_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
   )
 
   db.transaction(() => {
@@ -162,7 +166,7 @@ function importCoins(
         const values = [
           coin.collectionId, coin.denomination, coin.year, coin.condition,
           coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
-          coin.currency, coin.country, coin.notes, coin.extraData, sold,
+          coin.currency, coin.country, coin.extraData, sold,
           onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
           coin.updatedAt, coin.id
         ]
@@ -172,11 +176,18 @@ function importCoins(
         } else {
           insert.run(coin.id, coin.collectionId, coin.denomination, coin.year, coin.condition,
             coin.purchaseDate, coin.purchasePlace, coin.price, coin.shippingCost,
-            coin.currency, coin.country, coin.notes, coin.extraData, sold,
+            coin.currency, coin.country, coin.extraData, sold,
             onAuction, coin.auctionPrice ?? null, coin.salePrice ?? null,
             coin.createdAt, coin.updatedAt)
           result.imported.coins++
         }
+
+        // Migrate legacy notes from old backups
+        if (coin.notes) {
+          legacyNoteInsert.run(uuidv4(), coin.id, null, coin.notes, coin.updatedAt, coin.updatedAt)
+          result.imported.notes++
+        }
+
         processed++
       } catch (err) {
         result.errors.push(`Failed to import coin ${coin.id}: ${err}`)

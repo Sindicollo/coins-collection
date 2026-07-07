@@ -28,8 +28,8 @@ export function CoinNotesList({ coinId, onCountChange }: CoinNotesListProps): Re
         setNotes(data)
         onCountChange(data.length)
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to load notes:', err)
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -102,13 +102,13 @@ export function CoinNotesList({ coinId, onCountChange }: CoinNotesListProps): Re
       const content = parts.join('\n')
       if (content) {
         const titleMap: Record<string, string> = {
-          prices: 'AI: eBay Prices',
-          info: 'AI: Coin Info',
-          mintage: 'AI: Mintage'
+          prices: t('notes.aiEbay', { defaultValue: 'AI: eBay Prices' }),
+          info: t('notes.aiInfo', { defaultValue: 'AI: Coin Info' }),
+          mintage: t('notes.aiMintage', { defaultValue: 'AI: Mintage' })
         }
         await window.api.notes.create({
           coinId,
-          title: titleMap[queryType] ?? 'AI Result',
+          title: titleMap[queryType] ?? t('notes.aiResult', { defaultValue: 'AI Result' }),
           content
         })
         loadNotes()

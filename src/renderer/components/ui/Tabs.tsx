@@ -69,7 +69,9 @@ export function TabPanel({ id, children, className = '' }: TabPanelProps): React
   const ctx = React.useContext(TabsContext)
   if (!ctx) throw new Error('TabPanel must be used inside Tabs')
 
-  if (ctx.selected !== id) return <></>
-
-  return <div className={className}>{children}</div>
+  return (
+    <div className={className} hidden={ctx.selected !== id}>
+      {children}
+    </div>
+  )
 }

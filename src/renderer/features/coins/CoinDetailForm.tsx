@@ -45,7 +45,25 @@ export function CoinDetailForm({ coin, defaultCurrency, onUpdated }: CoinDetailF
   ].filter((f) => f.value !== '')
 
   const handleSave = (data: Record<string, unknown>): void => {
-    const updated = { ...coin, ...data } as Coin
+    // Only pick known Coin fields to avoid type corruption
+    const updated: Coin = {
+      ...coin,
+      denomination: typeof data.denomination === 'string' ? data.denomination : coin.denomination,
+      year: typeof data.year === 'number' ? data.year : coin.year,
+      condition: typeof data.condition === 'string' ? (data.condition as Coin['condition']) : coin.condition,
+      purchaseDate: typeof data.purchaseDate === 'number' ? data.purchaseDate : coin.purchaseDate,
+      purchasePlace: typeof data.purchasePlace === 'string' ? data.purchasePlace : coin.purchasePlace,
+      price: typeof data.price === 'number' ? data.price : coin.price,
+      shippingCost: typeof data.shippingCost === 'number' ? data.shippingCost : coin.shippingCost,
+      currency: typeof data.currency === 'string' ? data.currency : coin.currency,
+      country: typeof data.country === 'string' ? data.country : coin.country,
+      composition: typeof data.composition === 'string' ? (data.composition as Coin['composition']) : coin.composition,
+      extraData: data.extraData && typeof data.extraData === 'object' ? (data.extraData as Record<string, unknown>) : coin.extraData,
+      sold: typeof data.sold === 'boolean' ? data.sold : coin.sold,
+      onAuction: typeof data.onAuction === 'boolean' ? data.onAuction : coin.onAuction,
+      auctionPrice: typeof data.auctionPrice === 'number' ? data.auctionPrice : coin.auctionPrice,
+      salePrice: typeof data.salePrice === 'number' ? data.salePrice : coin.salePrice
+    }
     onUpdated(updated)
     setEditing(false)
   }
