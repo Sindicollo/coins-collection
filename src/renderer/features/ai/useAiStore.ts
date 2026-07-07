@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AiCoinInfo, QueryType } from '@shared/types'
+import type { AiCoinInfo, QueryType, BulkSessionState } from '@shared/types'
 import * as aiApi from './api'
 
 interface AiState {
@@ -12,10 +12,14 @@ interface AiState {
   bulkTotal: number
   bulkRunning: boolean
   coinLoading: Record<string, boolean>
+  /** Active saved session to resume (if any) */
+  resumeSession: BulkSessionState | null
 }
 
 interface AiActions {
   queryBulk: (collectionId: string, queryType: QueryType) => Promise<void>
+  /** Resume a bulk query from a saved session */
+  resumeBulk: (collectionId: string, queryType: QueryType, excludeCoinIds: string[]) => Promise<void>
   querySingle: (coinId: string, queryType: QueryType) => Promise<AiCoinInfo | null>
   clearResults: () => void
   clearCoinResult: (coinId: string) => void
@@ -23,6 +27,10 @@ interface AiActions {
   setManualInput: (input: string) => void
   parseManualInput: () => void
   cancelBulk: (collectionId: string) => void
+  /** Check for an active saved session for this collection+queryType */
+  checkSession: (collectionId: string, queryType: QueryType) => Promise<void>
+  /** Discard the active saved session */
+  discardSession: (collectionId: string, queryType: QueryType) => Promise<void>
 }
 
 type AiStore = AiState & AiActions
@@ -49,6 +57,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
   bulkTotal: 0,
   bulkRunning: false,
   coinLoading: {},
+  resumeSession: null,
 
   queryBulk: async (collectionId: string, queryType: QueryType) => {
     console.log('[useAiStore] queryBulk start:', { collectionId, queryType })
@@ -60,7 +69,8 @@ export const useAiStore = create<AiStore>((set, get) => ({
       lastQueryType: queryType,
       bulkProgress: 0,
       bulkTotal: 0,
-      bulkRunning: true
+      bulkRunning: true,
+      resumeSession: null
     })
 
     // Listen for progress events
@@ -101,6 +111,52 @@ export const useAiStore = create<AiStore>((set, get) => ({
     }
   },
 
+  resumeBulk: async (collectionId: string, queryType: QueryType, excludeCoinIds: string[]) => {
+    console.log('[useAiStore] resumeBulk:', { collectionId, queryType, excludeCount: excludeCoinIds.length })
+
+    set({
+      loading: true,
+      error: null,
+      lastQueryType: queryType,
+      bulkProgress: 0,
+      bulkTotal: 0,
+      bulkRunning: true,
+      resumeSession: null
+    })
+
+    const unsubscribe = window.api.llm.onBulkProgress((data) => {
+      set((state) => {
+        const newResults = { ...state.results }
+        for (const item of data.results) {
+          newResults[item.id] = item
+        }
+        return {
+          results: newResults,
+          bulkProgress: data.processed,
+          bulkTotal: data.total
+        }
+      })
+    })
+
+    try {
+      const results = await aiApi.queryBulk(collectionId, queryType, excludeCoinIds)
+      console.log('[useAiStore] resumeBulk complete:', results.length, 'coins')
+      set((state) => {
+        const newResults = { ...state.results }
+        for (const item of results) {
+          newResults[item.id] = item
+        }
+        return { results: newResults, loading: false, bulkRunning: false }
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[useAiStore] resumeBulk error:', message, err)
+      set({ error: message || 'Failed to resume', loading: false, bulkRunning: false })
+    } finally {
+      unsubscribe()
+    }
+  },
+
   querySingle: async (coinId: string, queryType: QueryType) => {
     set({ error: null, coinLoading: { ...get().coinLoading, [coinId]: true } })
     try {
@@ -125,6 +181,20 @@ export const useAiStore = create<AiStore>((set, get) => ({
   cancelBulk: (collectionId: string) => {
     window.api.llm.cancelBulk(collectionId)
     set({ bulkRunning: false, loading: false })
+  },
+
+  checkSession: async (collectionId: string, queryType: QueryType) => {
+    try {
+      const session = await aiApi.getBulkSession(collectionId, queryType)
+      set({ resumeSession: session })
+    } catch {
+      // Silently ignore — no resume available
+    }
+  },
+
+  discardSession: async (collectionId: string, queryType: QueryType) => {
+    await aiApi.clearBulkSession(collectionId, queryType)
+    set({ resumeSession: null })
   },
 
   clearCoinResult: (coinId: string) => {

@@ -152,6 +152,9 @@
     "queryInfo": "Info",
     "progress": "Processed {{processed}} of {{total}} coins",
     "stop": "Stop",
+    "resumeHint": "Saved session: {{processed}} of {{total}} coins processed.",
+    "resume": "Resume",
+    "discardSession": "Discard",
     "field": {
       "price": "Price",
       "mintage": "Mintage",
@@ -169,7 +172,20 @@
       "testFailed": "Connection failed",
       "saveError": "Failed to save: {{message}}",
       "webSearch": "Enable web search",
-      "webSearchHint": "Uses OpenRouter tools API. Works with most models. Adds ~10s per query."
+      "webSearchHint": "When enabled, the model can call web_search tool to find current coin prices and data. Works with Tavily, Brave, DDG, SearXNG or OpenRouter Built-in.",
+      "searchTitle": "Search Configuration",
+      "searchProvider": "Search Provider",
+      "searchApiKey": "API Key",
+      "searchBaseUrl": "Base URL",
+      "searchMaxResults": "Max Results",
+      "searchHintTavily": "Optimized for LLMs. Free tier: 1000 queries/month. Get API key at tavily.com",
+      "searchHintBrave": "Good coverage. Free tier: 2000 queries/month. Get API key at api.search.brave.com",
+      "searchHintDdg": "No API key needed. Rate-limited — for testing only.",
+      "searchHintSearxng": "Self-hosted metasearch engine. Docker: docker run -p 8080:8080 searxng/searxng",
+      "toolCallSupported": "Tool-calling: supported ✓",
+      "toolCallNotSupported": "Tool-calling: not supported — web search will not work with this model",
+      "searchTestOk": "Search provider: ok ✓",
+      "searchTestFail": "Search provider: unreachable — check your API key or base URL"
     }
   },
   "photos": {

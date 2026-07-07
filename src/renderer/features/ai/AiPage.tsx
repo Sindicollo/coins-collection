@@ -24,14 +24,18 @@ export function AiPage(): React.ReactElement {
     bulkTotal,
     bulkRunning,
     coinLoading,
+    resumeSession,
     queryBulk,
+    resumeBulk,
     querySingle,
     clearResults,
     clearCoinResult,
     appendCoinToNotes,
     setManualInput,
     parseManualInput,
-    cancelBulk
+    cancelBulk,
+    checkSession,
+    discardSession
   } = store
 
   const [coins, setCoins] = React.useState<Coin[]>([])
@@ -83,6 +87,22 @@ export function AiPage(): React.ReactElement {
   React.useEffect(() => {
     clearResults()
   }, [collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check for saved bulk sessions on mount
+  React.useEffect(() => {
+    if (!collectionId) return
+    // Check each query type for saved sessions
+    for (const qt of ['prices', 'mintage', 'info'] as QueryType[]) {
+      checkSession(collectionId, qt)
+    }
+  }, [collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-check sessions after a bulk stops (cancel or completion)
+  React.useEffect(() => {
+    if (!bulkRunning && collectionId && lastQueryType) {
+      checkSession(collectionId, lastQueryType as QueryType)
+    }
+  }, [bulkRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset coin store on unmount so CoinView reloads up-to-date data
   React.useEffect(() => {
@@ -169,6 +189,38 @@ export function AiPage(): React.ReactElement {
           {t('ai.manualInput', { defaultValue: 'Manual Input' })}
         </Button>
       </div>
+
+      {/* Resume saved session */}
+      {resumeSession && !bulkRunning && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-sm text-blue-700">
+            {t('ai.resumeHint', {
+              defaultValue: 'Saved session: {{processed}} of {{total}} coins processed.',
+              processed: resumeSession.processedCoinIds.length,
+              total: coins.length
+            })}
+          </span>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (collectionId) {
+                resumeBulk(collectionId, resumeSession.queryType, resumeSession.processedCoinIds)
+              }
+            }}
+          >
+            ▶ {t('ai.resume', { defaultValue: 'Resume' })}
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => {
+              if (collectionId) discardSession(collectionId, resumeSession.queryType)
+            }}
+          >
+            {t('ai.discardSession', { defaultValue: 'Discard' })}
+          </Button>
+        </div>
+      )}
 
       {/* Loading / error indicators */}
       {(loading || coinsLoading) && (

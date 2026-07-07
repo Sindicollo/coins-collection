@@ -165,6 +165,9 @@ i18n.use(initReactI18next).init({
           queryInfo: 'Info',
           progress: 'Processed {{processed}} of {{total}} coins',
           stop: 'Stop',
+          resumeHint: 'Saved session: {{processed}} of {{total}} coins processed.',
+          resume: 'Resume',
+          discardSession: 'Discard',
           field: {
             price: 'Price',
             mintage: 'Mintage',
@@ -182,7 +185,20 @@ i18n.use(initReactI18next).init({
             testFailed: 'Connection failed',
             saveError: 'Failed to save: {{message}}',
             webSearch: 'Enable web search',
-            webSearchHint: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
+            webSearchHint: 'When enabled, the model can call web_search tool to find current coin prices and data.',
+            searchTitle: 'Search Configuration',
+            searchProvider: 'Search Provider',
+            searchApiKey: 'API Key',
+            searchBaseUrl: 'Base URL',
+            searchMaxResults: 'Max Results',
+            searchHintTavily: 'Optimized for LLMs.',
+            searchHintBrave: 'Good coverage.',
+            searchHintDdg: 'No API key needed.',
+            searchHintSearxng: 'Self-hosted metasearch.',
+            toolCallSupported: 'Tool-calling: supported ✓',
+            toolCallNotSupported: 'Tool-calling: not supported',
+            searchTestOk: 'Search provider: ok ✓',
+            searchTestFail: 'Search provider: unreachable'
           }
         },
         backup: {

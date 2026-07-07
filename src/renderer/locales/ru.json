@@ -152,6 +152,9 @@
     "queryInfo": "Инфо",
     "progress": "Обработано {{processed}} из {{total}} монет",
     "stop": "Стоп",
+    "resumeHint": "Сохранённая сессия: обработано {{processed}} из {{total}} монет.",
+    "resume": "Продолжить",
+    "discardSession": "Сбросить",
     "field": {
       "price": "Цена",
       "mintage": "Тираж",
@@ -169,7 +172,20 @@
       "testFailed": "Ошибка соединения",
       "saveError": "Не удалось сохранить: {{message}}",
       "webSearch": "Веб-поиск",
-      "webSearchHint": "OpenRouter tools API. Работает с большинством моделей. +~10с к запросу."
+      "webSearchHint": "Если включено, модель может вызывать инструмент web_search для поиска актуальных цен и данных. Работает с Tavily, Brave, DDG, SearXNG или OpenRouter Built-in.",
+      "searchTitle": "Настройки поиска",
+      "searchProvider": "Поисковый сервис",
+      "searchApiKey": "API-ключ",
+      "searchBaseUrl": "Базовый URL",
+      "searchMaxResults": "Макс. результатов",
+      "searchHintTavily": "Оптимизирован для LLM. Бесплатно: 1000 запросов/мес. Ключ на tavily.com",
+      "searchHintBrave": "Хорошее покрытие. Бесплатно: 2000 запросов/мес. Ключ на api.search.brave.com",
+      "searchHintDdg": "Без API-ключа. Есть лимиты — только для тестирования.",
+      "searchHintSearxng": "Свой метапоиск. Docker: docker run -p 8080:8080 searxng/searxng",
+      "toolCallSupported": "Tool-calling: поддерживается ✓",
+      "toolCallNotSupported": "Tool-calling: не поддерживается — веб-поиск с этой моделью не заработает",
+      "searchTestOk": "Поисковый сервис: ок ✓",
+      "searchTestFail": "Поисковый сервис: недоступен — проверьте API-ключ или URL"
     }
   },
   "photos": {

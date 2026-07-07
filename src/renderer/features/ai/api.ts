@@ -1,4 +1,4 @@
-import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, QueryType } from '@shared/types'
+import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, QueryType, BulkSessionState } from '@shared/types'
 import i18n from '@/lib/i18n'
 
 function getLocale(): string {
@@ -7,13 +7,15 @@ function getLocale(): string {
 
 export async function queryBulk(
   collectionId: string,
-  queryType: QueryType
+  queryType: QueryType,
+  excludeCoinIds?: string[]
 ): Promise<AiCoinInfo[]> {
-  console.log('[aiApi] queryBulk:', { collectionId, queryType })
+  console.log('[aiApi] queryBulk:', { collectionId, queryType, excludeCount: excludeCoinIds?.length })
   const query: AiBulkQuery = {
     collectionId,
     queryType,
-    locale: getLocale()
+    locale: getLocale(),
+    excludeCoinIds
   }
   const result = await window.api.llm.queryBulk(query)
   console.log('[aiApi] queryBulk response:', result.length, 'items')
@@ -42,4 +44,18 @@ export async function setConfig(config: LlmConfig): Promise<void> {
 
 export async function testConnection(config?: LlmConfig): Promise<LlmTestResult> {
   return window.api.llm.testConnection(config)
+}
+
+export async function getBulkSession(
+  collectionId: string,
+  queryType: QueryType
+): Promise<BulkSessionState | null> {
+  return window.api.llm.getBulkSession(collectionId, queryType)
+}
+
+export async function clearBulkSession(
+  collectionId: string,
+  queryType: QueryType
+): Promise<void> {
+  return window.api.llm.clearBulkSession(collectionId, queryType)
 }
