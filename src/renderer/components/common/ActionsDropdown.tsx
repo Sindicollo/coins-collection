@@ -1,11 +1,11 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronDown } from '@/components/ui/icons/ChevronDown'
 import { ImportDialog } from '@/features/backup/ImportDialog'
 import { ProgressModal } from '@/features/backup/ProgressModal'
-import type { ProgressData } from '@/features/backup/ProgressModal'
 import { useExportStore } from '@/features/export/useExport'
 import { useExportPdfStore } from '@/features/export-pdf/useExportPdf'
-import type { BackupPreview } from '@shared/types'
+import { useBackupActions } from '@/hooks/useBackupActions'
 
 // ── HelpTooltip ────────────────────────────────────────
 
@@ -35,29 +35,34 @@ export function ActionsDropdown(): React.ReactElement {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
-  // Import state
-  const [importDialogOpen, setImportDialogOpen] = React.useState(false)
-  const [preview, setPreview] = React.useState<BackupPreview | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
-  const importZipPathRef = React.useRef<string | null>(null)
+  const {
+    importDialogOpen,
+    setImportDialogOpen,
+    preview,
+    setPreview,
+    error,
+    setError,
+    progressOpen,
+    progressTitle,
+    progress,
+    setProgress,
+    setProgressOpen,
+    handleExport: rawExport,
+    handleImportClick: rawImportClick,
+    handleImportExecute,
+    importZipPathRef
+  } = useBackupActions('[ActionsDropdown]')
 
-  // Progress state
-  const [progressOpen, setProgressOpen] = React.useState(false)
-  const [progressTitle, setProgressTitle] = React.useState('')
-  const [progress, setProgress] = React.useState<ProgressData | null>(null)
+  // Wrappers that close dropdown before action
+  const handleExport = React.useCallback(async () => {
+    setOpen(false)
+    await rawExport()
+  }, [rawExport])
 
-  const unsubscribeRef = React.useRef<(() => void) | null>(null)
-  const timerRef = React.useRef<ReturnType<typeof setTimeout>>()
-  const mountedRef = React.useRef(true)
-
-  React.useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      unsubscribeRef.current?.()
-      clearTimeout(timerRef.current)
-    }
-  }, [])
+  const handleImportClick = React.useCallback(async () => {
+    setOpen(false)
+    await rawImportClick()
+  }, [rawImportClick])
 
   // Close on click outside
   React.useEffect(() => {
@@ -72,106 +77,6 @@ export function ActionsDropdown(): React.ReactElement {
     }
   }, [open])
 
-  // Export handler
-  const handleExport = React.useCallback(async () => {
-    setError(null)
-    setOpen(false)
-    setProgressTitle(t('backup.exportProgress'))
-    setProgressOpen(true)
-    setProgress(null)
-
-    unsubscribeRef.current = window.api.backup.onExportProgress((data) => {
-      if (mountedRef.current) setProgress(data)
-    })
-
-    try {
-      await window.api.backup.exportExecute()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('[ActionsDropdown] Export failed:', message)
-      if (mountedRef.current) setError(message || t('backup.exportFailed'))
-    } finally {
-      unsubscribeRef.current?.()
-      unsubscribeRef.current = null
-      if (mountedRef.current) {
-        timerRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            setProgressOpen(false)
-            setProgress(null)
-          }
-        }, 1500)
-      }
-    }
-  }, [t])
-
-  // Import handlers
-  const handleImportClick = React.useCallback(async () => {
-    setError(null)
-    setOpen(false)
-    try {
-      const zipPath = await window.api.backup.importSelect()
-      if (!zipPath) return
-
-      setImportDialogOpen(true)
-      const previewData = await window.api.backup.importPreview(zipPath)
-      if (mountedRef.current) {
-        setPreview(previewData)
-        importZipPathRef.current = zipPath
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('[ActionsDropdown] Import preview failed:', message)
-      if (mountedRef.current) {
-        setError(message || t('backup.importPreviewFailed'))
-        setImportDialogOpen(false)
-      }
-    }
-  }, [t])
-
-  const handleImportExecute = React.useCallback(async () => {
-    const zipPath = importZipPathRef.current
-    if (!zipPath) return
-
-    setError(null)
-    setImportDialogOpen(false)
-    setPreview(null)
-    setProgressTitle(t('backup.importProgress'))
-    setProgressOpen(true)
-    setProgress(null)
-
-    unsubscribeRef.current = window.api.backup.onImportProgress((data) => {
-      if (mountedRef.current) setProgress(data)
-    })
-
-    try {
-      const result = await window.api.backup.importExecute(zipPath)
-      if (!result.success || result.errors.length > 0) {
-        console.error('[ActionsDropdown] Import completed with errors:', result.errors)
-        if (mountedRef.current) {
-          setError(result.errors.join('\n') || t('backup.importFailed'))
-        }
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('[ActionsDropdown] Import failed:', message)
-      if (mountedRef.current) {
-        setError(message || t('backup.importFailed'))
-      }
-    } finally {
-      unsubscribeRef.current?.()
-      unsubscribeRef.current = null
-      importZipPathRef.current = null
-      if (mountedRef.current) {
-        timerRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            setProgressOpen(false)
-            setProgress(null)
-          }
-        }, 1500)
-      }
-    }
-  }, [t])
-
   return (
     <>
       <div ref={containerRef} className="relative">
@@ -181,14 +86,22 @@ export function ActionsDropdown(): React.ReactElement {
             hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
         >
           {t('actions.label', { defaultValue: 'Actions' })}
-          <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
 
         {open && (
           <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md
             shadow-lg py-1 z-50 min-w-[220px]">
+            {/* Error display (inside dropdown to avoid overlap) */}
+            {error && (
+              <div className="mx-2 mb-1 p-2 rounded-md bg-red-50 border border-red-200 text-xs text-red-700">
+                {error}
+                <button className="ml-2 text-red-500 hover:text-red-700 font-medium" onClick={() => setError(null)}>
+                  ×
+                </button>
+              </div>
+            )}
+
             {/* Backup section */}
             <div className="px-3 py-1.5">
               <span className="text-xs font-medium text-gray-400 flex items-center">
@@ -229,16 +142,6 @@ export function ActionsDropdown(): React.ReactElement {
               className="w-full text-left px-6 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
             >
               {t('backup.exportExcel', { defaultValue: 'Export to Excel' })}
-            </button>
-          </div>
-        )}
-
-        {/* Error display */}
-        {error && (
-          <div className="absolute top-full right-0 mt-1 z-50 rounded-md bg-red-50 border border-red-200 p-2.5 text-xs text-red-700 min-w-[220px] shadow-lg">
-            {error}
-            <button className="ml-2 text-red-500 hover:text-red-700 font-medium" onClick={() => setError(null)}>
-              ×
             </button>
           </div>
         )}

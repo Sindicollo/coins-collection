@@ -19,10 +19,11 @@ export function Header({ onOpenSettings }: HeaderProps): React.ReactElement {
         <ActionsDropdown />
         <button
           onClick={onOpenSettings}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-          title={t('settings.title')}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-500
+            hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-3.5 h-3.5" />
+          {t('settings.title')}
         </button>
       </div>
     </header>

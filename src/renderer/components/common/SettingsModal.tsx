@@ -227,13 +227,20 @@ export function SettingsModal({
   // Load AI config when modal opens
   React.useEffect(() => {
     if (open) {
+      let cancelled = false
       setAiLoaded(false)
       setAiTestResult(null)
       setAiSaveError(null)
       aiApi.getConfig().then((cfg) => {
+        if (cancelled) return
         setAiConfig(cfg)
         setAiLoaded(true)
+      }).catch((err) => {
+        if (cancelled) return
+        console.warn('[SettingsModal] Failed to load AI config:', err)
+        setAiLoaded(true) // don't block the UI with infinite spinner
       })
+      return () => { cancelled = true }
     }
   }, [open])
 
@@ -266,8 +273,8 @@ export function SettingsModal({
     setAiSaveError(null)
     try {
       await aiApi.setConfig(aiConfig)
-    } catch {
-      // silently fail on close — config will be stale but not lost
+    } catch (err) {
+      console.warn('[SettingsModal] Failed to save AI config on close:', err)
     }
     onClose()
   }
