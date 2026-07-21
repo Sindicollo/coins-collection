@@ -146,6 +146,7 @@
     "pasteJson": "Paste JSON response from AI chat (array of objects with \"id\" field):",
     "parseJson": "Parse JSON",
     "appendToNotes": "Append to Notes",
+    "savedToNotes": "Saved to notes",
     "clearResult": "Clear",
     "queryPrice": "eBay price",
     "queryMintage": "Mintage",
@@ -185,7 +186,7 @@
       "searchHintDdg": "No API key needed. Rate-limited — for testing only.",
       "searchHintSearxng": "Self-hosted metasearch engine. Docker: docker run -p 8080:8080 searxng/searxng",
       "toolCallSupported": "Tool-calling: supported ✓",
-      "toolCallNotSupported": "Tool-calling: not supported — web search will not work with this model",
+      "toolCallNotSupported": "Tool-calling: model did not emit a tool call in this test (may still work during actual queries). Try a different query if search doesn't work.",
       "searchTestOk": "Search provider: ok ✓",
       "searchTestFail": "Search provider: unreachable — check your API key or base URL"
     }

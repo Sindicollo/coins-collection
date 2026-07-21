@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AiCoinInfo, QueryType, BulkSessionState } from '@shared/types'
+import { AI_NOTE_TITLE_PREFIX } from '@shared/types'
 import * as aiApi from './api'
 
 interface AiState {
@@ -27,7 +28,7 @@ interface AiActions {
   querySingle: (coinId: string, queryType: QueryType) => Promise<AiCoinInfo | null>
   clearResults: () => void
   clearCoinResult: (coinId: string) => void
-  appendCoinToNotes: (coinId: string) => Promise<string | null>
+  appendCoinToNotes: (coinId: string) => Promise<boolean>
   setManualInput: (input: string) => void
   parseManualInput: () => void
   cancelBulk: (collectionId: string) => void
@@ -51,8 +52,30 @@ function aiInfoToText(info: AiCoinInfo): string {
   return parts.join('\n')
 }
 
-export const useAiStore = create<AiStore>((set, get) => ({
-  results: {},
+export const useAiStore = create<AiStore>((set, get) => {
+  // Shared progress listener for bulk queries
+  function subscribeBulkProgress(): () => void {
+    return window.api.llm.onBulkProgress((data) => {
+      set((state) => {
+        const newResults = { ...state.results }
+        const queryType = (state.lastQueryType as QueryType | null) ?? undefined
+        for (const item of data.results) {
+          newResults[item.id] = { ...item, queryType }
+        }
+        const elapsed = Date.now() - state.bulkStartTime
+        const perCoin = data.processed > 0 ? elapsed / data.processed : 0
+        return {
+          results: newResults,
+          bulkProgress: data.processed,
+          bulkTotal: data.total,
+          lastCoinTime: perCoin
+        }
+      })
+    })
+  }
+
+  return {
+    results: {},
   loading: false,
   error: null,
   lastQueryType: null,
@@ -81,22 +104,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
     })
 
     // Listen for progress events
-    const unsubscribe = window.api.llm.onBulkProgress((data) => {
-      set((state) => {
-        const newResults = { ...state.results }
-        for (const item of data.results) {
-          newResults[item.id] = item
-        }
-        const elapsed = Date.now() - state.bulkStartTime
-        const perCoin = data.processed > 0 ? elapsed / data.processed : 0
-        return {
-          results: newResults,
-          bulkProgress: data.processed,
-          bulkTotal: data.total,
-          lastCoinTime: perCoin
-        }
-      })
-    })
+    const unsubscribe = subscribeBulkProgress()
 
     try {
       const results = await aiApi.queryBulk(collectionId, queryType)
@@ -104,7 +112,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
       set((state) => {
         const newResults = { ...state.results }
         for (const item of results) {
-          newResults[item.id] = item
+          newResults[item.id] = { ...item, queryType }
         }
         return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
       })
@@ -135,22 +143,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
       bulkStartTime: Date.now()
     })
 
-    const unsubscribe = window.api.llm.onBulkProgress((data) => {
-      set((state) => {
-        const newResults = { ...state.results }
-        for (const item of data.results) {
-          newResults[item.id] = item
-        }
-        const elapsed = Date.now() - state.bulkStartTime
-        const perCoin = data.processed > 0 ? elapsed / data.processed : 0
-        return {
-          results: newResults,
-          bulkProgress: data.processed,
-          bulkTotal: data.total,
-          lastCoinTime: perCoin
-        }
-      })
-    })
+    const unsubscribe = subscribeBulkProgress()
 
     try {
       const results = await aiApi.queryBulk(collectionId, queryType, excludeCoinIds)
@@ -158,7 +151,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
       set((state) => {
         const newResults = { ...state.results }
         for (const item of results) {
-          newResults[item.id] = item
+          newResults[item.id] = { ...item, queryType }
         }
         return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
       })
@@ -176,7 +169,7 @@ export const useAiStore = create<AiStore>((set, get) => ({
     try {
       const result = await aiApi.querySingle(coinId, queryType)
       set((state) => ({
-        results: { ...state.results, [coinId]: result },
+        results: { ...state.results, [coinId]: { ...result, queryType } },
         coinLoading: { ...state.coinLoading, [coinId]: false }
       }))
       return result
@@ -222,30 +215,32 @@ export const useAiStore = create<AiStore>((set, get) => ({
   appendCoinToNotes: async (coinId: string) => {
     const { results } = get()
     const info = results[coinId]
-    if (!info) return null
+    if (!info) return false
 
     const text = aiInfoToText(info)
-    if (!text) return null
+    if (!text) return false
 
     try {
-      const coin = await window.api.coins.get(coinId)
-      if (!coin) return null
+      // Notes live in the coin_notes table (migration V9) — mirror the
+      // upsert semantics of saveAiNote in the main process: one AI note
+      // per query type, titled "AI: <queryType>".
+      const queryType = info.queryType ?? 'info'
+      const title = `${AI_NOTE_TITLE_PREFIX}${queryType}`
 
-      const existingNotes = coin.notes || ''
-      const newNotes = existingNotes ? existingNotes + '\n\n---\n' + text : text
+      const notes = await window.api.notes.list(coinId)
+      const existing = notes.find(
+        (n) => n.title === title || (queryType === 'info' && n.title === 'AI Import')
+      )
 
-      await window.api.coins.update({
-        id: coinId,
-        notes: newNotes
-      })
+      const saved = existing
+        ? await window.api.notes.update({ id: existing.id, content: text })
+        : await window.api.notes.create({ coinId, title, content: text })
 
-      // Keep AI result visible — user can clear manually with «Clear» button
-      // Return new notes so the parent can update the coin display
-      return newNotes
+      return saved != null
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[useAiStore] Failed to append AI info to notes for coin', coinId, message)
-      return null
+      return false
     }
   },
 
@@ -285,4 +280,5 @@ export const useAiStore = create<AiStore>((set, get) => ({
       set({ error: 'Invalid JSON format' })
     }
   }
-}))
+  }
+})

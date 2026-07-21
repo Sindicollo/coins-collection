@@ -11,6 +11,18 @@ import type { SearchConfig, SearchProvider } from '@shared/types'
 
 // ── Result normalization ──────────────────────────────────────────
 
+/** Timeout for individual search API requests (15 seconds). */
+const SEARCH_TIMEOUT_MS = 15000
+
+/** AbortSignal with a fixed timeout. Falls back to undefined on old runtimes. */
+const timeoutSignal = (): AbortSignal | undefined => {
+  try {
+    return AbortSignal.timeout(SEARCH_TIMEOUT_MS)
+  } catch {
+    return undefined
+  }
+}
+
 interface SearchResult {
   title: string
   snippet: string
@@ -49,7 +61,8 @@ async function tavilySearch(query: string, config: SearchConfig): Promise<string
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: timeoutSignal()
   })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
@@ -75,7 +88,8 @@ async function braveSearch(query: string, config: SearchConfig): Promise<string>
       Accept: 'application/json',
       'Accept-Encoding': 'gzip',
       'X-Subscription-Token': config.apiKey
-    }
+    },
+    signal: timeoutSignal()
   })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
@@ -97,7 +111,7 @@ async function braveSearch(query: string, config: SearchConfig): Promise<string>
 async function ddgSearch(query: string, config: SearchConfig): Promise<string> {
   // DuckDuckGo lite API — no key required, but rate-limited
   const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: timeoutSignal() })
   if (!res.ok) {
     throw new Error(`DuckDuckGo search failed (${res.status})`)
   }
@@ -119,6 +133,7 @@ async function ddgSearch(query: string, config: SearchConfig): Promise<string> {
   }
 
   if (results.length === 0) {
+    console.warn('[search:ddg] No results parsed — DDG may have changed HTML format or be rate-limiting')
     return `No results found for query: "${query}". DuckDuckGo may be rate-limiting — try again later.`
   }
 
@@ -128,7 +143,7 @@ async function ddgSearch(query: string, config: SearchConfig): Promise<string> {
 async function searxngSearch(query: string, config: SearchConfig): Promise<string> {
   const baseUrl = config.baseUrl.replace(/\/$/, '')
   const url = `${baseUrl}/search?q=${encodeURIComponent(query)}&format=json&categories=general`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: timeoutSignal() })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`SearXNG search failed (${res.status}): ${errText.slice(0, 200)}`)

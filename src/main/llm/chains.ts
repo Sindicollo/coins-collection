@@ -1,6 +1,6 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import type { BaseMessage } from '@langchain/core/messages'
-import { ToolMessage, SystemMessage, HumanMessage } from '@langchain/core/messages'
+import { AIMessage, ToolMessage, SystemMessage, HumanMessage } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { DynamicTool } from '@langchain/core/tools'
 import { AiCoinInfoArraySchema, AiCoinInfoSchema } from './schemas'
@@ -304,9 +304,18 @@ const PROMPTS: Record<Locale, Record<QueryType, string>> = {
   ru: { prices: RU_PRICE, mintage: RU_MINTAGE, info: RU_INFO }
 }
 
+/**
+ * System prompt without any message placeholder — for the agentic loop,
+ * where the coin data is passed as a separate human message.
+ */
+function getBasePrompt(locale: string, queryType: QueryType): string {
+  const lang = locale.startsWith('ru') ? 'ru' : 'en'
+  return PROMPTS[lang][queryType]
+}
+
 function getPrompt(locale: string, queryType: QueryType, single: boolean): string {
   const lang = locale.startsWith('ru') ? 'ru' : 'en'
-  const base = PROMPTS[lang][queryType]
+  const base = getBasePrompt(locale, queryType)
   if (single) {
     return base + '\n' + (lang === 'ru' ? 'Монета:' : 'Coin:') + '\n{coin}'
   }
@@ -363,6 +372,50 @@ export async function querySingleCoin(
 
 // ── Tool-calling loop (agentic search path) ──────────────────────
 
+export interface TextualToolCall {
+  name: string
+  args: Record<string, unknown>
+}
+
+/**
+ * Recover a tool call emitted as plain text instead of a structured
+ * OpenAI tool_call. Reasoning models (e.g. Qwen3-family) sometimes
+ * "think" the call: it lands in reasoning_content (or content) while
+ * the server returns an empty tool_calls array. Two formats are handled:
+ *   1. <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+ *   2. <tool_call><function=name><parameter=key>value</parameter></function></tool_call>
+ */
+export function extractTextualToolCall(text: string): TextualToolCall | null {
+  if (!text) return null
+
+  const jsonMatch = text.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[1])
+      if (obj && typeof obj.name === 'string') {
+        const args = obj.arguments ?? obj.args ?? {}
+        return { name: obj.name, args: typeof args === 'object' && args !== null ? args : {} }
+      }
+    } catch {
+      /* not valid JSON — try the next format */
+    }
+  }
+
+  const fnMatch = text.match(/<function=([\w.-]+)>([\s\S]*?)<\/function>/)
+  if (fnMatch) {
+    const [, name, body] = fnMatch
+    const args: Record<string, string> = {}
+    const paramRe = /<parameter=([\w.-]+)>([\s\S]*?)<\/parameter>/g
+    let m: RegExpExecArray | null
+    while ((m = paramRe.exec(body)) !== null) {
+      args[m[1]] = m[2].trim()
+    }
+    return { name, args }
+  }
+
+  return null
+}
+
 /**
  * Run a model with bound tools in a manual agent loop.
  *
@@ -370,13 +423,21 @@ export async function querySingleCoin(
  * we execute them and feed results back as ToolMessages, then
  * invoke again. Stops when the model returns content without
  * further tool_calls (or maxIterations is reached).
+ *
+ * Robustness for reasoning models: if structured tool_calls is empty,
+ * we look for a textual tool call in reasoning_content/content and
+ * execute it; if the answer is empty entirely, the model is nudged
+ * towards the final JSON (see nudgeMessage) instead of failing fast.
  */
 async function invokeWithTools(
   boundModel: BaseChatModel,
   messages: BaseMessage[],
   tools: DynamicTool[],
-  maxIterations = 6
+  options: { maxIterations?: number; nudgeMessage?: string } = {}
 ): Promise<string> {
+  const { maxIterations = 6, nudgeMessage } = options
+  let nudges = 0
+
   for (let i = 0; i < maxIterations; i++) {
     const response = await boundModel.invoke(messages)
 
@@ -390,7 +451,38 @@ async function invokeWithTools(
       []
 
     if (toolCalls.length === 0) {
-      return getMessageText(response)
+      const text = getMessageText(response)
+
+      const reasoning = String(response.additional_kwargs?.reasoning_content ?? '')
+      const textual = extractTextualToolCall(reasoning) ?? extractTextualToolCall(text)
+
+      if (textual) {
+        const tool = tools.find((t) => t.name === textual.name)
+        if (tool) {
+          console.log('[chains] recovered textual tool call from model output:', textual.name)
+          const id = `textual_call_${i}`
+          const input = textual.args.query || textual.args.input || JSON.stringify(textual.args)
+          const result = await tool.invoke(String(input))
+          messages = [
+            ...messages,
+            new AIMessage({
+              content: '',
+              tool_calls: [{ id, name: textual.name, args: textual.args, type: 'tool_call' }]
+            }),
+            new ToolMessage({ content: String(result), tool_call_id: id })
+          ]
+          continue
+        }
+      }
+
+      if (!text.trim() && nudgeMessage && nudges < 2) {
+        nudges++
+        console.log('[chains] empty response without tool calls, nudging model')
+        messages = [...messages, new HumanMessage(nudgeMessage)]
+        continue
+      }
+
+      return text
     }
 
     // Execute each tool call and collect results
@@ -445,10 +537,17 @@ export async function querySingleCoinWithSearch(
     locale
   })
 
-  const promptText = getPrompt(locale, queryType, true)
+  // Use the bare system prompt: the coin data goes into the human message,
+  // so the prompt must not contain the literal '{coin}' placeholder.
+  const promptText = getBasePrompt(locale, queryType)
   const coinText = formatSingleCoinForPrompt(coin)
   const lang = locale.startsWith('ru') ? 'ru' : 'en'
   const coinLabel = lang === 'ru' ? 'Монета' : 'Coin'
+
+  const nudgeMessage =
+    lang === 'ru'
+      ? 'Теперь выведи ТОЛЬКО финальный JSON по монете — без рассуждений, без вызовов инструментов, без markdown.'
+      : 'Now output ONLY the final JSON for the coin — no reasoning, no tool calls, no markdown.'
 
   const messages: BaseMessage[] = [
     new SystemMessage(promptText),
@@ -462,47 +561,7 @@ export async function querySingleCoinWithSearch(
   // We use bind and cast back to BaseChatModel for the invoke interface.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const boundModel = model.bindTools([searchTool]) as any as BaseChatModel
-  const rawText = await invokeWithTools(boundModel, messages, [searchTool])
+  const rawText = await invokeWithTools(boundModel, messages, [searchTool], { nudgeMessage })
 
   return extractAndValidateSingle(rawText)
-}
-
-/**
- * Bulk query with web search. Each coin is processed individually
- * via `querySingleCoinWithSearch`, with progress reported after every coin.
- *
- * This replaces the no-search bulk path (which batches 5 coins per LLM call)
- * because each coin with web search needs its own tool-call loop.
- */
-export async function queryBulkCoinsWithSearch(
-  model: BaseChatModel,
-  searchTool: DynamicTool,
-  coins: Coin[],
-  queryType: QueryType,
-  locale = 'en',
-  onProgress?: (result: AiCoinInfo, index: number, total: number) => void
-): Promise<AiCoinInfo[]> {
-  console.log('[chains] queryBulkCoinsWithSearch:', {
-    coinCount: coins.length,
-    queryType,
-    locale
-  })
-
-  const results: AiCoinInfo[] = []
-
-  for (let i = 0; i < coins.length; i++) {
-    const result = await querySingleCoinWithSearch(
-      model,
-      searchTool,
-      coins[i],
-      queryType,
-      locale
-    )
-    results.push(result)
-    if (onProgress) {
-      onProgress(result, i + 1, coins.length)
-    }
-  }
-
-  return results
 }

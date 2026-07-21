@@ -159,6 +159,7 @@ i18n.use(initReactI18next).init({
           pasteJson: 'Paste JSON response from AI chat (array of objects with "id" field):',
           parseJson: 'Parse JSON',
           appendToNotes: 'Append to Notes',
+          savedToNotes: 'Saved to notes',
           clearResult: 'Clear',
           queryPrice: 'eBay price',
           queryMintage: 'Mintage',

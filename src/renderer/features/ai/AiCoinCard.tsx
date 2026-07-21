@@ -10,9 +10,8 @@ interface AiCoinCardProps {
   loading: boolean
   perCoinLoading: boolean
   onQuerySingle: (coinId: string, queryType: QueryType) => void
-  onAppendToNotes: (coinId: string) => Promise<string | null>
+  onAppendToNotes: (coinId: string) => Promise<boolean>
   onClearResult: (coinId: string) => void
-  onCoinUpdated: (coinId: string, newNotes: string) => void
 }
 
 export function AiCoinCard({
@@ -22,8 +21,7 @@ export function AiCoinCard({
   perCoinLoading,
   onQuerySingle,
   onAppendToNotes,
-  onClearResult,
-  onCoinUpdated
+  onClearResult
 }: AiCoinCardProps): React.ReactElement {
   const { t } = useTranslation()
 
@@ -43,13 +41,17 @@ export function AiCoinCard({
   }, [aiResult, t])
 
   const [appendingId, setAppendingId] = React.useState<string | null>(null)
+  const [savedOk, setSavedOk] = React.useState(false)
+
+  // Reset the "saved" indicator when a new AI result arrives
+  React.useEffect(() => {
+    setSavedOk(false)
+  }, [aiResult])
 
   const handleAppend = async (): Promise<void> => {
     setAppendingId(coin.id)
-    const newNotes = await onAppendToNotes(coin.id)
-    if (newNotes) {
-      onCoinUpdated(coin.id, newNotes)
-    }
+    const ok = await onAppendToNotes(coin.id)
+    setSavedOk(ok)
     setAppendingId(null)
   }
 
@@ -101,7 +103,11 @@ export function AiCoinCard({
               onClick={handleAppend}
               disabled={appendingId === coin.id}
             >
-              {appendingId === coin.id ? '...' : t('ai.appendToNotes', { defaultValue: 'Append to Notes' })}
+              {appendingId === coin.id
+                ? '...'
+                : savedOk
+                  ? `✓ ${t('ai.savedToNotes', { defaultValue: 'Saved to notes' })}`
+                  : t('ai.appendToNotes', { defaultValue: 'Append to Notes' })}
             </Button>
             <Button
               size="xs"

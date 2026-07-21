@@ -146,6 +146,7 @@
     "pasteJson": "Вставьте JSON-ответ из чата с ИИ (массив объектов с полем \"id\"):",
     "parseJson": "Обработать JSON",
     "appendToNotes": "Записать в заметки",
+    "savedToNotes": "Записано в заметки",
     "clearResult": "Очистить",
     "queryPrice": "Цена на eBay",
     "queryMintage": "Тираж",
@@ -185,7 +186,7 @@
       "searchHintDdg": "Без API-ключа. Есть лимиты — только для тестирования.",
       "searchHintSearxng": "Свой метапоиск. Docker: docker run -p 8080:8080 searxng/searxng",
       "toolCallSupported": "Tool-calling: поддерживается ✓",
-      "toolCallNotSupported": "Tool-calling: не поддерживается — веб-поиск с этой моделью не заработает",
+      "toolCallNotSupported": "Tool-calling: модель не вызвала инструмент в тесте (может работать при реальных запросах). Попробуйте другой провайдер поиска, если застряло.",
       "searchTestOk": "Поисковый сервис: ок ✓",
       "searchTestFail": "Поисковый сервис: недоступен — проверьте API-ключ или URL"
     }

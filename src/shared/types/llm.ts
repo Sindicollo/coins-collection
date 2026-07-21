@@ -24,6 +24,8 @@ export interface AiCoinInfo {
   mintage?: string
   rarity?: string
   varieties?: string[]
+  /** Which query produced this result (stamped renderer-side; not part of LLM output) */
+  queryType?: QueryType
 }
 
 export interface AiBulkQuery {

@@ -40,6 +40,15 @@ function buildExportData(collectionId: string): LlmExportCoin[] {
   }))
 }
 
+const VALID_QUERY_TYPES = ['prices', 'mintage', 'info'] as const
+
+function validateQueryType(qt: string): 'prices' | 'mintage' | 'info' {
+  if (VALID_QUERY_TYPES.includes(qt as 'prices' | 'mintage' | 'info')) {
+    return qt as 'prices' | 'mintage' | 'info'
+  }
+  throw new Error(`Invalid queryType: "${qt}" — expected one of: ${VALID_QUERY_TYPES.join(', ')}`)
+}
+
 /**
  * Determine what search path to use based on config.
  *
@@ -184,6 +193,7 @@ export function registerLlmHandlers(): void {
           // Initialize session (existing processed + new coin IDs as we go)
           const existingExcluded = query.excludeCoinIds || []
           const processedIds = new Set(existingExcluded)
+          const model = createLlmModel(query.config)
 
           for (let i = 0; i < coins.length; i++) {
             if (cancelled) {
@@ -199,7 +209,6 @@ export function registerLlmHandlers(): void {
             }
 
             const coin = coins[i]
-            const model = createLlmModel(query.config)
             const result = await querySingleCoinWithSearch(
               model,
               searchTool,
@@ -273,7 +282,12 @@ export function registerLlmHandlers(): void {
             } satisfies LlmBulkProgress)
 
             if (i < batches.length - 1 && !cancelled) {
-              await sleep(Math.max(0, MIN_INTERVAL_MS - (Date.now() - batchStart)))
+              const elapsed = Date.now() - batchStart
+              const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
+              if (wait > 0) {
+                console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
+                await sleep(wait)
+              }
             }
           }
           return allResults
@@ -307,7 +321,12 @@ export function registerLlmHandlers(): void {
             } satisfies LlmBulkProgress)
 
             if (i < batches.length - 1 && !cancelled) {
-              await sleep(Math.max(0, MIN_INTERVAL_MS - (Date.now() - batchStart)))
+              const elapsed = Date.now() - batchStart
+              const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
+              if (wait > 0) {
+                console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
+                await sleep(wait)
+              }
             }
           }
           return allResults
@@ -374,14 +393,14 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.GET_BULK_SESSION,
     async (_event, collectionId: string, queryType: string) => {
-      return loadBulkSession(collectionId, queryType as 'prices' | 'mintage' | 'info')
+      return loadBulkSession(collectionId, validateQueryType(queryType))
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.CLEAR_BULK_SESSION,
     async (_event, collectionId: string, queryType: string): Promise<void> => {
-      clearBulkSession(collectionId, queryType as 'prices' | 'mintage' | 'info')
+      clearBulkSession(collectionId, validateQueryType(queryType))
     }
   )
 
@@ -410,6 +429,8 @@ export function registerLlmHandlers(): void {
         try {
           await model.invoke([new HumanMessage('Reply with just the word "OK"')])
         } catch (invokeErr) {
+          // LangChain bug: some API responses with empty choices cause
+          // "Cannot read properties of undefined (reading 'message')"
           if (
             invokeErr instanceof TypeError &&
             String(invokeErr.message).includes("reading 'message'")
@@ -443,19 +464,40 @@ export function registerLlmHandlers(): void {
                 const boundModel = model.bindTools([searchTool]) as unknown as BaseChatModel
                 const testMessages = [
                   new SystemMessage(
-                    'You MUST call the web_search tool right now. Search for "test query" and report the results. Do NOT answer without calling the tool first.'
+                    'You are a helpful assistant. Use the web_search function when you need real-time information from the internet.'
                   ),
-                  new HumanMessage('Call web_search tool to search for "test query".')
+                  new HumanMessage(
+                    'Search the web for "test query" and tell me what you find.'
+                  )
                 ] as unknown as Parameters<BaseChatModel['invoke']>[0]
                 const testResponse = await boundModel.invoke(testMessages)
 
+                // LC normalizes tool calls; also check raw additional_kwargs for compat
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const testToolCalls: any[] =
                   (testResponse as any).tool_calls ||
                   testResponse.additional_kwargs?.tool_calls ||
                   []
+                // LM Studio sometimes returns finish_reason 'tool_calls' even when LC
+                // doesn't parse tool_calls into the AIMessage — check response_metadata too
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const finishReason = (testResponse as any).response_metadata?.finish_reason
+                const hasFinishToolCalls = finishReason === 'tool_calls'
 
-                toolCallSupported = testToolCalls.length > 0
+                toolCallSupported = testToolCalls.length > 0 || hasFinishToolCalls
+
+                if (!toolCallSupported) {
+                  // Log what the model actually returned — useful for debugging
+                  const content =
+                    typeof testResponse.content === 'string'
+                      ? testResponse.content.slice(0, 300)
+                      : JSON.stringify(testResponse.content).slice(0, 300)
+                  console.log(
+                    '[llm:test] Tool-calling check: model did not emit tool_calls.',
+                    'Response content:', content,
+                    'finish_reason:', finishReason || 'unknown'
+                  )
+                }
               }
             } catch {
               toolCallSupported = false

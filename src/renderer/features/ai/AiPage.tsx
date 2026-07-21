@@ -145,12 +145,6 @@ export function AiPage(): React.ReactElement {
     querySingle(coinId, queryType)
   }
 
-  const handleCoinUpdated = (coinId: string, newNotes: string): void => {
-    setCoins((prev) =>
-      prev.map((c) => (c.id === coinId ? { ...c, notes: newNotes } : c))
-    )
-  }
-
   const handleBack = (): void => {
     // Reset coin store so CoinView reloads updated notes
     useCoinStore.getState().reset()
@@ -352,7 +346,6 @@ export function AiPage(): React.ReactElement {
                 onQuerySingle={handleSingleQuery}
                 onAppendToNotes={appendCoinToNotes}
                 onClearResult={clearCoinResult}
-                onCoinUpdated={handleCoinUpdated}
               />
             ))}
           </div>
