@@ -9,6 +9,9 @@ import type { Coin } from '@shared/types'
 
 const UNKNOWN = 'unknown'
 
+const ERROR_EMPTY_RESPONSE =
+  'Model returned empty response. Check that the model name is correct and the API key is valid.'
+
 function formatCoinsForPrompt(coins: Coin[]): string {
   return coins
     .map(
@@ -111,9 +114,7 @@ async function invokeAndExtract(
 
 function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
   if (!rawText || rawText.trim().length === 0) {
-    throw new Error(
-      'Model returned empty response. Check that the model name is correct and the API key is valid.'
-    )
+    throw new Error(ERROR_EMPTY_RESPONSE)
   }
 
   const cleaned = extractJsonFromText(rawText)
@@ -152,9 +153,7 @@ function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
 
 function extractAndValidateSingle(rawText: string): AiCoinInfo {
   if (!rawText || rawText.trim().length === 0) {
-    throw new Error(
-      'Model returned empty response. Check that the model name is correct and the API key is valid.'
-    )
+    throw new Error(ERROR_EMPTY_RESPONSE)
   }
 
   const cleaned = extractJsonFromText(rawText)

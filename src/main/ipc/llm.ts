@@ -10,7 +10,8 @@ import type {
   LlmConfig,
   LlmTestResult,
   LlmBulkProgress,
-  Coin
+  Coin,
+  QueryType
 } from '@shared/types'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
@@ -24,8 +25,91 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import type { DynamicTool } from '@langchain/core/tools'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
+const BATCH_SIZE = 5
+const MIN_INTERVAL_MS = 12000 // OpenRouter rate limit: 5 req/min
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Checkpoint: save bulk session progress for resume. */
+function checkpointSession(
+  collectionId: string,
+  queryType: QueryType,
+  processedIds: Set<string>,
+  noteError?: string
+): void {
+  try {
+    saveBulkSession({
+      collectionId,
+      queryType,
+      processedCoinIds: [...processedIds],
+      startedAt: Date.now()
+    })
+  } catch (err) {
+    console.error('[llm:ipc] Failed to save bulk session checkpoint:', err)
+  }
+  if (noteError) {
+    console.error('[llm:ipc] Note save error (session still saved):', noteError)
+  }
+}
+
+/**
+ * Run a batch-based query (used by both builtin and no-search paths).
+ * Emits bulk progress events after each batch.
+ */
+async function runBatchQuery(
+  event: Electron.IpcMainInvokeEvent,
+  coins: Coin[],
+  queryType: QueryType,
+  locale: string,
+  modelCallback: () => BaseChatModel,
+  cancelled: () => boolean,
+  collectionId: string,
+  processedIds: Set<string>
+): Promise<AiCoinInfo[]> {
+  const allResults: AiCoinInfo[] = []
+  const batches: Coin[][] = []
+  for (let i = 0; i < coins.length; i += BATCH_SIZE) {
+    batches.push(coins.slice(i, i + BATCH_SIZE))
+  }
+
+  for (let i = 0; i < batches.length; i++) {
+    if (cancelled()) {
+      console.log('[llm:ipc] Batched query cancelled at batch', i + 1, 'of', batches.length)
+      checkpointSession(collectionId, queryType, processedIds)
+      break
+    }
+
+    const batchStart = Date.now()
+    const model = modelCallback()
+    const batchResults = await queryBulkCoins(model, batches[i], queryType, locale)
+    allResults.push(...batchResults)
+    for (const coin of batches[i]) processedIds.add(coin.id)
+
+    // Save checkpoint after each batch
+    checkpointSession(collectionId, queryType, processedIds)
+
+    event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
+      processed: allResults.length,
+      total: coins.length,
+      currentBatch: i + 1,
+      totalBatches: batches.length,
+      results: batchResults
+    } satisfies LlmBulkProgress)
+
+    // Rate limit between batches
+    if (i < batches.length - 1 && !cancelled()) {
+      const elapsed = Date.now() - batchStart
+      const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
+      if (wait > 0) {
+        console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
+        await sleep(wait)
+      }
+    }
+  }
+
+  return allResults
 }
 
 function buildExportData(collectionId: string): LlmExportCoin[] {
@@ -147,9 +231,6 @@ export function registerLlmHandlers(): void {
 
   // --- AI query handlers ---
 
-  const BATCH_SIZE = 5
-  const MIN_INTERVAL_MS = 12000 // OpenRouter rate limit: 5 req/min
-
   const activeQueries = new Map<string, { cancel: () => void }>()
 
   // ── BULK query ───────────────────────────────────────────────
@@ -185,26 +266,20 @@ export function registerLlmHandlers(): void {
       activeQueries.set(queryKey, { cancel: () => { cancelled = true } })
 
       try {
+        const existingExcluded = query.excludeCoinIds || []
+        const processedIds = new Set(existingExcluded)
+
         if (searchPath === 'agentic') {
           // ── Agentic path: one coin at a time with tool-calling ──
           const searchTool = createSearchToolFromConfig(query.config)!
           const allResults: AiCoinInfo[] = []
 
-          // Initialize session (existing processed + new coin IDs as we go)
-          const existingExcluded = query.excludeCoinIds || []
-          const processedIds = new Set(existingExcluded)
           const model = createLlmModel(query.config)
 
           for (let i = 0; i < coins.length; i++) {
             if (cancelled) {
               console.log('[llm:ipc] Agentic bulk cancelled at coin', i + 1, 'of', coins.length)
-              // Save partial session for resume
-              saveBulkSession({
-                collectionId: query.collectionId,
-                queryType: query.queryType,
-                processedCoinIds: [...processedIds],
-                startedAt: Date.now()
-              })
+              checkpointSession(query.collectionId, query.queryType, processedIds)
               break
             }
 
@@ -219,18 +294,14 @@ export function registerLlmHandlers(): void {
             allResults.push(result)
             processedIds.add(coin.id)
 
-            // Auto-save to DB (S2 pattern)
+            // Auto-save to DB and session — independent operations
+            let noteError: string | undefined
             try {
               saveAiNote(coin.id, query.queryType, result.info || JSON.stringify(result))
-              saveBulkSession({
-                collectionId: query.collectionId,
-                queryType: query.queryType,
-                processedCoinIds: [...processedIds],
-                startedAt: Date.now()
-              })
             } catch (err) {
-              console.error('[llm:ipc] Failed to save AI note:', err)
+              noteError = err instanceof Error ? `note: ${err.message}` : String(err)
             }
+            checkpointSession(query.collectionId, query.queryType, processedIds, noteError)
 
             // Emit per-coin progress
             event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
@@ -256,81 +327,29 @@ export function registerLlmHandlers(): void {
 
         if (searchPath === 'builtin') {
           // ── OpenRouter built-in path: batched with fetch-hack ──
-          const allResults: AiCoinInfo[] = []
-          const batches: Coin[][] = []
-          for (let i = 0; i < coins.length; i += BATCH_SIZE) {
-            batches.push(coins.slice(i, i + BATCH_SIZE))
-          }
-
-          for (let i = 0; i < batches.length; i++) {
-            if (cancelled) {
-              console.log('[llm:ipc] Builtin bulk cancelled at batch', i + 1, 'of', batches.length)
-              break
-            }
-
-            const batchStart = Date.now()
-            const model = createLlmModel(query.config)
-            const batchResults = await queryBulkCoins(model, batches[i], query.queryType, locale)
-            allResults.push(...batchResults)
-
-            event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
-              processed: allResults.length,
-              total: coins.length,
-              currentBatch: i + 1,
-              totalBatches: batches.length,
-              results: batchResults
-            } satisfies LlmBulkProgress)
-
-            if (i < batches.length - 1 && !cancelled) {
-              const elapsed = Date.now() - batchStart
-              const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
-              if (wait > 0) {
-                console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
-                await sleep(wait)
-              }
-            }
-          }
-          return allResults
+          return runBatchQuery(
+            event,
+            coins,
+            query.queryType,
+            locale,
+            () => createLlmModel(query.config),
+            () => cancelled,
+            query.collectionId,
+            processedIds
+          )
         }
 
         // ── No-search path: batched ──
-        {
-          const allResults: AiCoinInfo[] = []
-          const batches: Coin[][] = []
-          for (let i = 0; i < coins.length; i += BATCH_SIZE) {
-            batches.push(coins.slice(i, i + BATCH_SIZE))
-          }
-
-          for (let i = 0; i < batches.length; i++) {
-            if (cancelled) {
-              console.log('[llm:ipc] No-search bulk cancelled at batch', i + 1, 'of', batches.length)
-              break
-            }
-
-            const batchStart = Date.now()
-            const model = createLlmModel(query.config)
-            const batchResults = await queryBulkCoins(model, batches[i], query.queryType, locale)
-            allResults.push(...batchResults)
-
-            event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
-              processed: allResults.length,
-              total: coins.length,
-              currentBatch: i + 1,
-              totalBatches: batches.length,
-              results: batchResults
-            } satisfies LlmBulkProgress)
-
-            if (i < batches.length - 1 && !cancelled) {
-              const elapsed = Date.now() - batchStart
-              const wait = Math.max(0, MIN_INTERVAL_MS - elapsed)
-              if (wait > 0) {
-                console.log(`[llm:ipc] Rate limit: waiting ${(wait / 1000).toFixed(1)}s before next batch`)
-                await sleep(wait)
-              }
-            }
-          }
-          return allResults
-        }
+        return runBatchQuery(
+          event,
+          coins,
+          query.queryType,
+          locale,
+          () => createLlmModel(query.config),
+          () => cancelled,
+          query.collectionId,
+          processedIds
+        )
       } finally {
         activeQueries.delete(queryKey)
       }

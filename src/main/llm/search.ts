@@ -29,8 +29,26 @@ interface SearchResult {
   url?: string
 }
 
+// ── Typed response shapes for each search provider ───────────────
+
+interface TavilyResponse {
+  results?: Array<{ title?: string; content?: string; snippet?: string; url?: string }>
+}
+
+interface BraveResponse {
+  web?: {
+    results?: Array<{ title?: string; description?: string; snippet?: string; url?: string }>
+  }
+}
+
+interface SearxngResponse {
+  results?: Array<{ title?: string; content?: string; snippet?: string; url?: string }>
+}
+
 /**
  * Compress search results into a compact format.
+ * Each result is prefixed with `[SEARCH]` to help the model distinguish
+ * internet content from its own knowledge, reducing prompt-injection risk.
  * Limits each result to 500 chars to avoid overflowing the model context.
  */
 function normalizeResults(
@@ -41,10 +59,10 @@ function normalizeResults(
   const sliced = results.slice(0, maxResults)
   const lines = sliced.map((r) => {
     const body = r.snippet.length > maxChars ? r.snippet.slice(0, maxChars - 3) + '...' : r.snippet
-    return `${r.title} — ${body}${r.url ? ` (${r.url})` : ''}`
+    return `[SEARCH] ${r.title} — ${body}${r.url ? ` (${r.url})` : ''}`
   })
   if (results.length > maxResults) {
-    lines.push(`(showing ${maxResults} of ${results.length} results)`)
+    lines.push(`[SEARCH NOTE] (showing ${maxResults} of ${results.length} results)`)
   }
   return lines.join('\n\n')
 }
@@ -68,11 +86,9 @@ async function tavilySearch(query: string, config: SearchConfig): Promise<string
     const errText = await res.text().catch(() => '')
     throw new Error(`Tavily search failed (${res.status}): ${errText.slice(0, 200)}`)
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await res.json()) as any
+  const data = (await res.json()) as TavilyResponse
   const results: SearchResult[] = (data.results || []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (r: any) => ({
+    (r) => ({
       title: r.title || '',
       snippet: r.content || r.snippet || '',
       url: r.url || ''
@@ -95,11 +111,10 @@ async function braveSearch(query: string, config: SearchConfig): Promise<string>
     const errText = await res.text().catch(() => '')
     throw new Error(`Brave search failed (${res.status}): ${errText.slice(0, 200)}`)
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await res.json()) as any
-  const results: SearchResult[] = ((data.web?.results as any[]) || []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (r: any) => ({
+  const data = (await res.json()) as BraveResponse
+  const webResults = data.web?.results || []
+  const results: SearchResult[] = webResults.map(
+    (r) => ({
       title: r.title || '',
       snippet: r.description || r.snippet || '',
       url: r.url || ''
@@ -148,11 +163,9 @@ async function searxngSearch(query: string, config: SearchConfig): Promise<strin
     const errText = await res.text().catch(() => '')
     throw new Error(`SearXNG search failed (${res.status}): ${errText.slice(0, 200)}`)
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await res.json()) as any
-  const results: SearchResult[] = ((data.results as any[]) || []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (r: any) => ({
+  const data = (await res.json()) as SearxngResponse
+  const results: SearchResult[] = (data.results || []).map(
+    (r) => ({
       title: r.title || '',
       snippet: r.content || r.snippet || '',
       url: r.url || ''
