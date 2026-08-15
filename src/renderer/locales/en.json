@@ -182,7 +182,7 @@
       "searchBaseUrl": "Base URL",
       "searchMaxResults": "Max Results",
       "searchHintTavily": "Optimized for LLMs. Free tier: 1000 queries/month. Get API key at tavily.com",
-      "searchHintBrave": "Good coverage. Free tier: 2000 queries/month. Get API key at api.search.brave.com",
+      "searchHintBrave": "Good coverage. $5 free credits/month (~1000 queries). Card required even on the free plan. Get API key at api-dashboard.search.brave.com",
       "searchHintDdg": "No API key needed. Rate-limited — for testing only.",
       "searchHintSearxng": "Self-hosted metasearch engine. Docker: docker run -p 8080:8080 searxng/searxng",
       "toolCallSupported": "Tool-calling: supported ✓",

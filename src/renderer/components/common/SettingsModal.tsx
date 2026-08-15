@@ -80,7 +80,7 @@ interface WebSearchSectionProps {
 
 function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.ReactElement {
   const { t } = useTranslation()
-  const search = config.search || { provider: 'tavily', apiKey: '', baseUrl: '', maxResults: 5 }
+  const search = config.search || { provider: 'tavily', apiKeys: {}, baseUrl: '', maxResults: 5 }
 
   function updateSearch(patch: Partial<typeof search>): void {
     onChange({ ...config, search: { ...search, ...patch } })
@@ -126,10 +126,12 @@ function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.Re
       {needsApiKey && (
         <Input
           label={t('ai.settings.searchApiKey', { defaultValue: 'Search API Key' })}
-          type="password"
-          value={search.apiKey}
-          onChange={(e) => updateSearch({ apiKey: e.target.value })}
-          placeholder="tvly-..."
+          type="text"
+          value={search.apiKeys?.[search.provider] || ''}
+          onChange={(e) =>
+            updateSearch({ apiKeys: { ...search.apiKeys, [search.provider]: e.target.value } })
+          }
+          placeholder={search.provider === 'brave' ? 'BSA...' : 'tvly-...'}
         />
       )}
 
@@ -168,7 +170,7 @@ function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.Re
             })}
           {search.provider === 'brave' &&
             t('ai.settings.searchHintBrave', {
-              defaultValue: 'Good coverage. Free tier: 2000 queries/month. Get API key at api.search.brave.com'
+              defaultValue: 'Good coverage. $5 free credits/month (~1000 queries). Card required even on the free plan. Get API key at api-dashboard.search.brave.com'
             })}
           {search.provider === 'ddg' &&
             t('ai.settings.searchHintDdg', {
@@ -190,7 +192,7 @@ interface AiSettingsPanelProps {
   config: LlmConfig
   onChange: (config: LlmConfig) => void
   testing: boolean
-  testResult: { ok: boolean; error?: string; toolCallSupported?: boolean; searchProviderOk?: boolean } | null
+  testResult: { ok: boolean; error?: string; toolCallSupported?: boolean; searchProviderOk?: boolean; searchProviderError?: string } | null
   saveError: string | null
   onTest: () => void
   loaded: boolean
@@ -258,7 +260,7 @@ function AiSettingsPanel({
       {/* API Key */}
       <Input
         label={t('ai.settings.apiKey', { defaultValue: 'API Key' })}
-        type="password"
+        type="text"
         value={config.apiKey}
         onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
         placeholder="sk-..."
@@ -289,18 +291,29 @@ function AiSettingsPanel({
 
       {/* Test result */}
       {testResult && (
-        <div
-          className={`text-xs px-3 py-2 rounded-md ${
-            testResult.ok
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          <div>{testResult.ok
-            ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
-            : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}</div>
+        <div className="space-y-1">
+          {/* Connection */}
+          <div
+            className={`text-xs px-3 py-2 rounded-md border ${
+              testResult.ok
+                ? 'bg-green-50 text-green-700 border-green-200'
+                : 'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            {testResult.ok
+              ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
+              : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
+          </div>
+
+          {/* Tool-calling support */}
           {testResult.toolCallSupported !== undefined && (
-            <div className="mt-1">
+            <div
+              className={`text-xs px-3 py-2 rounded-md border ${
+                testResult.toolCallSupported
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+            >
               {testResult.toolCallSupported
                 ? t('ai.settings.toolCallSupported', { defaultValue: 'Tool-calling: supported ✓' })
                 : t('ai.settings.toolCallNotSupported', {
@@ -308,11 +321,20 @@ function AiSettingsPanel({
                   })}
             </div>
           )}
+
+          {/* Search provider */}
           {testResult.searchProviderOk !== undefined && (
-            <div className="mt-1">
+            <div
+              className={`text-xs px-3 py-2 rounded-md border ${
+                testResult.searchProviderOk
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
               {testResult.searchProviderOk
                 ? t('ai.settings.searchTestOk', { defaultValue: 'Search provider: ok ✓' })
-                : t('ai.settings.searchTestFail', {
+                : testResult.searchProviderError ||
+                  t('ai.settings.searchTestFail', {
                     defaultValue: 'Search provider: unreachable — check your API key or base URL'
                   })}
             </div>
@@ -368,6 +390,7 @@ export function SettingsModal({
     error?: string
     toolCallSupported?: boolean
     searchProviderOk?: boolean
+    searchProviderError?: string
   } | null>(null)
   const [aiLoaded, setAiLoaded] = React.useState(false)
   const [aiSaveError, setAiSaveError] = React.useState<string | null>(null)
@@ -427,9 +450,10 @@ export function SettingsModal({
     onClose()
   }
 
-  const handleSave = (): void => {
+  const handleSave = async (): Promise<void> => {
     onSaveCurrency(selectedCurrency)
-    onClose()
+    // Save AI config too — handleClose persists it and closes the modal
+    await handleClose()
   }
 
   return (

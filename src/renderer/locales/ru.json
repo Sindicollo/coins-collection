@@ -182,7 +182,7 @@
       "searchBaseUrl": "Базовый URL",
       "searchMaxResults": "Макс. результатов",
       "searchHintTavily": "Оптимизирован для LLM. Бесплатно: 1000 запросов/мес. Ключ на tavily.com",
-      "searchHintBrave": "Хорошее покрытие. Бесплатно: 2000 запросов/мес. Ключ на api.search.brave.com",
+      "searchHintBrave": "Хорошее покрытие. $5 бесплатных кредитов/мес (~1000 запросов). Нужна карта даже на бесплатном плане. Ключ на api-dashboard.search.brave.com",
       "searchHintDdg": "Без API-ключа. Есть лимиты — только для тестирования.",
       "searchHintSearxng": "Свой метапоиск. Docker: docker run -p 8080:8080 searxng/searxng",
       "toolCallSupported": "Tool-calling: поддерживается ✓",

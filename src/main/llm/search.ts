@@ -8,6 +8,13 @@
 
 import { DynamicTool } from '@langchain/core/tools'
 import type { SearchConfig, SearchProvider } from '@shared/types'
+import { net } from 'electron'
+
+// NOTE: search requests use Electron's `net.fetch` (Chromium network stack)
+// instead of Node's `fetch`. Node's fetch ignores the OS system proxy, so a
+// proxy-based VPN (e.g. a local HTTP/SOCKS proxy configured in macOS) would be
+// bypassed and requests would egress with the machine's real IP — causing
+// geo-blocking (e.g. Tavily 403 from RU). `net.fetch` honors the system proxy.
 
 // ── Result normalization ──────────────────────────────────────────
 
@@ -71,20 +78,31 @@ function normalizeResults(
 
 async function tavilySearch(query: string, config: SearchConfig): Promise<string> {
   const body = {
-    api_key: config.apiKey,
     query,
     max_results: config.maxResults,
     search_depth: 'basic' as const
   }
-  const res = await fetch('https://api.tavily.com/search', {
+  const res = await net.fetch('https://api.tavily.com/search', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.apiKeys?.tavily ?? ''}`,
+      'User-Agent': 'coin-collection/1.0'
+    },
     body: JSON.stringify(body),
     signal: timeoutSignal()
   })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
-    throw new Error(`Tavily search failed (${res.status}): ${errText.slice(0, 200)}`)
+    console.error(`[search:tavily] ${res.status} — ${errText}`)
+    // Tavily returns JSON errors (401/429/…). A plain HTML 403 means the
+    // request was dropped at the network edge (geo-blocking), not an API error.
+    const isHtml = /^\s*</.test(errText)
+    const message =
+      res.status === 403 && isHtml
+        ? 'Tavily search failed (403): request blocked at the network edge (likely geo-blocking). Try a VPN or switch search provider.'
+        : `Tavily search failed (${res.status}): ${errText.slice(0, 200)}`
+    throw new Error(message)
   }
   const data = (await res.json()) as TavilyResponse
   const results: SearchResult[] = (data.results || []).map(
@@ -99,11 +117,12 @@ async function tavilySearch(query: string, config: SearchConfig): Promise<string
 
 async function braveSearch(query: string, config: SearchConfig): Promise<string> {
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${config.maxResults}`
-  const res = await fetch(url, {
+  const res = await net.fetch(url, {
     headers: {
       Accept: 'application/json',
       'Accept-Encoding': 'gzip',
-      'X-Subscription-Token': config.apiKey
+      'User-Agent': 'coin-collection/1.0',
+      'X-Subscription-Token': config.apiKeys?.brave ?? ''
     },
     signal: timeoutSignal()
   })
@@ -116,7 +135,8 @@ async function braveSearch(query: string, config: SearchConfig): Promise<string>
   const results: SearchResult[] = webResults.map(
     (r) => ({
       title: r.title || '',
-      snippet: r.description || r.snippet || '',
+      // Brave returns descriptions with inline HTML (e.g. <strong>) — strip tags
+      snippet: (r.description || r.snippet || '').replace(/<[^>]*>/g, ''),
       url: r.url || ''
     })
   )
@@ -126,7 +146,10 @@ async function braveSearch(query: string, config: SearchConfig): Promise<string>
 async function ddgSearch(query: string, config: SearchConfig): Promise<string> {
   // DuckDuckGo lite API — no key required, but rate-limited
   const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`
-  const res = await fetch(url, { signal: timeoutSignal() })
+  const res = await net.fetch(url, {
+    signal: timeoutSignal(),
+    headers: { 'User-Agent': 'coin-collection/1.0' }
+  })
   if (!res.ok) {
     throw new Error(`DuckDuckGo search failed (${res.status})`)
   }
@@ -158,7 +181,10 @@ async function ddgSearch(query: string, config: SearchConfig): Promise<string> {
 async function searxngSearch(query: string, config: SearchConfig): Promise<string> {
   const baseUrl = config.baseUrl.replace(/\/$/, '')
   const url = `${baseUrl}/search?q=${encodeURIComponent(query)}&format=json&categories=general`
-  const res = await fetch(url, { signal: timeoutSignal() })
+  const res = await net.fetch(url, {
+    signal: timeoutSignal(),
+    headers: { 'User-Agent': 'coin-collection/1.0' }
+  })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`SearXNG search failed (${res.status}): ${errText.slice(0, 200)}`)
@@ -176,6 +202,27 @@ async function searxngSearch(query: string, config: SearchConfig): Promise<strin
 
 // ── Tool factory ──────────────────────────────────────────────────
 
+type SearchFunction = (query: string, config: SearchConfig) => Promise<string>
+
+/**
+ * Resolve a provider's search implementation. Throws for unsupported
+ * providers ('none' / 'openrouter_builtin' never reach the agentic path).
+ */
+function getSearchFunction(provider: SearchProvider): SearchFunction {
+  switch (provider) {
+    case 'tavily':
+      return tavilySearch
+    case 'brave':
+      return braveSearch
+    case 'ddg':
+      return ddgSearch
+    case 'searxng':
+      return searxngSearch
+    default:
+      throw new Error(`Unsupported search provider: ${provider}`)
+  }
+}
+
 /**
  * Create a LangChain DynamicTool for web search.
  *
@@ -184,22 +231,7 @@ async function searxngSearch(query: string, config: SearchConfig): Promise<strin
  * string and returns normalized search results.
  */
 export function createSearchTool(config: SearchConfig): DynamicTool {
-  const searchFn = (provider: SearchProvider) => {
-    switch (provider) {
-      case 'tavily':
-        return tavilySearch
-      case 'brave':
-        return braveSearch
-      case 'ddg':
-        return ddgSearch
-      case 'searxng':
-        return searxngSearch
-      default:
-        throw new Error(`Unsupported search provider: ${provider}`)
-    }
-  }
-
-  const search = searchFn(config.provider)
+  const search = getSearchFunction(config.provider)
 
   return new DynamicTool({
     name: 'web_search',
@@ -223,14 +255,10 @@ export function createSearchTool(config: SearchConfig): DynamicTool {
  * is valid. Returns `{ ok, error }`.
  */
 export async function testSearchProvider(config: SearchConfig): Promise<{ ok: boolean; error?: string }> {
-  // If no key needed (DDG), or already validated — skip? Actually always test.
   try {
-    const tool = createSearchTool(config)
+    const search = getSearchFunction(config.provider)
     // Run a quick test query — keep it very short
-    const result = await tool.func('test')
-    if (result.startsWith('Search error:')) {
-      return { ok: false, error: result }
-    }
+    await search('test', config)
     return { ok: true }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -1,4 +1,11 @@
-import type { LlmConfig, LlmProviderType, SearchConfig, BulkSessionState, QueryType } from '@shared/types'
+import type {
+  LlmConfig,
+  LlmProviderType,
+  SearchConfig,
+  SearchProvider,
+  BulkSessionState,
+  QueryType
+} from '@shared/types'
 import { DEFAULT_SEARCH_CONFIG } from '@shared/types'
 import { getPreference, setPreference } from '../database/repositories/preferences'
 
@@ -11,13 +18,16 @@ const PREF_KEYS = {
 
   // Search config
   searchProvider: 'llm.search.provider',
-  searchApiKey: 'llm.search.apiKey',
+  searchApiKeys: 'llm.search.apiKeys',
   searchBaseUrl: 'llm.search.baseUrl',
   searchMaxResults: 'llm.search.maxResults',
 
   // Bulk session (resume)
   bulkSession: 'llm.bulkSession'
 } as const
+
+/** Legacy single search API key (pre per-provider keys). Kept only for migration. */
+const LEGACY_SEARCH_API_KEY = 'llm.search.apiKey'
 
 function envConfig(): LlmConfig {
   return {
@@ -34,11 +44,33 @@ function validateProvider(p: string): LlmProviderType {
   return valid.includes(p as LlmProviderType) ? (p as LlmProviderType) : 'openrouter'
 }
 
+function parseApiKeys(raw?: string): Partial<Record<SearchProvider, string>> {
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<SearchProvider, string>>) : {}
+  } catch {
+    return {}
+  }
+}
+
 function loadSearchConfig(): SearchConfig {
-  const provider = getPreference(PREF_KEYS.searchProvider)
+  const provider = (getPreference(PREF_KEYS.searchProvider) as SearchConfig['provider']) || DEFAULT_SEARCH_CONFIG.provider
+  let apiKeys = parseApiKeys(getPreference(PREF_KEYS.searchApiKeys))
+
+  // Migration: legacy single apiKey (llm.search.apiKey) → per-provider map.
+  // Best effort — the old schema can't tell which provider the key belonged to,
+  // so we assign it to the currently stored provider.
+  const legacyKey = getPreference(LEGACY_SEARCH_API_KEY)
+  if (legacyKey && !apiKeys[provider]) {
+    apiKeys = { ...apiKeys, [provider]: legacyKey }
+    setPreference(PREF_KEYS.searchApiKeys, JSON.stringify(apiKeys))
+    setPreference(LEGACY_SEARCH_API_KEY, '')
+  }
+
   return {
-    provider: (provider as SearchConfig['provider']) || DEFAULT_SEARCH_CONFIG.provider,
-    apiKey: getPreference(PREF_KEYS.searchApiKey) || DEFAULT_SEARCH_CONFIG.apiKey,
+    provider,
+    apiKeys,
     baseUrl: getPreference(PREF_KEYS.searchBaseUrl) || DEFAULT_SEARCH_CONFIG.baseUrl,
     maxResults: Number(getPreference(PREF_KEYS.searchMaxResults)) || DEFAULT_SEARCH_CONFIG.maxResults
   }
@@ -46,7 +78,7 @@ function loadSearchConfig(): SearchConfig {
 
 function saveSearchConfig(search: SearchConfig): void {
   setPreference(PREF_KEYS.searchProvider, search.provider)
-  setPreference(PREF_KEYS.searchApiKey, search.apiKey)
+  setPreference(PREF_KEYS.searchApiKeys, JSON.stringify(search.apiKeys || {}))
   setPreference(PREF_KEYS.searchBaseUrl, search.baseUrl)
   setPreference(PREF_KEYS.searchMaxResults, String(search.maxResults))
 }

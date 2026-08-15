@@ -467,6 +467,7 @@ export function registerLlmHandlers(): void {
         const searchPath = getSearchPath(config)
         let toolCallSupported: boolean | undefined
         let searchProviderOk: boolean | undefined
+        let searchProviderError: string | undefined
 
         if (searchPath === 'agentic') {
           const searchTool = createSearchToolFromConfig(config)
@@ -474,6 +475,7 @@ export function registerLlmHandlers(): void {
             // 2a: Test search provider connectivity
             const searchTest = await testSearchProvider(config!.search!)
             searchProviderOk = searchTest.ok
+            searchProviderError = searchTest.error
 
             // 2b: Test that the model supports tool-calling
             try {
@@ -524,7 +526,7 @@ export function registerLlmHandlers(): void {
           }
         }
 
-        return { ok: true, toolCallSupported, searchProviderOk }
+        return { ok: true, toolCallSupported, searchProviderOk, searchProviderError }
       } catch (err) {
         try {
           console.error('[llm] Full error:', {

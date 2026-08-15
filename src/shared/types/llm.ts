@@ -12,7 +12,9 @@ export type SearchProvider =
 
 export interface SearchConfig {
   provider: SearchProvider
-  apiKey: string
+  /** API keys keyed by provider — switching providers preserves each key. */
+  apiKeys: Partial<Record<SearchProvider, string>>
+  /** SearXNG instance base URL. */
   baseUrl: string
   maxResults: number
 }
@@ -60,6 +62,8 @@ export interface LlmTestResult {
   toolCallSupported?: boolean
   /** Whether the search provider is reachable/auth'd */
   searchProviderOk?: boolean
+  /** Human-readable reason the search provider failed (status code, etc.) */
+  searchProviderError?: string
 }
 
 export interface LlmBulkProgress {
@@ -83,8 +87,8 @@ export type LlmProviderType = LlmConfig['provider']
 export const AI_NOTE_TITLE_PREFIX = 'AI: '
 
 export const DEFAULT_SEARCH_CONFIG: SearchConfig = {
-  provider: 'tavily',
-  apiKey: '',
+  provider: 'ddg',
+  apiKeys: {},
   baseUrl: '',
   maxResults: 5
 }
