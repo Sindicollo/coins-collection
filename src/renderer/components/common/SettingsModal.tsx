@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { CURRENCIES } from '@/utils/currency'
 import * as aiApi from '@/features/ai/api'
 import type { LlmConfig, LlmProviderType, SearchProvider } from '@shared/types'
@@ -124,9 +125,8 @@ function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.Re
 
       {/* API Key (Tavily/Brave only) */}
       {needsApiKey && (
-        <Input
+        <PasswordInput
           label={t('ai.settings.searchApiKey', { defaultValue: 'Search API Key' })}
-          type="text"
           value={search.apiKeys?.[search.provider] || ''}
           onChange={(e) =>
             updateSearch({ apiKeys: { ...search.apiKeys, [search.provider]: e.target.value } })
@@ -258,9 +258,8 @@ function AiSettingsPanel({
       />
 
       {/* API Key */}
-      <Input
+      <PasswordInput
         label={t('ai.settings.apiKey', { defaultValue: 'API Key' })}
-        type="text"
         value={config.apiKey}
         onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
         placeholder="sk-..."

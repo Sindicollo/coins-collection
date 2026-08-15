@@ -183,6 +183,8 @@ i18n.use(initReactI18next).init({
             baseUrl: 'Base URL',
             model: 'Model',
             apiKey: 'API Key',
+            showKey: 'Show API key',
+            hideKey: 'Hide API key',
             testConnection: 'Test Connection',
             testOk: 'Connection successful!',
             testFailed: 'Connection failed',

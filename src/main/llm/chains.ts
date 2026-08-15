@@ -568,8 +568,14 @@ async function invokeWithTools(
       const fn = tc.function || tc
       const name = fn.name || tc.name
       const rawArgs = fn.args || fn.arguments
-      const args =
-        typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs || {}
+      let args: Record<string, unknown>
+      try {
+        args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs || {}
+      } catch {
+        // Model emitted malformed arguments — skip this call instead of aborting
+        console.warn('[chains] Skipping malformed tool call:', name, String(rawArgs).slice(0, 100))
+        continue
+      }
 
       const tool = tools.find((t) => t.name === name)
       if (tool) {

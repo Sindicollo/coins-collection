@@ -238,10 +238,11 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_BULK,
     async (event, query: AiBulkQuery): Promise<AiCoinInfo[]> => {
-      const queryKey = `${query.collectionId}:${query.queryType}`
+      const queryType = validateQueryType(query.queryType)
+      const queryKey = `${query.collectionId}:${queryType}`
       console.log('[llm:ipc] QUERY_BULK:', {
         collectionId: query.collectionId,
-        queryType: query.queryType,
+        queryType,
         excludeCoinIds: query.excludeCoinIds?.length || 0
       })
 
@@ -256,7 +257,7 @@ export function registerLlmHandlers(): void {
       }
 
       if (coins.length === 0) {
-        clearBulkSession(query.collectionId, query.queryType)
+        clearBulkSession(query.collectionId, queryType)
         return []
       }
 
@@ -271,7 +272,10 @@ export function registerLlmHandlers(): void {
 
         if (searchPath === 'agentic') {
           // ── Agentic path: one coin at a time with tool-calling ──
-          const searchTool = createSearchToolFromConfig(query.config)!
+          const searchTool = createSearchToolFromConfig(query.config)
+          if (!searchTool) {
+            throw new Error('Web search is enabled but no search tool could be created')
+          }
           const allResults: AiCoinInfo[] = []
 
           const model = createLlmModel(query.config)
@@ -279,29 +283,31 @@ export function registerLlmHandlers(): void {
           for (let i = 0; i < coins.length; i++) {
             if (cancelled) {
               console.log('[llm:ipc] Agentic bulk cancelled at coin', i + 1, 'of', coins.length)
-              checkpointSession(query.collectionId, query.queryType, processedIds)
+              checkpointSession(query.collectionId, queryType, processedIds)
               break
             }
 
             const coin = coins[i]
-            const result = await querySingleCoinWithSearch(
-              model,
-              searchTool,
-              coin,
-              query.queryType,
-              locale
-            )
+            let result: AiCoinInfo
+            try {
+              result = await querySingleCoinWithSearch(model, searchTool, coin, queryType, locale)
+            } catch (err) {
+              // One bad coin shouldn't abort the whole bulk; resume will retry it later.
+              console.error(`[llm:ipc] Coin ${coin.id} failed, skipping:`, err)
+              checkpointSession(query.collectionId, queryType, processedIds)
+              continue
+            }
             allResults.push(result)
             processedIds.add(coin.id)
 
             // Auto-save to DB and session — independent operations
             let noteError: string | undefined
             try {
-              saveAiNote(coin.id, query.queryType, result.info || JSON.stringify(result))
+              saveAiNote(coin.id, queryType, result.info || JSON.stringify(result))
             } catch (err) {
               noteError = err instanceof Error ? `note: ${err.message}` : String(err)
             }
-            checkpointSession(query.collectionId, query.queryType, processedIds, noteError)
+            checkpointSession(query.collectionId, queryType, processedIds, noteError)
 
             // Emit per-coin progress
             event.sender.send(IPC_CHANNELS.LLM.BULK_PROGRESS, {
@@ -319,7 +325,7 @@ export function registerLlmHandlers(): void {
           }
 
           if (!cancelled) {
-            clearBulkSession(query.collectionId, query.queryType)
+            clearBulkSession(query.collectionId, queryType)
           }
           console.log('[llm:ipc] Agentic bulk complete:', allResults.length, 'results')
           return allResults
@@ -330,7 +336,7 @@ export function registerLlmHandlers(): void {
           return runBatchQuery(
             event,
             coins,
-            query.queryType,
+            queryType,
             locale,
             () => createLlmModel(query.config),
             () => cancelled,
@@ -343,7 +349,7 @@ export function registerLlmHandlers(): void {
         return runBatchQuery(
           event,
           coins,
-          query.queryType,
+          queryType,
           locale,
           () => createLlmModel(query.config),
           () => cancelled,
@@ -375,6 +381,7 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_SINGLE,
     async (_event, query: AiSingleQuery): Promise<AiCoinInfo> => {
+      const queryType = validateQueryType(query.queryType)
       const coin = getCoin(query.coinId)
       if (!coin) {
         throw new Error(`Coin not found: ${query.coinId}`)
@@ -383,14 +390,17 @@ export function registerLlmHandlers(): void {
       const searchPath = getSearchPath(query.config)
 
       if (searchPath === 'agentic') {
-        const searchTool = createSearchToolFromConfig(query.config)!
+        const searchTool = createSearchToolFromConfig(query.config)
+        if (!searchTool) {
+          throw new Error('Web search is enabled but no search tool could be created')
+        }
         const model = createLlmModel(query.config)
-        return querySingleCoinWithSearch(model, searchTool, coin, query.queryType, query.locale || 'en')
+        return querySingleCoinWithSearch(model, searchTool, coin, queryType, query.locale || 'en')
       }
 
       // builtin or none: use existing path (builtin handles search via fetch-hack)
       const model = createLlmModel(query.config)
-      return querySingleCoin(model, coin, query.queryType, query.locale || 'en')
+      return querySingleCoin(model, coin, queryType, query.locale || 'en')
     }
   )
 
