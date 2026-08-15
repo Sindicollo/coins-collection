@@ -1,4 +1,12 @@
-import type { LlmConfig, LlmProviderType } from '@shared/types'
+import type {
+  LlmConfig,
+  LlmProviderType,
+  SearchConfig,
+  SearchProvider,
+  BulkSessionState,
+  QueryType
+} from '@shared/types'
+import { DEFAULT_SEARCH_CONFIG } from '@shared/types'
 import { getPreference, setPreference } from '../database/repositories/preferences'
 
 const PREF_KEYS = {
@@ -6,8 +14,20 @@ const PREF_KEYS = {
   model: 'llm.model',
   baseUrl: 'llm.baseUrl',
   apiKey: 'llm.apiKey',
-  webSearch: 'llm.webSearch'
+  webSearch: 'llm.webSearch',
+
+  // Search config
+  searchProvider: 'llm.search.provider',
+  searchApiKeys: 'llm.search.apiKeys',
+  searchBaseUrl: 'llm.search.baseUrl',
+  searchMaxResults: 'llm.search.maxResults',
+
+  // Bulk session (resume)
+  bulkSession: 'llm.bulkSession'
 } as const
+
+/** Legacy single search API key (pre per-provider keys). Kept only for migration. */
+const LEGACY_SEARCH_API_KEY = 'llm.search.apiKey'
 
 function envConfig(): LlmConfig {
   return {
@@ -22,6 +42,45 @@ function envConfig(): LlmConfig {
 function validateProvider(p: string): LlmProviderType {
   const valid: LlmProviderType[] = ['openrouter', 'lmstudio', 'ollama']
   return valid.includes(p as LlmProviderType) ? (p as LlmProviderType) : 'openrouter'
+}
+
+function parseApiKeys(raw?: string): Partial<Record<SearchProvider, string>> {
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<SearchProvider, string>>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function loadSearchConfig(): SearchConfig {
+  const provider = (getPreference(PREF_KEYS.searchProvider) as SearchConfig['provider']) || DEFAULT_SEARCH_CONFIG.provider
+  let apiKeys = parseApiKeys(getPreference(PREF_KEYS.searchApiKeys))
+
+  // Migration: legacy single apiKey (llm.search.apiKey) → per-provider map.
+  // Best effort — the old schema can't tell which provider the key belonged to,
+  // so we assign it to the currently stored provider.
+  const legacyKey = getPreference(LEGACY_SEARCH_API_KEY)
+  if (legacyKey && !apiKeys[provider]) {
+    apiKeys = { ...apiKeys, [provider]: legacyKey }
+    setPreference(PREF_KEYS.searchApiKeys, JSON.stringify(apiKeys))
+    setPreference(LEGACY_SEARCH_API_KEY, '')
+  }
+
+  return {
+    provider,
+    apiKeys,
+    baseUrl: getPreference(PREF_KEYS.searchBaseUrl) || DEFAULT_SEARCH_CONFIG.baseUrl,
+    maxResults: Number(getPreference(PREF_KEYS.searchMaxResults)) || DEFAULT_SEARCH_CONFIG.maxResults
+  }
+}
+
+function saveSearchConfig(search: SearchConfig): void {
+  setPreference(PREF_KEYS.searchProvider, search.provider)
+  setPreference(PREF_KEYS.searchApiKeys, JSON.stringify(search.apiKeys || {}))
+  setPreference(PREF_KEYS.searchBaseUrl, search.baseUrl)
+  setPreference(PREF_KEYS.searchMaxResults, String(search.maxResults))
 }
 
 export function loadLlmConfig(): LlmConfig {
@@ -42,7 +101,8 @@ export function loadLlmConfig(): LlmConfig {
     model: hasDbConfig ? (dbModel || env.model) : env.model,
     baseUrl: hasDbConfig ? (dbBaseUrl || env.baseUrl) : env.baseUrl,
     apiKey: hasDbConfig ? (dbApiKey ?? env.apiKey) : env.apiKey,
-    enableWebSearch: hasDbConfig ? (dbWebSearch === 'true') : env.enableWebSearch
+    enableWebSearch: hasDbConfig ? (dbWebSearch === 'true') : env.enableWebSearch,
+    search: loadSearchConfig()
   }
 }
 
@@ -55,4 +115,52 @@ export function saveLlmConfig(config: LlmConfig): void {
     setPreference(PREF_KEYS.apiKey, config.apiKey)
   }
   setPreference(PREF_KEYS.webSearch, String(config.enableWebSearch))
+  if (config.search) {
+    saveSearchConfig(config.search)
+  }
+}
+
+// ── Bulk session (resume) ────────────────────────────────────────
+
+/**
+ * Session key scoped to collection + queryType so different
+ * collections/tasks can have independent sessions.
+ */
+function sessionKey(collectionId: string, queryType: QueryType): string {
+  return `${PREF_KEYS.bulkSession}.${collectionId}.${queryType}`
+}
+
+/**
+ * Load an active (incomplete) bulk session.
+ * Returns null if no session exists or the session is stale (>24h).
+ */
+export function loadBulkSession(
+  collectionId: string,
+  queryType: QueryType
+): BulkSessionState | null {
+  const raw = getPreference(sessionKey(collectionId, queryType))
+  if (!raw) return null
+
+  try {
+    const state = JSON.parse(raw) as BulkSessionState
+    // Auto-clear stale sessions (older than 24h)
+    if (Date.now() - state.startedAt > 24 * 60 * 60 * 1000) {
+      clearBulkSession(collectionId, queryType)
+      return null
+    }
+    return state
+  } catch {
+    clearBulkSession(collectionId, queryType)
+    return null
+  }
+}
+
+/** Save an active (incomplete) bulk session for later resume. */
+export function saveBulkSession(state: BulkSessionState): void {
+  setPreference(sessionKey(state.collectionId, state.queryType), JSON.stringify(state))
+}
+
+/** Remove a stored bulk session (on completion or explicit discard). */
+export function clearBulkSession(collectionId: string, queryType: QueryType): void {
+  setPreference(sessionKey(collectionId, queryType), '')
 }

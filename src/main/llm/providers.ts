@@ -3,6 +3,14 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { LlmConfig } from '@shared/types'
 import { loadLlmConfig } from './config'
 
+/**
+ * Create a ChatOpenAI model for the configured LLM provider.
+ *
+ * For `openrouter_builtin` search, configures the fetch-hack that injects
+ * OpenRouter's server-side `web_search` tool. For all other search providers,
+ * the model is created without any tool binding — tools are bound separately
+ * by the agentic loop in chains.ts.
+ */
 export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   const cfg = { ...loadLlmConfig(), ...config }
 
@@ -27,14 +35,18 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
 
   switch (cfg.provider) {
     case 'openrouter': {
-      const enableWebSearch = cfg.enableWebSearch
+      const useBuiltinSearch =
+        cfg.enableWebSearch && cfg.search?.provider === 'openrouter_builtin'
 
       const configuration: Record<string, unknown> = {
         baseURL: cfg.baseUrl
       }
 
-      if (enableWebSearch) {
-        configuration.fetch = async (url: any, init?: any) => {
+      if (useBuiltinSearch) {
+        // Inject OpenRouter's native web_search tool via fetch override.
+        // This is the only case where we modify the request body — for all
+        // other search providers, tool binding is handled in chains.ts.
+        configuration.fetch = async (url: unknown, init?: RequestInit) => {
           if (init?.body && typeof init.body === 'string') {
             try {
               const body = JSON.parse(init.body)
@@ -46,9 +58,11 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
               ]
               delete body.tool_choice
               init = { ...init, body: JSON.stringify(body) }
-            } catch { /* not JSON */ }
+            } catch {
+              /* not JSON — pass through */
+            }
           }
-          return fetch(url, init)
+          return fetch(url as RequestInfo | URL, init)
         }
       }
 

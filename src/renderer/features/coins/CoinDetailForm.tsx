@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { CoinForm } from './CoinForm'
 import { currencySymbol } from '@/utils/currency'
-import type { Coin } from '@shared/types'
+import type { Coin, UpdateCoinInput } from '@shared/types'
+import { useCoinStore } from './useCoins'
 
 interface CoinDetailFormProps {
   coin: Coin
@@ -44,7 +45,7 @@ export function CoinDetailForm({ coin, defaultCurrency, onUpdated }: CoinDetailF
     { label: t('coins.purchasePlace'), value: coin.purchasePlace ?? '' },
   ].filter((f) => f.value !== '')
 
-  const handleSave = (data: Record<string, unknown>): void => {
+  const handleSave = async (data: Record<string, unknown>): Promise<void> => {
     // Only pick known Coin fields to avoid type corruption
     const updated: Coin = {
       ...coin,
@@ -64,7 +65,14 @@ export function CoinDetailForm({ coin, defaultCurrency, onUpdated }: CoinDetailF
       auctionPrice: typeof data.auctionPrice === 'number' ? data.auctionPrice : coin.auctionPrice,
       salePrice: typeof data.salePrice === 'number' ? data.salePrice : coin.salePrice
     }
-    onUpdated(updated)
+
+    // updateCoin persists to the DB AND refreshes the list cache — a separate
+    // window.api.coins.update here would write the same row twice.
+    const saved = await useCoinStore
+      .getState()
+      .updateCoin(updated as unknown as UpdateCoinInput)
+    // Keep local detail state in sync even if persistence failed (store falls back to null)
+    onUpdated(saved ?? updated)
     setEditing(false)
   }
 

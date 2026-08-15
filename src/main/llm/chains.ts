@@ -1,28 +1,52 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import type { BaseMessage } from '@langchain/core/messages'
+import { AIMessage, ToolMessage, SystemMessage, HumanMessage } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import type { DynamicTool } from '@langchain/core/tools'
 import { AiCoinInfoArraySchema, AiCoinInfoSchema } from './schemas'
 import type { AiCoinInfo, QueryType } from '@shared/types'
 import type { Coin } from '@shared/types'
 
 const UNKNOWN = 'unknown'
+const MAX_SEARCH_ROUNDS = 8
+const SEARCH_COOLDOWN_MS = 1200
+
+const ERROR_EMPTY_RESPONSE =
+  'Model returned empty response. Check that the model name is correct and the API key is valid.'
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 function formatCoinsForPrompt(coins: Coin[]): string {
   return coins
     .map(
-      (c) =>
-        `- id: ${c.id}\n  denomination: ${c.denomination}\n  country: ${c.country ?? UNKNOWN}\n  year: ${c.year ?? UNKNOWN}\n  condition: ${c.condition ?? UNKNOWN}\n  composition: ${c.composition ?? UNKNOWN}`
+      (c) => {
+        const hintMatch = c.denomination.match(/\((.+)\)/)
+        const baseDenomination = hintMatch ? c.denomination.replace(/\s*\(.+\)\s*/, '').trim() : c.denomination
+        const hint = hintMatch ? hintMatch[1].trim() : null
+        let lines = `- id: ${c.id}\n  denomination: ${baseDenomination}\n  country: ${c.country ?? UNKNOWN}\n  year: ${c.year ?? UNKNOWN}\n  condition: ${c.condition ?? UNKNOWN}\n  composition: ${c.composition ?? UNKNOWN}`
+        if (hint) lines += `\n  distinguishing feature: ${hint}`
+        return lines
+      }
     )
     .join('\n')
 }
 
 function formatSingleCoinForPrompt(coin: Coin): string {
-  return `id: ${coin.id}
-denomination: ${coin.denomination}
+  const hintMatch = coin.denomination.match(/\((.+)\)/)
+  const baseDenomination = hintMatch ? coin.denomination.replace(/\s*\(.+\)\s*/, '').trim() : coin.denomination
+  const hint = hintMatch ? hintMatch[1].trim() : null
+  let result = `id: ${coin.id}
+denomination: ${baseDenomination}
 country: ${coin.country ?? UNKNOWN}
 year: ${coin.year ?? UNKNOWN}
 condition: ${coin.condition ?? UNKNOWN}
 composition: ${coin.composition ?? UNKNOWN}`
+  if (hint) {
+    result += `\ndistinguishing feature: ${hint}`
+  }
+  return result
 }
 
 // ── JSON extraction & repair ─────────────────────────────────────
@@ -75,6 +99,34 @@ function repairTruncatedJson(json: string): string {
   return repaired
 }
 
+/**
+ * Parse JSON with automatic fixes for common LLM output mistakes:
+ *   - Double braces from ChatPromptTemplate-escaping ({{@ → {@)
+ *   - Unquoted object keys ({id: "val"} → {"id": "val"})
+ */
+function robustJsonParse(json: string): unknown {
+  const attempts: string[] = [json]
+
+  // Double braces (model copies {{ from prompt format examples)
+  if (json.startsWith('{{') && json.endsWith('}}')) {
+    attempts.push(json.replace(/^\{\{/, '{').replace(/\}\}$/, '}'))
+  }
+
+  // Unquoted keys
+  attempts.push(json.replace(/([{,]\s*)([a-zA-Z_]\w+)(\s*:)/g, '$1"$2"$3'))
+
+  for (const attempt of attempts) {
+    try {
+      return JSON.parse(attempt)
+    } catch {
+      /* try next */
+    }
+  }
+
+  // If all attempts fail, let the original JSON error bubble up
+  return JSON.parse(json)
+}
+
 // ── Response parsing & validation ───────────────────────────────
 
 function getMessageText(response: BaseMessage): string {
@@ -109,9 +161,7 @@ async function invokeAndExtract(
 
 function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
   if (!rawText || rawText.trim().length === 0) {
-    throw new Error(
-      'Model returned empty response. Check that the model name is correct and the API key is valid.'
-    )
+    throw new Error(ERROR_EMPTY_RESPONSE)
   }
 
   const cleaned = extractJsonFromText(rawText)
@@ -124,7 +174,7 @@ function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(cleaned)
+    parsed = robustJsonParse(cleaned)
   } catch (parseErr) {
     const msg = parseErr instanceof Error ? parseErr.message : String(parseErr)
     throw new Error(`Failed to parse LLM response as JSON: ${msg}`)
@@ -150,9 +200,7 @@ function parseAndValidateResponse(rawText: string): AiCoinInfo[] {
 
 function extractAndValidateSingle(rawText: string): AiCoinInfo {
   if (!rawText || rawText.trim().length === 0) {
-    throw new Error(
-      'Model returned empty response. Check that the model name is correct and the API key is valid.'
-    )
+    throw new Error(ERROR_EMPTY_RESPONSE)
   }
 
   const cleaned = extractJsonFromText(rawText)
@@ -165,7 +213,7 @@ function extractAndValidateSingle(rawText: string): AiCoinInfo {
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(cleaned)
+    parsed = robustJsonParse(cleaned)
   } catch (parseErr) {
     const msg = parseErr instanceof Error ? parseErr.message : String(parseErr)
     throw new Error(`Failed to parse LLM response as JSON: ${msg}`)
@@ -192,8 +240,10 @@ const EN_PRICE = `You are a professional numismatist-expert. For each coin below
 
 YOUR TOOLS: you have internet search access. You MUST use it for every step below.
 
+CRITICAL: if a "distinguishing feature" is listed in the coin data, it describes a specific variety or commemorative issue. ALWAYS include it in your web search queries (otherwise you'll find data for the wrong coin).
+
 SEARCH PLAN (execute for each coin):
-1. Find the EXACT catalog number (KM#) — search "[year] [denomination] [country] Krause KM#". VERIFY the number matches THIS coin, not a similar one (e.g., don't confuse crown with half-crown or 5 pounds).
+1. Find the EXACT catalog number (KM#) — search "[year] [denomination] [distinguishing feature if present] [country] Krause KM#". VERIFY the number matches THIS coin, not a similar one (e.g., don't confuse crown with half-crown or 5 pounds).
 2. Find exact weight and fineness — search "[denomination] [year] [country] specifications".
 3. Find RECENT (2025-2026) sold prices on eBay — search "sold [year] [denomination] [country] eBay". Use RANGE of actual sold prices, not asking prices.
 4. Calculate melt value for silver/gold (metal spot price × pure metal weight). Use as MINIMUM floor price.
@@ -245,8 +295,10 @@ const RU_PRICE = `
 
 ТВОИ ИНСТРУМЕНТЫ: у тебя есть доступ к поиску в интернете. ОБЯЗАТЕЛЬНО используй его для каждого пункта.
 
+ВАЖНО: если в данных монеты указана строка "distinguishing feature" — это конкретная разновидность или памятный выпуск. ВСЕГДА включай её в поисковые запросы (иначе найдёшь данные не по той монете).
+
 ПЛАН ПОИСКА (выполни для каждой монеты):
-1. Найди точный каталожный номер (KM#) — ищи "[год] [номинал] [страна] Krause KM#". ПРОВЕРЬ, что номер соответствует именно этой монете, а не похожей (например, не путай крону с полкроной или 5 фунтов).
+1. Найди точный каталожный номер (KM#) — ищи "[год] [номинал] [distinguishing feature если есть] [страна] Krause KM#". ПРОВЕРЬ, что номер соответствует именно этой монете, а не похожей (например, не путай крону с полкроной или 5 фунтов).
 2. Найди точный вес и пробу — ищи "[номинал] [год] [страна] технические характеристики".
 3. Найди НЕДАВНИЕ (2025-2026) цены продаж на eBay — ищи "sold [year] [denomination] [country] eBay". Бери ДИАПАЗОН реальных продаж, а не запрашиваемые цены.
 4. Рассчитай стоимость лома для серебра/золота (цена металла × вес чистого металла). Используй КАК МИНИМУМ цены.
@@ -302,9 +354,18 @@ const PROMPTS: Record<Locale, Record<QueryType, string>> = {
   ru: { prices: RU_PRICE, mintage: RU_MINTAGE, info: RU_INFO }
 }
 
+/**
+ * System prompt without any message placeholder — for the agentic loop,
+ * where the coin data is passed as a separate human message.
+ */
+function getBasePrompt(locale: string, queryType: QueryType): string {
+  const lang = locale.startsWith('ru') ? 'ru' : 'en'
+  return PROMPTS[lang][queryType]
+}
+
 function getPrompt(locale: string, queryType: QueryType, single: boolean): string {
   const lang = locale.startsWith('ru') ? 'ru' : 'en'
-  const base = PROMPTS[lang][queryType]
+  const base = getBasePrompt(locale, queryType)
   if (single) {
     return base + '\n' + (lang === 'ru' ? 'Монета:' : 'Coin:') + '\n{coin}'
   }
@@ -356,5 +417,260 @@ export async function querySingleCoin(
   const coinText = formatSingleCoinForPrompt(coin)
 
   const rawText = await invokeAndExtract(chain, { coin: coinText })
+  return extractAndValidateSingle(rawText)
+}
+
+// ── Tool-calling loop (agentic search path) ──────────────────────
+
+export interface TextualToolCall {
+  name: string
+  args: Record<string, unknown>
+}
+
+/**
+ * Recover a tool call emitted as plain text instead of a structured
+ * OpenAI tool_call. Reasoning models (e.g. Qwen3-family) sometimes
+ * "think" the call: it lands in reasoning_content (or content) while
+ * the server returns an empty tool_calls array. Two formats are handled:
+ *   1. <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+ *   2. <tool_call><function=name><parameter=key>value</parameter></function></tool_call>
+ */
+export function extractTextualToolCall(text: string): TextualToolCall | null {
+  if (!text) return null
+
+  const jsonMatch = text.match(/<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/)
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[1])
+      if (obj && typeof obj.name === 'string') {
+        const args = obj.arguments ?? obj.args ?? {}
+        return { name: obj.name, args: typeof args === 'object' && args !== null ? args : {} }
+      }
+    } catch {
+      /* not valid JSON — try the next format */
+    }
+  }
+
+  const fnMatch = text.match(/<function=([\w.-]+)>([\s\S]*?)<\/function>/)
+  if (fnMatch) {
+    const [, name, body] = fnMatch
+    const args: Record<string, string> = {}
+    const paramRe = /<parameter=([\w.-]+)>([\s\S]*?)<\/parameter>/g
+    let m: RegExpExecArray | null
+    while ((m = paramRe.exec(body)) !== null) {
+      args[m[1]] = m[2].trim()
+    }
+    return { name, args }
+  }
+
+  return null
+}
+
+/**
+ * Run a model with bound tools in a manual agent loop.
+ *
+ * The model is invoked repeatedly: each time it emits tool_calls,
+ * we execute them and feed results back as ToolMessages, then
+ * invoke again. Stops when the model returns content without
+ * further tool_calls (or maxIterations / search rounds are exhausted).
+ *
+ * Robustness for reasoning models: if structured tool_calls is empty,
+ * we look for a textual tool call in reasoning_content/content and
+ * execute it; if the answer is empty entirely, the model is nudged
+ * towards the final JSON (see nudgeMessage) instead of failing fast.
+ */
+async function invokeWithTools(
+  boundModel: BaseChatModel,
+  messages: BaseMessage[],
+  tools: DynamicTool[],
+  options: { maxIterations?: number; nudgeMessage?: string; stopSearchMessage?: string } = {}
+): Promise<string> {
+  const { maxIterations = 12, nudgeMessage, stopSearchMessage } = options
+  let nudges = 0
+  let searchRounds = 0
+  let stopSent = false
+
+  for (let i = 0; i < maxIterations; i++) {
+    const response = await boundModel.invoke(messages)
+
+    // LC normalizes OpenAI tool calls: { name, args, type, id }
+    // (the raw OpenAI format { function: { name, arguments } } is
+    //  also accessible via additional_kwargs.tool_calls for compat)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolCalls: any[] =
+      (response as any).tool_calls ||
+      response.additional_kwargs?.tool_calls ||
+      []
+
+    // ── Search round cap: block further searches, ask for final answer ONCE ──
+    const wantsToSearch =
+      toolCalls.length > 0 ||
+      extractTextualToolCall(String(response.additional_kwargs?.reasoning_content ?? '')) ||
+      extractTextualToolCall(getMessageText(response))
+
+    if (wantsToSearch && searchRounds >= MAX_SEARCH_ROUNDS) {
+      if (!stopSent) {
+        stopSent = true
+        console.log('[chains] search round cap reached, sending stop message')
+        messages = [
+          ...messages,
+          new HumanMessage(stopSearchMessage || 'Stop searching. Output your final answer now.')
+        ]
+      }
+      // Give the model a turn to process the stop instruction (don't add more noise)
+      continue
+    }
+
+    if (toolCalls.length === 0) {
+      const text = getMessageText(response)
+
+      const reasoning = String(response.additional_kwargs?.reasoning_content ?? '')
+      const textual = extractTextualToolCall(reasoning) ?? extractTextualToolCall(text)
+
+      if (textual) {
+        const tool = tools.find((t) => t.name === textual.name)
+        if (tool) {
+          searchRounds++
+          console.log(`[chains] recovered textual tool call: ${textual.name} (search ${searchRounds}/${MAX_SEARCH_ROUNDS})`)
+          // Short cooldown between searches to avoid rate-limiting free providers (DDG)
+          if (searchRounds > 1) await sleep(SEARCH_COOLDOWN_MS)
+          const id = `textual_call_${i}`
+          const input = textual.args.query || textual.args.input || JSON.stringify(textual.args)
+          const result = await tool.invoke(String(input))
+          messages = [
+            ...messages,
+            new AIMessage({
+              content: '',
+              tool_calls: [{ id, name: textual.name, args: textual.args, type: 'tool_call' }]
+            }),
+            new ToolMessage({ content: String(result), tool_call_id: id })
+          ]
+          continue
+        }
+      }
+
+      if (!text.trim() && nudgeMessage && nudges < 2) {
+        nudges++
+        console.log('[chains] empty response without tool calls, nudging model')
+        messages = [...messages, new HumanMessage(nudgeMessage)]
+        continue
+      }
+
+      return text
+    }
+
+    // Execute each tool call and collect results
+    searchRounds++
+    if (searchRounds > 1) await sleep(SEARCH_COOLDOWN_MS)
+    console.log(`[chains] executing tool calls (search ${searchRounds}/${MAX_SEARCH_ROUNDS})`)
+    const toolMessages: ToolMessage[] = []
+    for (const tc of toolCalls) {
+      const fn = tc.function || tc
+      const name = fn.name || tc.name
+      const rawArgs = fn.args || fn.arguments
+      let args: Record<string, unknown>
+      try {
+        args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs || {}
+      } catch {
+        // Model emitted malformed arguments — skip this call instead of aborting
+        console.warn('[chains] Skipping malformed tool call:', name, String(rawArgs).slice(0, 100))
+        continue
+      }
+
+      const tool = tools.find((t) => t.name === name)
+      if (tool) {
+        const input = args.query || args.input || JSON.stringify(args)
+        const result = await tool.invoke(input)
+        toolMessages.push(
+          new ToolMessage({
+            content: String(result),
+            tool_call_id: tc.id || name || `call_${i}`
+          })
+        )
+      }
+    }
+
+    messages = [...messages, response, ...toolMessages]
+  }
+
+  throw new Error(
+    `Tool-call loop exceeded max iterations (${maxIterations}). ` +
+      'The model may be stuck in a loop — try a different model or disable web search.'
+  )
+}
+
+// ── Agentic search functions ────────────────────────────────────
+
+/**
+ * Query a single coin with web search via tool-calling agent.
+ *
+ * Binds the search tool, constructs system+user messages, runs
+ * the agentic loop, then parses the final JSON response.
+ */
+export async function querySingleCoinWithSearch(
+  model: BaseChatModel,
+  searchTool: DynamicTool,
+  coin: Coin,
+  queryType: QueryType,
+  locale = 'en'
+): Promise<AiCoinInfo> {
+  console.log('[chains] querySingleCoinWithSearch:', {
+    coinId: coin.id,
+    queryType,
+    locale
+  })
+
+  // Use the bare system prompt: the coin data goes into the human message,
+  // so the prompt must not contain the literal '{coin}' placeholder.
+  // Also unescape {{ }} double braces from ChatPromptTemplate format examples
+  // because we're passing the prompt as a raw SystemMessage.
+  const basePrompt = getBasePrompt(locale, queryType).replace(/\{\{/g, '{').replace(/\}\}/g, '}')
+  const coinText = formatSingleCoinForPrompt(coin)
+  const lang = locale.startsWith('ru') ? 'ru' : 'en'
+  const coinLabel = lang === 'ru' ? 'Монета' : 'Coin'
+
+  // Prepend search + distinguishing-feature guidance (price prompts already
+  // have their own search plan; this adds it for info/mintage paths and
+  // reinforces the rule for all query types).
+  const searchGuide =
+    lang === 'ru'
+      ? `У тебя есть доступ к поиску в интернете (web_search). Используй его для сбора актуальных данных.
+
+КЛЮЧЕВОЕ ПРАВИЛО: если в данных монеты есть строка "distinguishing feature" — это описание конкретной разновидности, подтипа или памятного дизайна. ОБЯЗАТЕЛЬНО включай эту информацию во ВСЕ поисковые запросы, иначе ты найдёшь данные о стандартной монете, а не об этой разновидности.
+
+`
+      : `You have internet search access (web_search). Use it to gather accurate, current data.
+
+CRITICAL RULE: if the coin data includes a "distinguishing feature" line, it describes a specific variety, sub-type or commemorative design. ALWAYS include it in EVERY web search query — otherwise you'll find data for the regular coin instead of this variety.
+
+`
+
+  const nudgeMessage =
+    lang === 'ru'
+      ? 'Теперь выведи ТОЛЬКО финальный JSON по монете — без рассуждений, без вызовов инструментов, без markdown.'
+      : 'Now output ONLY the final JSON for the coin — no reasoning, no tool calls, no markdown.'
+
+  const stopSearchMessage =
+    lang === 'ru'
+      ? 'Поиски больше не выполняются. Если по какому-либо параметру нет точных данных — честно напиши «не найдено» или «требуется проверка». НЕ выдумывай цифры и факты. Выведи ТОЛЬКО финальный JSON.'
+      : 'No more searches will be performed. If you lack exact data for any field, honestly state "not found" or "needs verification". Do NOT invent figures or facts. Output ONLY the final JSON.'
+
+  const messages: BaseMessage[] = [
+    new SystemMessage(searchGuide + basePrompt),
+    new HumanMessage(`${coinLabel}:\n${coinText}`)
+  ]
+
+  if (!model.bindTools) {
+    throw new Error('Model does not support tool binding (bindTools is not available)')
+  }
+  // bindTools returns Runnable<...>, but invoke accepts the same message format.
+  // We use bind and cast back to BaseChatModel for the invoke interface.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const boundModel = model.bindTools([searchTool]) as any as BaseChatModel
+  const rawText = await invokeWithTools(boundModel, messages, [searchTool], {
+    nudgeMessage,
+    stopSearchMessage
+  })
+
   return extractAndValidateSingle(rawText)
 }

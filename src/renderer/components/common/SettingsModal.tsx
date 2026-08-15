@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { CURRENCIES } from '@/utils/currency'
 import * as aiApi from '@/features/ai/api'
-import type { LlmConfig, LlmProviderType } from '@shared/types'
+import type { LlmConfig, LlmProviderType, SearchProvider } from '@shared/types'
 
 // ── Constants ──────────────────────────────────────────
 
@@ -27,6 +28,15 @@ const DEFAULT_URLS: Record<LlmProviderType, string> = {
   lmstudio: 'http://localhost:1234/v1',
   ollama: 'http://localhost:11434/v1'
 }
+
+const SEARCH_PROVIDERS: { value: SearchProvider; label: string }[] = [
+  { value: 'tavily', label: 'Tavily' },
+  { value: 'brave', label: 'Brave Search' },
+  { value: 'ddg', label: 'DuckDuckGo' },
+  { value: 'searxng', label: 'SearXNG' },
+  { value: 'openrouter_builtin', label: 'OpenRouter Built-in' },
+  { value: 'none', label: 'None' }
+]
 
 // ── Props ───────────────────────────────────────────────
 
@@ -62,13 +72,127 @@ function TabButton({
   )
 }
 
+// ── WebSearchSection ───────────────────────────────────
+
+interface WebSearchSectionProps {
+  config: LlmConfig
+  onChange: (config: LlmConfig) => void
+}
+
+function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.ReactElement {
+  const { t } = useTranslation()
+  const search = config.search || { provider: 'tavily', apiKeys: {}, baseUrl: '', maxResults: 5 }
+
+  function updateSearch(patch: Partial<typeof search>): void {
+    onChange({ ...config, search: { ...search, ...patch } })
+  }
+
+  const needsApiKey = search.provider === 'tavily' || search.provider === 'brave'
+  const needsBaseUrl = search.provider === 'searxng'
+  // Show search section only when web search is ON and provider is not 'openrouter_builtin' and not 'none'
+  const showSearchOptions =
+    config.enableWebSearch &&
+    search.provider !== 'openrouter_builtin' &&
+    search.provider !== 'none'
+
+  return (
+    <div className="space-y-3 border-t border-gray-100 pt-3 mt-3">
+      <h4 className="text-sm font-semibold text-gray-600">
+        {t('ai.settings.searchTitle', { defaultValue: 'Search Configuration' })}
+      </h4>
+
+      {/* Search provider */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">
+          {t('ai.settings.searchProvider', { defaultValue: 'Search Provider' })}
+        </label>
+        <select
+          value={search.provider}
+          onChange={(e) => {
+            const provider = e.target.value as SearchProvider
+            updateSearch({ provider })
+          }}
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm
+            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          {SEARCH_PROVIDERS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* API Key (Tavily/Brave only) */}
+      {needsApiKey && (
+        <PasswordInput
+          label={t('ai.settings.searchApiKey', { defaultValue: 'Search API Key' })}
+          value={search.apiKeys?.[search.provider] || ''}
+          onChange={(e) =>
+            updateSearch({ apiKeys: { ...search.apiKeys, [search.provider]: e.target.value } })
+          }
+          placeholder={search.provider === 'brave' ? 'BSA...' : 'tvly-...'}
+        />
+      )}
+
+      {/* Base URL (SearXNG only) */}
+      {needsBaseUrl && (
+        <Input
+          label={t('ai.settings.searchBaseUrl', { defaultValue: 'Search Base URL' })}
+          value={search.baseUrl}
+          onChange={(e) => updateSearch({ baseUrl: e.target.value })}
+          placeholder="http://localhost:8080"
+        />
+      )}
+
+      {/* Max results */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">
+          {t('ai.settings.searchMaxResults', { defaultValue: 'Max Results' })}
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={10}
+          value={search.maxResults}
+          onChange={(e) => updateSearch({ maxResults: Number(e.target.value) || 5 })}
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm w-24
+            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+
+      {/* Provider-specific hints */}
+      {showSearchOptions && (
+        <p className="text-xs text-gray-400">
+          {search.provider === 'tavily' &&
+            t('ai.settings.searchHintTavily', {
+              defaultValue: 'Optimized for LLMs. Free tier: 1000 queries/month. Get API key at tavily.com'
+            })}
+          {search.provider === 'brave' &&
+            t('ai.settings.searchHintBrave', {
+              defaultValue: 'Good coverage. $5 free credits/month (~1000 queries). Card required even on the free plan. Get API key at api-dashboard.search.brave.com'
+            })}
+          {search.provider === 'ddg' &&
+            t('ai.settings.searchHintDdg', {
+              defaultValue: 'No API key needed. Rate-limited — use for testing only.'
+            })}
+          {search.provider === 'searxng' &&
+            t('ai.settings.searchHintSearxng', {
+              defaultValue: 'Self-hosted metasearch. Docker: docker run -p 8080:8080 searxng/searxng'
+            })}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── AiSettingsPanel ────────────────────────────────────
 
 interface AiSettingsPanelProps {
   config: LlmConfig
   onChange: (config: LlmConfig) => void
   testing: boolean
-  testResult: { ok: boolean; error?: string } | null
+  testResult: { ok: boolean; error?: string; toolCallSupported?: boolean; searchProviderOk?: boolean; searchProviderError?: string } | null
   saveError: string | null
   onTest: () => void
   loaded: boolean
@@ -134,9 +258,8 @@ function AiSettingsPanel({
       />
 
       {/* API Key */}
-      <Input
+      <PasswordInput
         label={t('ai.settings.apiKey', { defaultValue: 'API Key' })}
-        type="password"
         value={config.apiKey}
         onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
         placeholder="sk-..."
@@ -157,23 +280,64 @@ function AiSettingsPanel({
         </label>
         <p className="text-xs text-gray-400 ml-6">
           {t('ai.settings.webSearchHint', {
-            defaultValue: 'Uses OpenRouter tools API. Works with most models. Adds ~10s per query.'
+            defaultValue: 'When enabled, the model can search the internet for current coin prices and data.'
           })}
         </p>
       </div>
 
+      {/* Web search configuration */}
+      <WebSearchSection config={config} onChange={onChange} />
+
       {/* Test result */}
       {testResult && (
-        <div
-          className={`text-xs px-3 py-2 rounded-md ${
-            testResult.ok
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {testResult.ok
-            ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
-            : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
+        <div className="space-y-1">
+          {/* Connection */}
+          <div
+            className={`text-xs px-3 py-2 rounded-md border ${
+              testResult.ok
+                ? 'bg-green-50 text-green-700 border-green-200'
+                : 'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            {testResult.ok
+              ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
+              : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
+          </div>
+
+          {/* Tool-calling support */}
+          {testResult.toolCallSupported !== undefined && (
+            <div
+              className={`text-xs px-3 py-2 rounded-md border ${
+                testResult.toolCallSupported
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+            >
+              {testResult.toolCallSupported
+                ? t('ai.settings.toolCallSupported', { defaultValue: 'Tool-calling: supported ✓' })
+                : t('ai.settings.toolCallNotSupported', {
+                    defaultValue: 'Tool-calling: not supported — web search will not work with this model'
+                  })}
+            </div>
+          )}
+
+          {/* Search provider */}
+          {testResult.searchProviderOk !== undefined && (
+            <div
+              className={`text-xs px-3 py-2 rounded-md border ${
+                testResult.searchProviderOk
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              {testResult.searchProviderOk
+                ? t('ai.settings.searchTestOk', { defaultValue: 'Search provider: ok ✓' })
+                : testResult.searchProviderError ||
+                  t('ai.settings.searchTestFail', {
+                    defaultValue: 'Search provider: unreachable — check your API key or base URL'
+                  })}
+            </div>
+          )}
         </div>
       )}
 
@@ -220,7 +384,13 @@ export function SettingsModal({
     enableWebSearch: false
   })
   const [aiTesting, setAiTesting] = React.useState(false)
-  const [aiTestResult, setAiTestResult] = React.useState<{ ok: boolean; error?: string } | null>(null)
+  const [aiTestResult, setAiTestResult] = React.useState<{
+    ok: boolean
+    error?: string
+    toolCallSupported?: boolean
+    searchProviderOk?: boolean
+    searchProviderError?: string
+  } | null>(null)
   const [aiLoaded, setAiLoaded] = React.useState(false)
   const [aiSaveError, setAiSaveError] = React.useState<string | null>(null)
 
@@ -279,9 +449,10 @@ export function SettingsModal({
     onClose()
   }
 
-  const handleSave = (): void => {
+  const handleSave = async (): Promise<void> => {
     onSaveCurrency(selectedCurrency)
-    onClose()
+    // Save AI config too — handleClose persists it and closes the modal
+    await handleClose()
   }
 
   return (

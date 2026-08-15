@@ -24,14 +24,19 @@ export function AiPage(): React.ReactElement {
     bulkTotal,
     bulkRunning,
     coinLoading,
+    resumeSession,
+    lastCoinTime,
     queryBulk,
+    resumeBulk,
     querySingle,
     clearResults,
     clearCoinResult,
     appendCoinToNotes,
     setManualInput,
     parseManualInput,
-    cancelBulk
+    cancelBulk,
+    checkSession,
+    discardSession
   } = store
 
   const [coins, setCoins] = React.useState<Coin[]>([])
@@ -84,6 +89,22 @@ export function AiPage(): React.ReactElement {
     clearResults()
   }, [collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Check for saved bulk sessions on mount
+  React.useEffect(() => {
+    if (!collectionId) return
+    // Check each query type for saved sessions
+    for (const qt of ['prices', 'mintage', 'info'] as QueryType[]) {
+      checkSession(collectionId, qt)
+    }
+  }, [collectionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-check sessions after a bulk stops (cancel or completion)
+  React.useEffect(() => {
+    if (!bulkRunning && collectionId && lastQueryType) {
+      checkSession(collectionId, lastQueryType as QueryType)
+    }
+  }, [bulkRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reset coin store on unmount so CoinView reloads up-to-date data
   React.useEffect(() => {
     return () => {
@@ -91,23 +112,37 @@ export function AiPage(): React.ReactElement {
     }
   }, [collectionId])
 
-  const handleBulkQuery = (queryType: QueryType): void => {
+  const handleBulkQuery = async (queryType: QueryType): Promise<void> => {
     console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })
     if (!collectionId) {
       console.warn('[AiPage] No collectionId, skipping query')
       return
     }
+
+    // Warn if many coins with web search enabled
+    try {
+      const cfg = await window.api.llm.getConfig()
+      if (cfg.enableWebSearch && coins.length > 20) {
+        const estimatedSec = coins.length * 10
+        const mins = Math.ceil(estimatedSec / 60)
+        const ok = window.confirm(
+          t('ai.largeBulkWarning', {
+            defaultValue: `Web search is enabled. Processing ${coins.length} coins may take ~${mins} minutes (≈10 sec per coin). Continue?`,
+            count: coins.length,
+            minutes: mins
+          })
+        )
+        if (!ok) return
+      }
+    } catch {
+      // If we can't read config, proceed anyway
+    }
+
     queryBulk(collectionId, queryType)
   }
 
   const handleSingleQuery = (coinId: string, queryType: QueryType): void => {
     querySingle(coinId, queryType)
-  }
-
-  const handleCoinUpdated = (coinId: string, newNotes: string): void => {
-    setCoins((prev) =>
-      prev.map((c) => (c.id === coinId ? { ...c, notes: newNotes } : c))
-    )
   }
 
   const handleBack = (): void => {
@@ -170,6 +205,38 @@ export function AiPage(): React.ReactElement {
         </Button>
       </div>
 
+      {/* Resume saved session */}
+      {resumeSession && !bulkRunning && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-sm text-blue-700">
+            {t('ai.resumeHint', {
+              defaultValue: 'Saved session: {{processed}} of {{total}} coins processed.',
+              processed: resumeSession.processedCoinIds.length,
+              total: coins.length
+            })}
+          </span>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (collectionId) {
+                resumeBulk(collectionId, resumeSession.queryType, resumeSession.processedCoinIds)
+              }
+            }}
+          >
+            ▶ {t('ai.resume', { defaultValue: 'Resume' })}
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => {
+              if (collectionId) discardSession(collectionId, resumeSession.queryType)
+            }}
+          >
+            {t('ai.discardSession', { defaultValue: 'Discard' })}
+          </Button>
+        </div>
+      )}
+
       {/* Loading / error indicators */}
       {(loading || coinsLoading) && (
         <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
@@ -208,6 +275,14 @@ export function AiPage(): React.ReactElement {
             </span>
             <span className="text-xs text-blue-500">
               {bulkTotal > 0 ? Math.round((bulkProgress / bulkTotal) * 100) : 0}%
+              {lastCoinTime > 0 && bulkProgress > 0 && bulkProgress < bulkTotal && (
+                <span className="ml-2">
+                  {t('ai.eta', {
+                    defaultValue: '≈{{minutes}}m left',
+                    minutes: Math.max(1, Math.round((lastCoinTime * (bulkTotal - bulkProgress)) / 60000))
+                  })}
+                </span>
+              )}
             </span>
           </div>
           <div className="w-full bg-blue-200 rounded-full h-2">
@@ -271,7 +346,6 @@ export function AiPage(): React.ReactElement {
                 onQuerySingle={handleSingleQuery}
                 onAppendToNotes={appendCoinToNotes}
                 onClearResult={clearCoinResult}
-                onCoinUpdated={handleCoinUpdated}
               />
             ))}
           </div>

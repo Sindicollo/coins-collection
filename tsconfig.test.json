@@ -26,6 +26,7 @@
     "src/renderer/**/*.tsx",
     "src/shared/**/*.ts",
     "src/renderer/locales/*.json",
+    "src/main/llm/**/*.ts",
     "src/main/database/**/*.ts",
     "src/main/import/backup.ts",
     "src/main/import/spreadsheet-import.ts",

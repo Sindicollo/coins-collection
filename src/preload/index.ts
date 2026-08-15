@@ -75,7 +75,11 @@ const api = {
       ipcRenderer.on('llm:bulk-progress', handler)
       return () => ipcRenderer.removeListener('llm:bulk-progress', handler)
     },
-    cancelBulk: (collectionId: string) => ipcRenderer.invoke('llm:cancel-bulk', collectionId)
+    cancelBulk: (collectionId: string) => ipcRenderer.invoke('llm:cancel-bulk', collectionId),
+    getBulkSession: (collectionId: string, queryType: string) =>
+      ipcRenderer.invoke('llm:get-bulk-session', collectionId, queryType),
+    clearBulkSession: (collectionId: string, queryType: string) =>
+      ipcRenderer.invoke('llm:clear-bulk-session', collectionId, queryType)
   },
   backup: {
     exportExecute: () => ipcRenderer.invoke('backup:export-execute'),
