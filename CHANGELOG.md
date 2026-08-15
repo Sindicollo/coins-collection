@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.6.0
+
+### Added
+- Web search for AI queries — the model can search the internet for current prices, mintage data, and coin info
+- Search providers: Tavily, Brave Search, DuckDuckGo, SearXNG, and OpenRouter built-in
+- Per-provider API key storage — each provider keeps its own key
+- Search provider connectivity test in AI settings (detects geo-blocking, e.g. Tavily 403)
+- Show/hide toggle for API key fields
+- Resume support for interrupted bulk AI queries — saved sessions, progress, and ETA
+- AI notes saved per query type (eBay price, mintage, info)
+- Search requests now use the system proxy (works with proxy-based VPNs)
+
+### Changed
+- Manual tool-calling loop with support for reasoning models (recovers tool calls from reasoning text)
+- Search results marked with a `[SEARCH]` prefix and trimmed to fit the model context
+
+### Fixed
+- Save button in AI settings now persists the configuration
+- A single failed coin no longer aborts the whole bulk query
+- Malformed tool-call arguments no longer crash the query
+- Runtime validation of the query type at the IPC boundary
+- Editing a coin no longer writes to the database twice
+
 ## v1.5.0
 
 ### Added

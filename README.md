@@ -51,8 +51,8 @@ If your model doesn't support tool-calling, web search is automatically skipped 
 
 | Platform | Link |
 |----------|------|
-| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.5.0/Coin-Collection-1.5.0-arm64.dmg) (~114 MB) |
-| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.5.0/Coin-Collection-Setup-1.5.0.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.5.0/Coin-Collection-1.5.0.exe) |
+| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.0/Coin-Collection-1.6.0-arm64.dmg) (~114 MB) |
+| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.0/Coin-Collection-Setup-1.6.0.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.0/Coin-Collection-1.6.0.exe) |
 
 > ⚠️ **Windows builds are not tested.** The app is developed and tested on macOS only. Windows binaries are built via GitHub Actions but may contain platform-specific issues. Bug reports welcome!
 
