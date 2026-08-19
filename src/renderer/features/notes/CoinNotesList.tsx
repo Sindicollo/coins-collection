@@ -145,7 +145,7 @@ export function CoinNotesList({ coinId, onCountChange }: CoinNotesListProps): Re
       {aiLoading && (
         <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center rounded-lg">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
             <p className="text-sm text-gray-500">
               {t('ai.querying', { defaultValue: 'Querying...' })}
             </p>

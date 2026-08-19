@@ -351,9 +351,10 @@ function AiSettingsPanel({
       {/* Test button */}
       <div className="pt-1">
         <Button variant="ghost" size="sm" onClick={onTest} disabled={testing}>
-          {testing
-            ? '...'
-            : t('ai.settings.testConnection', { defaultValue: 'Test Connection' })}
+          {testing && (
+            <span className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+          )}
+          {!testing && t('ai.settings.testConnection', { defaultValue: 'Test Connection' })}
         </Button>
       </div>
     </div>
