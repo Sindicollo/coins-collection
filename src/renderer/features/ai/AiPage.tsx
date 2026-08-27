@@ -6,6 +6,7 @@ import { AiCoinCard } from './AiCoinCard'
 import { useAiStore } from './useAiStore'
 import { useCoinStore } from '@/features/coins/useCoins'
 import { LlmTools } from '@/features/coins/LlmTools'
+import { useScrollRestoration } from '@/hooks/useScrollRestoration'
 import type { Coin, QueryType } from '@shared/types'
 
 export function AiPage(): React.ReactElement {
@@ -111,6 +112,12 @@ export function AiPage(): React.ReactElement {
       useCoinStore.getState().reset()
     }
   }, [collectionId])
+
+  // Persist scroll position across navigation to the photo gallery and back
+  useScrollRestoration({
+    storageKey: `ai:${collectionId ?? ''}`,
+    ready: !coinsLoading
+  })
 
   const handleBulkQuery = async (queryType: QueryType): Promise<void> => {
     console.log('[AiPage] handleBulkQuery:', { collectionId, queryType })

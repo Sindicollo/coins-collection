@@ -60,7 +60,7 @@ vi.mock('@/features/coins/LlmTools', () => ({
   })
 }))
 
-vi.mock('@/features/coins/useScrollRestoration', () => ({
+vi.mock('@/hooks/useScrollRestoration', () => ({
   useScrollRestoration: vi.fn()
 }))
 
@@ -121,8 +121,7 @@ describe('CoinView', () => {
       hasMore: false,
       error: null,
       loadedCollectionId: null,
-      cursors: [],
-      scrollPositions: {}
+      cursors: []
     })
   })
 

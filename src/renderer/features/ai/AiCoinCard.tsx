@@ -1,8 +1,11 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Coin, AiCoinInfo, QueryType } from '@shared/types'
+import { useNavigate } from 'react-router-dom'
+import type { Coin, AiCoinInfo, Photo, QueryType } from '@shared/types'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Coin as CoinIcon } from '@/components/ui/icons/Coin'
+import { getCachedPhotoData, getCachedPhotoList, fetchAndCachePhotoList, fetchAndCachePhotoData } from '@/features/photos/photoDataCache'
 
 interface AiCoinCardProps {
   coin: Coin
@@ -24,8 +27,61 @@ export function AiCoinCard({
   onClearResult
 }: AiCoinCardProps): React.ReactElement {
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   const conditionLabel = coin.condition ? t(`coins.conditions.${coin.condition}`) : null
+
+  // Photo loading — same pattern as CoinCard
+  const cachedList = getCachedPhotoList(coin.id)
+  const cachedThumbs = cachedList
+    ? cachedList
+        .slice(0, 4)
+        .map((p) => getCachedPhotoData(p.id))
+        .filter((d): d is string => !!d)
+    : []
+  const allCached = cachedList
+    ? cachedList.slice(0, 4).every((p) => !!getCachedPhotoData(p.id))
+    : false
+
+  const [thumbs, setThumbs] = React.useState<string[]>(cachedThumbs)
+  const [photosLoaded, setPhotosLoaded] = React.useState(allCached)
+  const [knownCount, setKnownCount] = React.useState(cachedList ? Math.min(4, cachedList.length) : -1)
+  const mountedRef = React.useRef(true)
+
+  React.useEffect(() => {
+    mountedRef.current = true
+    if (allCached) return
+
+    setPhotosLoaded(false)
+
+    fetchAndCachePhotoList(coin.id)
+      .then(async (photos: Photo[]) => {
+        if (!mountedRef.current) return
+
+        setKnownCount(photos.length)
+
+        const results = await Promise.allSettled(
+          photos.slice(0, 4).map((p) => fetchAndCachePhotoData(p.id))
+        )
+        const thumbnails = results.flatMap((r) =>
+          r.status === 'fulfilled' && r.value && r.value.startsWith('data:image/')
+            ? [r.value]
+            : []
+        )
+
+        if (mountedRef.current) {
+          setThumbs(thumbnails)
+          setPhotosLoaded(true)
+        }
+      })
+      .catch(() => {
+        if (mountedRef.current) setPhotosLoaded(true)
+      })
+
+    return () => {
+      mountedRef.current = false
+    }
+  }, [coin.id, allCached])
 
   const textareaContent = React.useMemo(() => {
     if (!aiResult) return ''
@@ -55,6 +111,12 @@ export function AiCoinCard({
     setAppendingId(null)
   }
 
+  const goToGallery = (): void => {
+    if (coin.collectionId && coin.id) {
+      navigate(`/coins/${coin.collectionId}/photo/${coin.id}`)
+    }
+  }
+
   return (
     <Card className="p-3">
       {/* Coin info header */}
@@ -75,75 +137,117 @@ export function AiCoinCard({
         )}
       </div>
 
-      {/* Textarea with notes + AI info */}
-      <textarea
-        readOnly
-        value={textareaContent}
-        className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs
-          bg-gray-50 text-gray-700 resize-y min-h-[80px]
-          focus:outline-none font-mono leading-relaxed"
-        rows={4}
-      />
-
-      {/* Loading indicator */}
-      {perCoinLoading && (
-        <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
-          <span className="inline-block w-3 h-3 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-          {t('ai.querying', { defaultValue: 'Querying...' })}
+      {/* Two-column layout: photos + textarea */}
+      <div className="flex gap-3">
+        {/* Left column: photo thumbnails */}
+        <div className="shrink-0">
+          <div className="flex flex-wrap gap-1.5" style={{ maxWidth: '140px' }}>
+            {!photosLoaded ? (
+              <>
+                {knownCount >= 0
+                  ? Array.from({ length: Math.min(knownCount, 4) }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-16 w-14 rounded bg-gray-100 animate-pulse shrink-0"
+                      />
+                    ))
+                  : (
+                      <div className="h-16 w-14 rounded bg-gray-100 animate-pulse shrink-0" />
+                    )
+                }
+              </>
+            ) : thumbs.length > 0 ? (
+              thumbs.map((dataUrl, i) => (
+                <img
+                  key={i}
+                  src={dataUrl}
+                  alt=""
+                  className="h-16 w-14 object-cover rounded border border-gray-200 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={goToGallery}
+                />
+              ))
+            ) : (
+              <div
+                className="h-16 w-14 rounded border border-gray-200 bg-gray-50 flex items-center justify-center shrink-0"
+              >
+                <CoinIcon className="w-6 h-6 text-gray-300" />
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-1 mt-2 flex-wrap">
-        {aiResult && (
-          <>
+        {/* Right column: textarea + actions */}
+        <div className="flex-1 min-w-0">
+          <textarea
+            readOnly
+            value={textareaContent}
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-xs
+              bg-gray-50 text-gray-700 resize-y min-h-[80px]
+              focus:outline-none font-mono leading-relaxed"
+            rows={4}
+          />
+
+          {/* Loading indicator */}
+          {perCoinLoading && (
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
+              <span className="inline-block w-3 h-3 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+              {t('ai.querying', { defaultValue: 'Querying...' })}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 mt-2 flex-wrap">
+            {aiResult && (
+              <>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={handleAppend}
+                  disabled={appendingId === coin.id}
+                >
+                  {appendingId === coin.id
+                    ? '...'
+                    : savedOk
+                      ? `✓ ${t('ai.savedToNotes', { defaultValue: 'Saved to notes' })}`
+                      : t('ai.appendToNotes', { defaultValue: 'Append to Notes' })}
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => onClearResult(coin.id)}
+                >
+                  {t('ai.clearResult', { defaultValue: 'Clear' })}
+                </Button>
+                <span className="text-gray-300 mx-0.5">|</span>
+              </>
+            )}
+
             <Button
               size="xs"
               variant="ghost"
-              onClick={handleAppend}
-              disabled={appendingId === coin.id}
+              onClick={() => onQuerySingle(coin.id, 'prices')}
+              disabled={loading}
             >
-              {appendingId === coin.id
-                ? '...'
-                : savedOk
-                  ? `✓ ${t('ai.savedToNotes', { defaultValue: 'Saved to notes' })}`
-                  : t('ai.appendToNotes', { defaultValue: 'Append to Notes' })}
+              💰 {t('ai.queryPrice', { defaultValue: 'eBay price' })}
             </Button>
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => onClearResult(coin.id)}
+              onClick={() => onQuerySingle(coin.id, 'mintage')}
+              disabled={loading}
             >
-              {t('ai.clearResult', { defaultValue: 'Clear' })}
+              📊 {t('ai.queryMintage', { defaultValue: 'Mintage' })}
             </Button>
-            <span className="text-gray-300 mx-0.5">|</span>
-          </>
-        )}
-
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => onQuerySingle(coin.id, 'prices')}
-          disabled={loading}
-        >
-          💰 {t('ai.queryPrice', { defaultValue: 'eBay price' })}
-        </Button>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => onQuerySingle(coin.id, 'mintage')}
-          disabled={loading}
-        >
-          📊 {t('ai.queryMintage', { defaultValue: 'Mintage' })}
-        </Button>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => onQuerySingle(coin.id, 'info')}
-          disabled={loading}
-        >
-          ℹ {t('ai.queryInfo', { defaultValue: 'Info' })}
-        </Button>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => onQuerySingle(coin.id, 'info')}
+              disabled={loading}
+            >
+              ℹ {t('ai.queryInfo', { defaultValue: 'Info' })}
+            </Button>
+          </div>
+        </div>
       </div>
     </Card>
   )
