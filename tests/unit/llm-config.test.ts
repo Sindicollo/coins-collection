@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe('loadSearchConfig', () => {
   it('returns DEFAULT_SEARCH_CONFIG when nothing is stored', () => {
-    const { search } = loadLlmConfig()
+    const search = loadLlmConfig().search!
 
     expect(search).toEqual({ provider: 'ddg', apiKeys: {}, baseUrl: '', maxResults: 5 })
   })
@@ -57,7 +57,7 @@ describe('loadSearchConfig', () => {
     store.set('llm.search.baseUrl', 'https://searx.example')
     store.set('llm.search.maxResults', '7')
 
-    const { search } = loadLlmConfig()
+    const search = loadLlmConfig().search!
 
     expect(search).toEqual({
       provider: 'brave',
@@ -70,7 +70,7 @@ describe('loadSearchConfig', () => {
   it('falls back to defaults for malformed apiKeys JSON', () => {
     store.set('llm.search.apiKeys', '{not-json')
 
-    const { search } = loadLlmConfig()
+    const search = loadLlmConfig().search!
 
     expect(search.apiKeys).toEqual({})
   })
@@ -81,7 +81,7 @@ describe('legacy search key migration', () => {
     store.set('llm.search.provider', 'tavily')
     store.set('llm.search.apiKey', 'tvly-legacy')
 
-    const { search } = loadLlmConfig()
+    const search = loadLlmConfig().search!
 
     expect(search.apiKeys.tavily).toBe('tvly-legacy')
     // The migrated value is persisted and the legacy key is cleared (stored as '')
@@ -94,7 +94,7 @@ describe('legacy search key migration', () => {
     store.set('llm.search.apiKeys', JSON.stringify({ tavily: 'tvly-new' }))
     store.set('llm.search.apiKey', 'tvly-legacy')
 
-    const { search } = loadLlmConfig()
+    const search = loadLlmConfig().search!
 
     expect(search.apiKeys.tavily).toBe('tvly-new')
     expect(store.get('llm.search.apiKeys')).toBe(JSON.stringify({ tavily: 'tvly-new' }))

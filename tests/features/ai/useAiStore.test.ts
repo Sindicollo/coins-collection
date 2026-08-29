@@ -5,7 +5,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useAiStore } from '@/features/ai/useAiStore'
-import type { CoinNote } from '@shared/types'
+import type { CoinNote, LlmErrorInfo } from '@shared/types'
+
+const connectionRefusedError: LlmErrorInfo = {
+  code: 'connection_refused',
+  provider: 'lmstudio',
+  baseUrl: 'http://localhost:1234/v1',
+  model: 'x'
+}
 
 function makeNote(partial: Partial<CoinNote>): CoinNote {
   return {
@@ -138,19 +145,17 @@ describe('useAiStore.querySingle', () => {
   })
 
   it('stores a per-coin error when the query fails', async () => {
-    const err = { code: 'connection_refused', provider: 'lmstudio', baseUrl: 'http://localhost:1234/v1', model: 'x' }
-    vi.mocked(window.api.llm.querySingle).mockResolvedValue({ ok: false, error: err })
+    vi.mocked(window.api.llm.querySingle).mockResolvedValue({ ok: false, error: connectionRefusedError })
 
     const result = await useAiStore.getState().querySingle('coin-1', 'info')
 
     expect(result).toBeNull()
-    expect(useAiStore.getState().coinErrors['coin-1']).toEqual(err)
+    expect(useAiStore.getState().coinErrors['coin-1']).toEqual(connectionRefusedError)
     expect(useAiStore.getState().coinLoading['coin-1']).toBe(false)
   })
 
   it('clears a previous per-coin error on a successful retry', async () => {
-    const err = { code: 'connection_refused', provider: 'lmstudio', baseUrl: 'http://localhost:1234/v1', model: 'x' }
-    useAiStore.setState({ coinErrors: { 'coin-1': err } })
+    useAiStore.setState({ coinErrors: { 'coin-1': connectionRefusedError } })
     vi.mocked(window.api.llm.querySingle).mockResolvedValue({
       ok: true,
       data: { id: 'coin-1', info: 'recovered' }
@@ -169,12 +174,11 @@ describe('useAiStore.queryBulk', () => {
   })
 
   it('stores a structured llmError when the bulk query fails', async () => {
-    const err = { code: 'connection_refused', provider: 'lmstudio', baseUrl: 'http://localhost:1234/v1', model: 'x' }
-    vi.mocked(window.api.llm.queryBulk).mockResolvedValue({ ok: false, error: err })
+    vi.mocked(window.api.llm.queryBulk).mockResolvedValue({ ok: false, error: connectionRefusedError })
 
     await useAiStore.getState().queryBulk('col-1', 'prices')
 
-    expect(useAiStore.getState().llmError).toEqual(err)
+    expect(useAiStore.getState().llmError).toEqual(connectionRefusedError)
     expect(useAiStore.getState().loading).toBe(false)
     expect(useAiStore.getState().bulkRunning).toBe(false)
   })

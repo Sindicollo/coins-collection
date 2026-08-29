@@ -82,9 +82,12 @@ const mockCoin: Coin = {
   shippingCost: 5,
   currency: 'RUB',
   country: 'Russia',
-  notes: '',
+  composition: null,
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1000,
   updatedAt: 1000
 }

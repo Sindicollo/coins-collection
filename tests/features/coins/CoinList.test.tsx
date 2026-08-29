@@ -26,7 +26,6 @@ const mockCoin: Coin = {
   price: 500,
   shippingCost: 50,
   currency: 'RUB',
-  notes: 'Nice coin',
   sold: false,
   onAuction: false,
   auctionPrice: null,

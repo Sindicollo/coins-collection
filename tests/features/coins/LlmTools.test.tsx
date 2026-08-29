@@ -8,14 +8,16 @@ const mockExportData = [
     country: 'Russia',
     denomination: '1 рубль',
     year: 1999,
-    condition: 'UNC'
+    condition: 'UNC',
+    composition: 'CuNi'
   },
   {
     id: 'c2',
     country: 'USA',
     denomination: '1 dollar',
     year: 1880,
-    condition: 'VF'
+    condition: 'VF',
+    composition: 'Silver'
   }
 ]
 

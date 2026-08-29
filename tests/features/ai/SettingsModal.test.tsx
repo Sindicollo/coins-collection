@@ -111,4 +111,21 @@ describe('SettingsModal AI settings persistence', () => {
 
     expect(await screen.findByText(/Cannot connect to LM Studio/)).toBeDefined()
   })
+
+  it('falls back to the plain error string when errorInfo is missing', async () => {
+    vi.mocked(window.api.llm.getConfig).mockResolvedValue(
+      makeConfig({ provider: 'lmstudio', baseUrl: 'http://localhost:1234/v1' })
+    )
+    // Older/bare responses carry only `error` — no structured errorInfo
+    vi.mocked(window.api.llm.testConnection).mockResolvedValue({
+      ok: false,
+      error: 'connect ECONNREFUSED 127.0.0.1:1234'
+    })
+
+    renderModal()
+    fireEvent.click(screen.getByText('AI'))
+    fireEvent.click(await screen.findByText('Test Connection'))
+
+    expect(await screen.findByText(/connect ECONNREFUSED/)).toBeDefined()
+  })
 })

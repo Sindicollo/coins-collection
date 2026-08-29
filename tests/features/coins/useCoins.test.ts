@@ -24,7 +24,6 @@ const mockCoin: Coin = {
   shippingCost: null,
   currency: 'RUB',
   country: null,
-  notes: 'Test coin',
   extraData: null,
   sold: false,
   createdAt: 1000,

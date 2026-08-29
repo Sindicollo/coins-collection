@@ -27,9 +27,9 @@
     "src/shared/**/*.ts",
     "src/renderer/locales/*.json",
     "src/main/llm/**/*.ts",
+    "src/main/ipc/**/*.ts",
     "src/main/database/**/*.ts",
-    "src/main/import/backup.ts",
-    "src/main/import/spreadsheet-import.ts",
+    "src/main/import/**/*.ts",
     "src/main/export/**/*.ts"
   ]
 }
