@@ -10,6 +10,7 @@ import type {
   LlmConfig,
   LlmTestResult,
   LlmQueryResult,
+  LlmErrorInfo,
   LlmBulkProgress,
   Coin,
   QueryType
@@ -59,6 +60,11 @@ function checkpointSession(
 /**
  * Run a batch-based query (used by both builtin and no-search paths).
  * Emits bulk progress events after each batch.
+ *
+ * Errors are isolated per batch: a fatal error (connection down, auth, 5xx)
+ * aborts the whole bulk; a per-batch non-fatal failure (bad parse, empty
+ * answer) is skipped so `resume` can retry those coins, mirroring the
+ * agentic path.
  */
 async function runBatchQuery(
   event: Electron.IpcMainInvokeEvent,
@@ -68,13 +74,16 @@ async function runBatchQuery(
   modelCallback: () => BaseChatModel,
   cancelled: () => boolean,
   collectionId: string,
-  processedIds: Set<string>
-): Promise<AiCoinInfo[]> {
+  processedIds: Set<string>,
+  cfg: LlmConfig
+): Promise<{ results: AiCoinInfo[]; lastNonFatal: LlmErrorInfo | null }> {
   const allResults: AiCoinInfo[] = []
   const batches: Coin[][] = []
   for (let i = 0; i < coins.length; i += BATCH_SIZE) {
     batches.push(coins.slice(i, i + BATCH_SIZE))
   }
+
+  let lastNonFatal: LlmErrorInfo | null = null
 
   for (let i = 0; i < batches.length; i++) {
     if (cancelled()) {
@@ -85,7 +94,25 @@ async function runBatchQuery(
 
     const batchStart = Date.now()
     const model = modelCallback()
-    const batchResults = await queryBulkCoins(model, batches[i], queryType, locale)
+    let batchResults: AiCoinInfo[]
+    try {
+      batchResults = await queryBulkCoins(model, batches[i], queryType, locale)
+    } catch (err) {
+      const info = classifyLlmError(err, cfg)
+      // Fatal (server down, auth, etc.) → abort the whole bulk so the user
+      // sees an actionable error instead of "0 results".
+      if (isFatalLlmError(info.code)) {
+        console.error(`[llm:ipc] Fatal error on batch ${i + 1}, aborting bulk:`, err)
+        checkpointSession(collectionId, queryType, processedIds)
+        throw err
+      }
+      // Per-batch failure (bad parse, empty answer) — skip; resume retries it.
+      lastNonFatal = info
+      console.error(`[llm:ipc] Batch ${i + 1} failed, skipping:`, err)
+      checkpointSession(collectionId, queryType, processedIds)
+      continue
+    }
+
     allResults.push(...batchResults)
     for (const coin of batches[i]) processedIds.add(coin.id)
 
@@ -111,7 +138,7 @@ async function runBatchQuery(
     }
   }
 
-  return allResults
+  return { results: allResults, lastNonFatal }
 }
 
 function buildExportData(collectionId: string): LlmExportCoin[] {
@@ -245,37 +272,37 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_BULK,
     async (event, query: AiBulkQuery): Promise<LlmQueryResult<AiCoinInfo[]>> => {
-      const queryType = validateQueryType(query.queryType)
-      const queryKey = `${query.collectionId}:${queryType}`
+      const queryKey = `${query.collectionId}:${query.queryType}`
       console.log('[llm:ipc] QUERY_BULK:', {
         collectionId: query.collectionId,
-        queryType,
+        queryType: query.queryType,
         excludeCoinIds: query.excludeCoinIds?.length || 0
       })
 
-      const cfg = effectiveConfig(query.config)
-
-      let coins = listCoinsByCollection(query.collectionId)
-      console.log('[llm:ipc] coins loaded:', coins.length)
-
-      // Filter out already-processed coins (resume)
-      if (query.excludeCoinIds && query.excludeCoinIds.length > 0) {
-        const exclude = new Set(query.excludeCoinIds)
-        coins = coins.filter((c) => !exclude.has(c.id))
-        console.log('[llm:ipc] after exclude filter:', coins.length)
-      }
-
-      if (coins.length === 0) {
-        clearBulkSession(query.collectionId, queryType)
-        return { ok: true, data: [] }
-      }
-
-      const locale = query.locale || 'en'
-      const searchPath = getSearchPath(query.config)
       let cancelled = false
       activeQueries.set(queryKey, { cancel: () => { cancelled = true } })
 
       try {
+        const queryType = validateQueryType(query.queryType)
+        const cfg = effectiveConfig(query.config)
+
+        let coins = listCoinsByCollection(query.collectionId)
+        console.log('[llm:ipc] coins loaded:', coins.length)
+
+        // Filter out already-processed coins (resume)
+        if (query.excludeCoinIds && query.excludeCoinIds.length > 0) {
+          const exclude = new Set(query.excludeCoinIds)
+          coins = coins.filter((c) => !exclude.has(c.id))
+          console.log('[llm:ipc] after exclude filter:', coins.length)
+        }
+
+        if (coins.length === 0) {
+          clearBulkSession(query.collectionId, queryType)
+          return { ok: true, data: [] }
+        }
+
+        const locale = query.locale || 'en'
+        const searchPath = getSearchPath(query.config)
         const existingExcluded = query.excludeCoinIds || []
         const processedIds = new Set(existingExcluded)
 
@@ -364,7 +391,7 @@ export function registerLlmHandlers(): void {
 
         if (searchPath === 'builtin') {
           // ── OpenRouter built-in path: batched with fetch-hack ──
-          const data = await runBatchQuery(
+          const { results, lastNonFatal } = await runBatchQuery(
             event,
             coins,
             queryType,
@@ -372,13 +399,24 @@ export function registerLlmHandlers(): void {
             () => createLlmModel(query.config),
             () => cancelled,
             query.collectionId,
-            processedIds
+            processedIds,
+            cfg
           )
-          return { ok: true, data }
+          // Every batch failed with a non-fatal error → surface it instead of
+          // an empty success that looks like "0 results".
+          if (!cancelled && results.length === 0 && coins.length > 0) {
+            return {
+              ok: false,
+              error:
+                lastNonFatal ??
+                classifyLlmError(new Error('Model returned no usable data for any coin'), cfg)
+            }
+          }
+          return { ok: true, data: results }
         }
 
         // ── No-search path: batched ──
-        const data = await runBatchQuery(
+        const { results, lastNonFatal } = await runBatchQuery(
           event,
           coins,
           queryType,
@@ -386,11 +424,20 @@ export function registerLlmHandlers(): void {
           () => createLlmModel(query.config),
           () => cancelled,
           query.collectionId,
-          processedIds
+          processedIds,
+          cfg
         )
-        return { ok: true, data }
+        if (!cancelled && results.length === 0 && coins.length > 0) {
+          return {
+            ok: false,
+            error:
+              lastNonFatal ??
+              classifyLlmError(new Error('Model returned no usable data for any coin'), cfg)
+          }
+        }
+        return { ok: true, data: results }
       } catch (err) {
-        return { ok: false, error: classifyLlmError(err, cfg) }
+        return { ok: false, error: classifyLlmError(err, effectiveConfig(query.config)) }
       } finally {
         activeQueries.delete(queryKey)
       }
@@ -416,23 +463,23 @@ export function registerLlmHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_SINGLE,
     async (_event, query: AiSingleQuery): Promise<LlmQueryResult<AiCoinInfo>> => {
-      const queryType = validateQueryType(query.queryType)
-      const cfg = effectiveConfig(query.config)
-      const coin = getCoin(query.coinId)
-      if (!coin) {
-        return {
-          ok: false,
-          error: {
-            code: 'unknown',
-            provider: cfg.provider,
-            baseUrl: cfg.baseUrl,
-            model: cfg.model,
-            detail: `Coin not found: ${query.coinId}`
+      try {
+        const queryType = validateQueryType(query.queryType)
+        const cfg = effectiveConfig(query.config)
+        const coin = getCoin(query.coinId)
+        if (!coin) {
+          return {
+            ok: false,
+            error: {
+              code: 'unknown',
+              provider: cfg.provider,
+              baseUrl: cfg.baseUrl,
+              model: cfg.model,
+              detail: `Coin not found: ${query.coinId}`
+            }
           }
         }
-      }
 
-      try {
         const searchPath = getSearchPath(query.config)
 
         if (searchPath === 'agentic') {
@@ -450,7 +497,7 @@ export function registerLlmHandlers(): void {
         const data = await querySingleCoin(model, coin, queryType, query.locale || 'en')
         return { ok: true, data }
       } catch (err) {
-        return { ok: false, error: classifyLlmError(err, cfg) }
+        return { ok: false, error: classifyLlmError(err, effectiveConfig(query.config)) }
       }
     }
   )

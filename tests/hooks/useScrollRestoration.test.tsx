@@ -118,4 +118,29 @@ describe('useScrollRestoration', () => {
 
     document.body.removeChild(main)
   })
+
+  it('does not re-snap to a stale saved position on later re-renders', () => {
+    const main = setupScrollContainer()
+    saveScrollPosition('test:1', 300)
+
+    const { rerender } = render(<ScrollRestorationTester storageKey="test:1" ready recording />)
+    expect(main.scrollTop).toBe(300)
+
+    // While recording=false (e.g. loading more) the saved position is stale.
+    // A re-render that changes the hook options must NOT snap scroll back to
+    // the stale 300 — restore happens once per storageKey.
+    main.scrollTop = 0
+    main.dispatchEvent(new Event('scroll'))
+    rerender(
+      <ScrollRestorationTester
+        storageKey="test:1"
+        ready
+        recording={false}
+        onLoadMore={() => {}}
+      />
+    )
+    expect(main.scrollTop).toBe(0)
+
+    document.body.removeChild(main)
+  })
 })

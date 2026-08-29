@@ -75,11 +75,15 @@ export function CoinView({
   const [totals, setTotals] = React.useState<CurrencyTotal[]>([])
 
   // Scroll persistence across collection switches and gallery navigation
+  const handleLoadMore = React.useCallback(() => {
+    loadMore(collectionId)
+  }, [loadMore, collectionId])
+
   useScrollRestoration({
     storageKey: `collection:${collectionId}`,
     ready: !loading && coins.length > 0,
     recording: !loading && !loadingMore,
-    onLoadMore: hasMore ? () => loadMore(collectionId) : undefined
+    onLoadMore: hasMore ? handleLoadMore : undefined
   })
 
   // Load country name suggestions for autocomplete

@@ -35,15 +35,16 @@ export function AiCoinCard({
   const conditionLabel = coin.condition ? t(`coins.conditions.${coin.condition}`) : null
 
   // Photo loading — same pattern as CoinCard
+  const isImageDataUrl = (d?: string): d is string => !!d && d.startsWith('data:image/')
   const cachedList = getCachedPhotoList(coin.id)
   const cachedThumbs = cachedList
     ? cachedList
         .slice(0, 4)
         .map((p) => getCachedPhotoData(p.id))
-        .filter((d): d is string => !!d)
+        .filter(isImageDataUrl)
     : []
   const allCached = cachedList
-    ? cachedList.slice(0, 4).every((p) => !!getCachedPhotoData(p.id))
+    ? cachedList.slice(0, 4).every((p) => isImageDataUrl(getCachedPhotoData(p.id)))
     : false
 
   const [thumbs, setThumbs] = React.useState<string[]>(cachedThumbs)
