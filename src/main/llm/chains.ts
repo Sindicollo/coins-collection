@@ -54,7 +54,9 @@ composition: ${coin.composition ?? UNKNOWN}`
 function extractJsonFromText(text: string): string {
   let cleaned = text.trim()
 
-  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
+  // Markdown fences: ```json, ```json\n, ``` JSON, ``` etc. — reasoning models
+  // wrap the answer in many spellings.
+  const fenceMatch = cleaned.match(/```\s*(?:json)?\s*\r?\n?([\s\S]*?)```/i)
   if (fenceMatch) {
     cleaned = fenceMatch[1].trim()
   }
@@ -114,6 +116,9 @@ function robustJsonParse(json: string): unknown {
 
   // Unquoted keys
   attempts.push(json.replace(/([{,]\s*)([a-zA-Z_]\w+)(\s*:)/g, '$1"$2"$3'))
+
+  // Trailing commas (local models emit them regularly): { "a": 1, }
+  attempts.push(json.replace(/,\s*([}\]])/g, '$1'))
 
   for (const attempt of attempts) {
     try {
@@ -232,6 +237,61 @@ function extractAndValidateSingle(rawText: string): AiCoinInfo {
   }
 
   return validated.data as AiCoinInfo
+}
+
+// ── JSON recovery (reasoning models) ──────────────────────────────
+
+const JSON_FIX_NUDGE_RU =
+  'Твой предыдущий ответ не является валидным JSON. Выведи заново ТОЛЬКО финальный JSON — ' +
+  'без markdown-обёртки, без пояснений, без рассуждений и без вызовов инструментов. ' +
+  'Проверь, что все кавычки внутри строк экранированы.'
+const JSON_FIX_NUDGE_EN =
+  'Your previous response was not valid JSON. Output ONLY the final JSON again — ' +
+  'no markdown fences, no explanations, no reasoning and no tool calls. ' +
+  'Make sure all quotes inside strings are escaped.'
+
+interface SingleAnswerRecoveryOptions {
+  rawText: string
+  model: BaseChatModel
+  systemText: string
+  coinLabel: string
+  coinText: string
+  lang: 'ru' | 'en'
+}
+
+/**
+ * Parse the model's final answer. If it is not valid JSON, ask the model
+ * ONCE to re-output strictly valid JSON (fresh minimal context — system
+ * prompt + coin + correction nudge) and retry.
+ *
+ * Reasoning models (common with LM Studio/Ollama) frequently wrap the answer
+ * in fences, add trailing prose, or emit unescaped quotes — which would
+ * otherwise drop an entire coin from a bulk run. The empty-response error is
+ * NOT retried here: it already went through its own nudges in the loop.
+ */
+async function parseSingleAnswerWithRecovery(opts: SingleAnswerRecoveryOptions): Promise<AiCoinInfo> {
+  const { rawText, model, systemText, coinLabel, coinText, lang } = opts
+  try {
+    return extractAndValidateSingle(rawText)
+  } catch (err) {
+    const isEmpty = err instanceof Error && err.message === ERROR_EMPTY_RESPONSE
+    if (isEmpty || typeof model.invoke !== 'function') throw err
+
+    console.warn('[chains] Invalid final JSON, asking the model to fix it')
+    const jsonNudge = lang === 'ru' ? JSON_FIX_NUDGE_RU : JSON_FIX_NUDGE_EN
+    try {
+      const fixedText = getMessageText(
+        await model.invoke([
+          new SystemMessage(systemText),
+          new HumanMessage(`${coinLabel}:\n${coinText}\n\n${jsonNudge}`)
+        ])
+      )
+      return extractAndValidateSingle(fixedText)
+    } catch {
+      // Surface the original, more representative error
+      throw err
+    }
+  }
 }
 
 // ── Prompts ──────────────────────────────────────────────────────
@@ -417,7 +477,18 @@ export async function querySingleCoin(
   const coinText = formatSingleCoinForPrompt(coin)
 
   const rawText = await invokeAndExtract(chain, { coin: coinText })
-  return extractAndValidateSingle(rawText)
+  const lang = locale.startsWith('ru') ? 'ru' : 'en'
+  const coinLabel = lang === 'ru' ? 'Монета' : 'Coin'
+  // The single path can also hit mangled JSON from reasoning models — win back
+  // the coin with one corrective pass instead of failing the query.
+  return parseSingleAnswerWithRecovery({
+    rawText,
+    model,
+    systemText: getBasePrompt(locale, queryType),
+    coinLabel,
+    coinText,
+    lang
+  })
 }
 
 // ── Tool-calling loop (agentic search path) ──────────────────────
@@ -672,5 +743,14 @@ CRITICAL RULE: if the coin data includes a "distinguishing feature" line, it des
     stopSearchMessage
   })
 
-  return extractAndValidateSingle(rawText)
+  // Reasoning models frequently mangle the final JSON — one corrective pass
+  // with a fresh, minimal context (no tool history, so no ToolMessage problems).
+  return parseSingleAnswerWithRecovery({
+    rawText,
+    model,
+    systemText: searchGuide + basePrompt,
+    coinLabel,
+    coinText,
+    lang
+  })
 }
