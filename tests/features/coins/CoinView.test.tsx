@@ -60,7 +60,7 @@ vi.mock('@/features/coins/LlmTools', () => ({
   })
 }))
 
-vi.mock('@/features/coins/useScrollRestoration', () => ({
+vi.mock('@/hooks/useScrollRestoration', () => ({
   useScrollRestoration: vi.fn()
 }))
 
@@ -82,9 +82,12 @@ const mockCoin: Coin = {
   shippingCost: 5,
   currency: 'RUB',
   country: 'Russia',
-  notes: '',
+  composition: null,
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1000,
   updatedAt: 1000
 }
@@ -121,8 +124,7 @@ describe('CoinView', () => {
       hasMore: false,
       error: null,
       loadedCollectionId: null,
-      cursors: [],
-      scrollPositions: {}
+      cursors: []
     })
   })
 

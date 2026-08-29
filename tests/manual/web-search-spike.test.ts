@@ -16,9 +16,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ChatOpenAI } from '@langchain/openai'
 import { DynamicTool } from '@langchain/core/tools'
-import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
-import type { SystemMessage as SystemMessageType } from '@langchain/core/messages'
-import { SystemMessage } from '@langchain/core/messages'
+import { BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 
 // ── Mock search tool ────────────────────────────────────────────────
 
@@ -43,7 +41,7 @@ const searchTool = new DynamicTool({
 function buildMessages(
   systemPrompt: string,
   userPrompt: string
-): (HumanMessage | SystemMessageType)[] {
+): BaseMessage[] {
   return [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)]
 }
 
@@ -51,7 +49,7 @@ function buildMessages(
 
 async function invokeWithTools(
   model: ChatOpenAI,
-  messages: (HumanMessage | SystemMessageType)[],
+  messages: BaseMessage[],
   tools: DynamicTool[],
   maxIterations = 6
 ): Promise<string> {
@@ -168,7 +166,7 @@ describe('Web search tool-calling spike', () => {
     fetchCallCount = 0
     vi.restoreAllMocks()
 
-    globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url, init?: RequestInit) => {
       fetchCallCount++
       const urlStr = String(url)
       const body = init?.body ? JSON.parse(init.body as string) : {}
@@ -189,7 +187,7 @@ describe('Web search tool-calling spike', () => {
             typeof userMsg?.content === 'string'
               ? userMsg.content
               : Array.isArray(userMsg?.content)
-                ? userMsg.content
+                ? (userMsg.content as Array<unknown>)
                     .map((b: unknown) => (typeof b === 'string' ? b : (b as { text: string }).text))
                     .join('')
                 : ''
@@ -258,7 +256,7 @@ describe('Web search tool-calling spike', () => {
 
   it('handles case when model does NOT emit tool calls (no tool-calling support)', async () => {
     // Setup mock to NOT return tool_calls — return plain text instead
-    globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(init.body as string) : {}
       const messages = body.messages || []
       const hasToolMessages = messages.some((m: { role: string }) => m.role === 'tool')
@@ -319,7 +317,7 @@ describe('Web search tool-calling spike', () => {
   it('handles model that calls tool multiple times', async () => {
     let callIndex = 0
 
-    globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url, init?: RequestInit) => {
       callIndex++
       const body = init?.body ? JSON.parse(init.body as string) : {}
 

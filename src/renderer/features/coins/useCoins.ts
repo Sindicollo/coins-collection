@@ -10,7 +10,6 @@ interface CoinState {
   loadingMore: boolean
   error: string | null
   loadedCollectionId: string | null
-  scrollPositions: Record<string, number>
 }
 
 interface CoinActions {
@@ -19,7 +18,6 @@ interface CoinActions {
   addCoin: (input: CreateCoinInput) => Promise<Coin | null>
   updateCoin: (input: UpdateCoinInput) => Promise<Coin | null>
   deleteCoin: (id: string) => Promise<boolean>
-  saveScrollPosition: (collectionId: string, position: number) => void
   reset: () => void
 }
 
@@ -33,7 +31,6 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
   loadingMore: false,
   error: null,
   loadedCollectionId: null,
-  scrollPositions: {},
 
   loadCoins: async (collectionId: string) => {
     const { loadedCollectionId } = get()
@@ -57,12 +54,6 @@ export const useCoinStore = create<CoinStore>((set, get) => ({
     } catch {
       set({ error: 'coins.errors.loadFailed', loading: false })
     }
-  },
-
-  saveScrollPosition: (collectionId: string, position: number) => {
-    set((state) => ({
-      scrollPositions: { ...state.scrollPositions, [collectionId]: position }
-    }))
   },
 
   loadMore: async (collectionId: string) => {

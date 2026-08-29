@@ -173,12 +173,10 @@ describe('useExportStore', () => {
 
     it('happy path — export succeeds, dialog closes', async () => {
       vi.mocked(window.api.export.excel).mockResolvedValue('/tmp/export.xlsx')
-      vi.mocked(window.api.export.onProgress).mockImplementation(
-        (cb: (data: unknown) => void) => {
+      vi.mocked(window.api.export.onProgress).mockImplementation((cb) => {
           cb(mockProgress)
           return vi.fn()
-        }
-      )
+        })
 
       act(() => {
         useExportStore.getState().openDialog()

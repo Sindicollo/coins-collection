@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { CURRENCIES } from '@/utils/currency'
 import * as aiApi from '@/features/ai/api'
-import type { LlmConfig, LlmProviderType, SearchProvider } from '@shared/types'
+import { formatLlmError } from '@/lib/llmError'
+import type { LlmConfig, LlmErrorInfo, LlmProviderType, SearchProvider } from '@shared/types'
 
 // ── Constants ──────────────────────────────────────────
 
@@ -192,7 +193,7 @@ interface AiSettingsPanelProps {
   config: LlmConfig
   onChange: (config: LlmConfig) => void
   testing: boolean
-  testResult: { ok: boolean; error?: string; toolCallSupported?: boolean; searchProviderOk?: boolean; searchProviderError?: string } | null
+  testResult: { ok: boolean; error?: string; errorInfo?: LlmErrorInfo; toolCallSupported?: boolean; searchProviderOk?: boolean; searchProviderError?: string } | null
   saveError: string | null
   onTest: () => void
   loaded: boolean
@@ -301,7 +302,9 @@ function AiSettingsPanel({
           >
             {testResult.ok
               ? t('ai.settings.testOk', { defaultValue: 'Connection successful!' })
-              : testResult.error || t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
+              : formatLlmError(testResult.errorInfo) ||
+                testResult.error ||
+                t('ai.settings.testFailed', { defaultValue: 'Connection failed' })}
           </div>
 
           {/* Tool-calling support */}
@@ -351,9 +354,13 @@ function AiSettingsPanel({
       {/* Test button */}
       <div className="pt-1">
         <Button variant="ghost" size="sm" onClick={onTest} disabled={testing}>
-          {testing
-            ? '...'
-            : t('ai.settings.testConnection', { defaultValue: 'Test Connection' })}
+          {testing && (
+            <span
+              aria-hidden="true"
+              className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin"
+            />
+          )}
+          {t('ai.settings.testConnection', { defaultValue: 'Test Connection' })}
         </Button>
       </div>
     </div>

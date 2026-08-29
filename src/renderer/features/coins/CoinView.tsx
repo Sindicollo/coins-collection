@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useCoinStore } from './useCoins'
-import { useScrollRestoration } from './useScrollRestoration'
+import { useScrollRestoration } from '@/hooks/useScrollRestoration'
 import { CoinList } from './CoinList'
 import { CoinForm } from './CoinForm'
 import { Button } from '@/components/ui/Button'
@@ -75,7 +75,16 @@ export function CoinView({
   const [totals, setTotals] = React.useState<CurrencyTotal[]>([])
 
   // Scroll persistence across collection switches and gallery navigation
-  useScrollRestoration(collectionId)
+  const handleLoadMore = React.useCallback(() => {
+    loadMore(collectionId)
+  }, [loadMore, collectionId])
+
+  useScrollRestoration({
+    storageKey: `collection:${collectionId}`,
+    ready: !loading && coins.length > 0,
+    recording: !loading && !loadingMore,
+    onLoadMore: hasMore ? handleLoadMore : undefined
+  })
 
   // Load country name suggestions for autocomplete
   React.useEffect(() => {

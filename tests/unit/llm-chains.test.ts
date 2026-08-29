@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { AIMessage, HumanMessage, ToolMessage, SystemMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, HumanMessage, ToolMessage, SystemMessage } from '@langchain/core/messages'
 import type { BaseMessage } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { DynamicTool } from '@langchain/core/tools'
@@ -45,7 +45,11 @@ function makeSearchTool(func: (query: string) => Promise<string>) {
 
 function makeModel(invokeImpl: (messages: BaseMessage[]) => Promise<AIMessage>) {
   const bound = { invoke: vi.fn(invokeImpl) }
-  const model = { bindTools: vi.fn(() => bound) }
+  // The unbound model needs its own `invoke` for the JSON-recovery pass
+  const model = {
+    bindTools: vi.fn(() => bound),
+    invoke: vi.fn()
+  }
   return { model: model as unknown as BaseChatModel, bound }
 }
 
@@ -175,6 +179,53 @@ describe('querySingleCoinWithSearch', () => {
     )
     // initial + 2 nudges, then gives up
     expect(bound.invoke).toHaveBeenCalledTimes(3)
+    // empty-response already went through nudges — no JSON-recovery re-invoke
+    expect(model.invoke).not.toHaveBeenCalled()
+  })
+
+  it('recovers a mangled final JSON with one corrective pass', async () => {
+    const tool = makeSearchTool(async () => 'unused')
+    // First pass reproduces the real-world failure: an unescaped quote in the
+    // Russian `info` field → JSON.parse "Expected ':' after property name".
+    const { model, bound } = makeModel(
+      vi
+        .fn()
+        .mockResolvedValue(
+          new AIMessage({ content: '{"id": "coin-1", "info": "Делай "правильно" всегда"}' })
+        )
+    )
+    // Corrective pass (unbound model, fresh minimal context) returns clean JSON
+    vi.mocked(model.invoke).mockResolvedValue(
+      new AIMessageChunk({ content: '{"id": "coin-1", "info": "KM# 190"}' })
+    )
+
+    const result = await querySingleCoinWithSearch(model, tool, coin, 'info', 'ru')
+
+    expect(result.info).toEqual('KM# 190')
+    expect(bound.invoke).toHaveBeenCalledTimes(1)
+    expect(model.invoke).toHaveBeenCalledTimes(1)
+
+    const nudgeMessages = vi.mocked(model.invoke).mock.calls[0][0] as BaseMessage[]
+    const lastMsg = nudgeMessages[nudgeMessages.length - 1]
+    expect(lastMsg).toBeInstanceOf(HumanMessage)
+    expect(String(lastMsg.content)).toContain('валидным JSON')
+  })
+
+  it('surfaces the original error when the corrected JSON is still invalid', async () => {
+    const tool = makeSearchTool(async () => 'unused')
+    const { model, bound } = makeModel(
+      vi.fn().mockResolvedValue(
+        new AIMessage({ content: '{"id": "coin-1", "info": "say "hi""}' })
+      )
+    )
+    vi.mocked(model.invoke).mockResolvedValue(new AIMessageChunk({ content: 'still not json' }))
+
+    await expect(querySingleCoinWithSearch(model, tool, coin, 'info', 'en')).rejects.toThrow(
+      /Failed to parse LLM response as JSON/
+    )
+    // exactly ONE corrective pass — no infinite retry
+    expect(model.invoke).toHaveBeenCalledTimes(1)
+    expect(bound.invoke).toHaveBeenCalledTimes(1)
   })
 
   it('does not leak a literal {coin} placeholder into the system prompt', async () => {

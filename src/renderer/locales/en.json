@@ -164,6 +164,21 @@
       "rarity": "Rarity",
       "varieties": "Varieties"
     },
+    "errors": {
+      "connectionRefused": "Cannot connect to the AI service ({{baseUrl}}). Check your internet connection.",
+      "connectionRefusedLmstudio": "Cannot connect to LM Studio. Make sure it is running and a model is loaded ({{baseUrl}}).",
+      "connectionRefusedOllama": "Cannot connect to Ollama. Make sure it is running ({{baseUrl}}).",
+      "hostNotFound": "Server not found at {{baseUrl}}. Check the Base URL in AI Settings.",
+      "timeout": "The AI service did not respond in time. Try again.",
+      "auth": "Authentication failed. Check your API key in AI Settings.",
+      "modelNotFound": "Model not found ({{model}}). Check the model name in AI Settings.",
+      "rateLimit": "Rate limit exceeded. Wait a moment and try again.",
+      "serverError": "The AI service returned an error (HTTP {{status}}).",
+      "emptyResponse": "The model returned an empty response. Try a different model.",
+      "invalidResponse": "The model returned an invalid response. Try again or use a different model.",
+      "unknown": "AI request failed: {{detail}}",
+      "unknownShort": "AI request failed."
+    },
     "settings": {
       "title": "AI Settings",
       "provider": "Provider",

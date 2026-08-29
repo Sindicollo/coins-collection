@@ -60,8 +60,12 @@ const fullCoin: Coin = {
   price: 50,
   shippingCost: 5,
   currency: 'RUB',
+  composition: null,
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1000,
   updatedAt: 1000
 }
@@ -78,8 +82,12 @@ const minimalCoin: Coin = {
   price: null,
   shippingCost: null,
   currency: null,
+  composition: null,
   extraData: null,
   sold: false,
+  onAuction: false,
+  auctionPrice: null,
+  salePrice: null,
   createdAt: 1001,
   updatedAt: 1001
 }

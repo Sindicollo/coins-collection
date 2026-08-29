@@ -343,7 +343,7 @@ describe('BackupSection', () => {
 
   it('closes progress modal when Cancel is clicked', async () => {
     // Keep export in-flight so progress stays open
-    let resolveExport!: (value: unknown) => void
+    let resolveExport!: (value: string | null) => void
     vi.mocked(window.api.backup.exportExecute).mockImplementation(
       () => new Promise((r) => { resolveExport = r })
     )
@@ -384,7 +384,7 @@ describe('BackupSection', () => {
     })
 
     // Keep the export promise unresolved
-    let resolveExport!: (value: unknown) => void
+    let resolveExport!: (value: string | null) => void
     vi.mocked(window.api.backup.exportExecute).mockImplementation(
       () => new Promise((r) => { resolveExport = r })
     )

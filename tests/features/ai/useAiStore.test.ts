@@ -5,7 +5,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useAiStore } from '@/features/ai/useAiStore'
-import type { CoinNote } from '@shared/types'
+import type { CoinNote, LlmErrorInfo } from '@shared/types'
+
+const connectionRefusedError: LlmErrorInfo = {
+  code: 'connection_refused',
+  provider: 'lmstudio',
+  baseUrl: 'http://localhost:1234/v1',
+  model: 'x'
+}
 
 function makeNote(partial: Partial<CoinNote>): CoinNote {
   return {
@@ -118,13 +125,13 @@ describe('useAiStore.appendCoinToNotes', () => {
 describe('useAiStore.querySingle', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    useAiStore.setState({ results: {}, coinLoading: {}, error: null })
+    useAiStore.setState({ results: {}, coinLoading: {}, error: null, llmError: null, coinErrors: {} })
   })
 
   it('stamps the queryType onto the stored result', async () => {
     vi.mocked(window.api.llm.querySingle).mockResolvedValue({
-      id: 'coin-1',
-      info: 'Some info'
+      ok: true,
+      data: { id: 'coin-1', info: 'Some info' }
     })
 
     const result = await useAiStore.getState().querySingle('coin-1', 'mintage')
@@ -135,5 +142,56 @@ describe('useAiStore.querySingle', () => {
       info: 'Some info',
       queryType: 'mintage'
     })
+  })
+
+  it('stores a per-coin error when the query fails', async () => {
+    vi.mocked(window.api.llm.querySingle).mockResolvedValue({ ok: false, error: connectionRefusedError })
+
+    const result = await useAiStore.getState().querySingle('coin-1', 'info')
+
+    expect(result).toBeNull()
+    expect(useAiStore.getState().coinErrors['coin-1']).toEqual(connectionRefusedError)
+    expect(useAiStore.getState().coinLoading['coin-1']).toBe(false)
+  })
+
+  it('clears a previous per-coin error on a successful retry', async () => {
+    useAiStore.setState({ coinErrors: { 'coin-1': connectionRefusedError } })
+    vi.mocked(window.api.llm.querySingle).mockResolvedValue({
+      ok: true,
+      data: { id: 'coin-1', info: 'recovered' }
+    })
+
+    await useAiStore.getState().querySingle('coin-1', 'info')
+
+    expect(useAiStore.getState().coinErrors['coin-1']).toBeUndefined()
+  })
+})
+
+describe('useAiStore.queryBulk', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useAiStore.setState({ results: {}, loading: false, bulkRunning: false, error: null, llmError: null, coinErrors: {} })
+  })
+
+  it('stores a structured llmError when the bulk query fails', async () => {
+    vi.mocked(window.api.llm.queryBulk).mockResolvedValue({ ok: false, error: connectionRefusedError })
+
+    await useAiStore.getState().queryBulk('col-1', 'prices')
+
+    expect(useAiStore.getState().llmError).toEqual(connectionRefusedError)
+    expect(useAiStore.getState().loading).toBe(false)
+    expect(useAiStore.getState().bulkRunning).toBe(false)
+  })
+
+  it('merges results and clears llmError on success', async () => {
+    vi.mocked(window.api.llm.queryBulk).mockResolvedValue({
+      ok: true,
+      data: [{ id: 'coin-1', info: 'x' }]
+    })
+
+    await useAiStore.getState().queryBulk('col-1', 'info')
+
+    expect(useAiStore.getState().results['coin-1']).toEqual({ id: 'coin-1', info: 'x', queryType: 'info' })
+    expect(useAiStore.getState().llmError).toBeNull()
   })
 })

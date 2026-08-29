@@ -1,5 +1,6 @@
 import React from 'react'
 import { Header } from './Header'
+import { registerScrollContainer } from '@/lib/scrollContainer'
 
 interface AppLayoutProps {
   sidebar: React.ReactNode
@@ -15,7 +16,9 @@ export function AppLayout({ sidebar, children, onOpenSettings }: AppLayoutProps)
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
         <Header onOpenSettings={onOpenSettings} />
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
+        {/* This <main> is THE scroll container for all page content — registered
+            in @/lib/scrollContainer so features can read/restore its position. */}
+        <main ref={registerScrollContainer} className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="p-6">{children}</div>
         </main>
       </div>
