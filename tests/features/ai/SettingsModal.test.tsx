@@ -89,4 +89,26 @@ describe('SettingsModal AI settings persistence', () => {
     fireEvent.change(providerSelect, { target: { value: 'tavily' } })
     expect(screen.getByPlaceholderText('tvly-...')).toHaveValue('tvly-aaa')
   })
+
+  it('shows a friendly message when the connection test fails with a structured error', async () => {
+    vi.mocked(window.api.llm.getConfig).mockResolvedValue(
+      makeConfig({ provider: 'lmstudio', baseUrl: 'http://localhost:1234/v1' })
+    )
+    vi.mocked(window.api.llm.testConnection).mockResolvedValue({
+      ok: false,
+      error: 'connect ECONNREFUSED 127.0.0.1:1234',
+      errorInfo: {
+        code: 'connection_refused',
+        provider: 'lmstudio',
+        baseUrl: 'http://localhost:1234/v1',
+        model: 'qwen'
+      }
+    })
+
+    renderModal()
+    fireEvent.click(screen.getByText('AI'))
+    fireEvent.click(await screen.findByText('Test Connection'))
+
+    expect(await screen.findByText(/Cannot connect to LM Studio/)).toBeDefined()
+  })
 })

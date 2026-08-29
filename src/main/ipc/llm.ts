@@ -9,6 +9,7 @@ import type {
   AiSingleQuery,
   LlmConfig,
   LlmTestResult,
+  LlmQueryResult,
   LlmBulkProgress,
   Coin,
   QueryType
@@ -18,6 +19,7 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { createLlmModel } from '../llm/providers'
 import { queryBulkCoins, querySingleCoin, querySingleCoinWithSearch } from '../llm/chains'
+import { classifyLlmError, isFatalLlmError } from '../llm/errors'
 import { loadLlmConfig, saveLlmConfig, saveBulkSession, clearBulkSession, loadBulkSession } from '../llm/config'
 import { createSearchTool, testSearchProvider } from '../llm/search'
 import { saveAiNote } from '../llm/notes'
@@ -156,6 +158,11 @@ function createSearchToolFromConfig(config?: Partial<LlmConfig>): DynamicTool | 
   return createSearchTool(cfg.search)
 }
 
+/** Full config with stored preferences as fallback (for error classification). */
+function effectiveConfig(config?: Partial<LlmConfig>): LlmConfig {
+  return config ? { ...loadLlmConfig(), ...config } : loadLlmConfig()
+}
+
 export function registerLlmHandlers(): void {
   // --- Existing handlers (unchanged) ---
 
@@ -237,7 +244,7 @@ export function registerLlmHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_BULK,
-    async (event, query: AiBulkQuery): Promise<AiCoinInfo[]> => {
+    async (event, query: AiBulkQuery): Promise<LlmQueryResult<AiCoinInfo[]>> => {
       const queryType = validateQueryType(query.queryType)
       const queryKey = `${query.collectionId}:${queryType}`
       console.log('[llm:ipc] QUERY_BULK:', {
@@ -245,6 +252,8 @@ export function registerLlmHandlers(): void {
         queryType,
         excludeCoinIds: query.excludeCoinIds?.length || 0
       })
+
+      const cfg = effectiveConfig(query.config)
 
       let coins = listCoinsByCollection(query.collectionId)
       console.log('[llm:ipc] coins loaded:', coins.length)
@@ -258,7 +267,7 @@ export function registerLlmHandlers(): void {
 
       if (coins.length === 0) {
         clearBulkSession(query.collectionId, queryType)
-        return []
+        return { ok: true, data: [] }
       }
 
       const locale = query.locale || 'en'
@@ -277,6 +286,7 @@ export function registerLlmHandlers(): void {
             throw new Error('Web search is enabled but no search tool could be created')
           }
           const allResults: AiCoinInfo[] = []
+          let lastNonFatal: ReturnType<typeof classifyLlmError> | null = null
 
           const model = createLlmModel(query.config)
 
@@ -292,7 +302,16 @@ export function registerLlmHandlers(): void {
             try {
               result = await querySingleCoinWithSearch(model, searchTool, coin, queryType, locale)
             } catch (err) {
-              // One bad coin shouldn't abort the whole bulk; resume will retry it later.
+              const info = classifyLlmError(err, cfg)
+              // Fatal (server down, auth, etc.) → abort the whole bulk so the
+              // user sees an actionable error instead of "0 results".
+              if (isFatalLlmError(info.code)) {
+                console.error(`[llm:ipc] Fatal error on coin ${coin.id}, aborting bulk:`, err)
+                checkpointSession(query.collectionId, queryType, processedIds)
+                throw err
+              }
+              // Per-coin failure (bad parse, empty answer) — skip; resume retries it.
+              lastNonFatal = info
               console.error(`[llm:ipc] Coin ${coin.id} failed, skipping:`, err)
               checkpointSession(query.collectionId, queryType, processedIds)
               continue
@@ -328,12 +347,24 @@ export function registerLlmHandlers(): void {
             clearBulkSession(query.collectionId, queryType)
           }
           console.log('[llm:ipc] Agentic bulk complete:', allResults.length, 'results')
-          return allResults
+
+          // Every coin failed with a non-fatal error → surface it instead of an
+          // empty success that looks like "0 results".
+          if (!cancelled && allResults.length === 0 && coins.length > 0) {
+            return {
+              ok: false,
+              error:
+                lastNonFatal ??
+                classifyLlmError(new Error('Model returned no usable data for any coin'), cfg)
+            }
+          }
+
+          return { ok: true, data: allResults }
         }
 
         if (searchPath === 'builtin') {
           // ── OpenRouter built-in path: batched with fetch-hack ──
-          return runBatchQuery(
+          const data = await runBatchQuery(
             event,
             coins,
             queryType,
@@ -343,10 +374,11 @@ export function registerLlmHandlers(): void {
             query.collectionId,
             processedIds
           )
+          return { ok: true, data }
         }
 
         // ── No-search path: batched ──
-        return runBatchQuery(
+        const data = await runBatchQuery(
           event,
           coins,
           queryType,
@@ -356,6 +388,9 @@ export function registerLlmHandlers(): void {
           query.collectionId,
           processedIds
         )
+        return { ok: true, data }
+      } catch (err) {
+        return { ok: false, error: classifyLlmError(err, cfg) }
       } finally {
         activeQueries.delete(queryKey)
       }
@@ -380,27 +415,43 @@ export function registerLlmHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.LLM.QUERY_SINGLE,
-    async (_event, query: AiSingleQuery): Promise<AiCoinInfo> => {
+    async (_event, query: AiSingleQuery): Promise<LlmQueryResult<AiCoinInfo>> => {
       const queryType = validateQueryType(query.queryType)
+      const cfg = effectiveConfig(query.config)
       const coin = getCoin(query.coinId)
       if (!coin) {
-        throw new Error(`Coin not found: ${query.coinId}`)
-      }
-
-      const searchPath = getSearchPath(query.config)
-
-      if (searchPath === 'agentic') {
-        const searchTool = createSearchToolFromConfig(query.config)
-        if (!searchTool) {
-          throw new Error('Web search is enabled but no search tool could be created')
+        return {
+          ok: false,
+          error: {
+            code: 'unknown',
+            provider: cfg.provider,
+            baseUrl: cfg.baseUrl,
+            model: cfg.model,
+            detail: `Coin not found: ${query.coinId}`
+          }
         }
-        const model = createLlmModel(query.config)
-        return querySingleCoinWithSearch(model, searchTool, coin, queryType, query.locale || 'en')
       }
 
-      // builtin or none: use existing path (builtin handles search via fetch-hack)
-      const model = createLlmModel(query.config)
-      return querySingleCoin(model, coin, queryType, query.locale || 'en')
+      try {
+        const searchPath = getSearchPath(query.config)
+
+        if (searchPath === 'agentic') {
+          const searchTool = createSearchToolFromConfig(query.config)
+          if (!searchTool) {
+            throw new Error('Web search is enabled but no search tool could be created')
+          }
+          const model = createLlmModel(query.config)
+          const data = await querySingleCoinWithSearch(model, searchTool, coin, queryType, query.locale || 'en')
+          return { ok: true, data }
+        }
+
+        // builtin or none: use existing path (builtin handles search via fetch-hack)
+        const model = createLlmModel(query.config)
+        const data = await querySingleCoin(model, coin, queryType, query.locale || 'en')
+        return { ok: true, data }
+      } catch (err) {
+        return { ok: false, error: classifyLlmError(err, cfg) }
+      }
     }
   )
 
@@ -560,7 +611,7 @@ export function registerLlmHandlers(): void {
           message = err
         }
         console.error('[llm] Connection test failed:', message)
-        return { ok: false, error: message }
+        return { ok: false, error: message, errorInfo: classifyLlmError(err, effectiveConfig(config)) }
       }
     }
   )

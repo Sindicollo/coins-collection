@@ -58,6 +58,8 @@ export interface LlmConfig {
 export interface LlmTestResult {
   ok: boolean
   error?: string
+  /** Structured classification of the error (when ok=false) for friendly messages. */
+  errorInfo?: LlmErrorInfo
   /** Whether the model supports OpenAI tool-calling (for local models) */
   toolCallSupported?: boolean
   /** Whether the search provider is reachable/auth'd */
@@ -65,6 +67,34 @@ export interface LlmTestResult {
   /** Human-readable reason the search provider failed (status code, etc.) */
   searchProviderError?: string
 }
+
+/** Machine-readable error codes used to render localized, actionable messages. */
+export type LlmErrorCode =
+  | 'connection_refused' // ECONNREFUSED / fetch failed — local server not running
+  | 'host_not_found' // ENOTFOUND / getaddrinfo
+  | 'timeout' // ETIMEDOUT / request timeout
+  | 'auth_error' // HTTP 401/403
+  | 'model_not_found' // HTTP 404
+  | 'rate_limit' // HTTP 429
+  | 'server_error' // HTTP 5xx
+  | 'empty_response' // model returned nothing usable
+  | 'invalid_response' // not JSON / failed schema validation
+  | 'unknown'
+
+export interface LlmErrorInfo {
+  code: LlmErrorCode
+  provider: LlmConfig['provider']
+  baseUrl: string
+  model: string
+  status?: number
+  /** Raw underlying message, for fallback display / debugging. */
+  detail?: string
+}
+
+/** Structured result returned by LLM IPC handlers instead of throwing. */
+export type LlmQueryResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: LlmErrorInfo }
 
 export interface LlmBulkProgress {
   processed: number

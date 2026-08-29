@@ -1,15 +1,17 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import type { Coin, AiCoinInfo, Photo, QueryType } from '@shared/types'
+import type { Coin, AiCoinInfo, LlmErrorInfo, Photo, QueryType } from '@shared/types'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Coin as CoinIcon } from '@/components/ui/icons/Coin'
 import { getCachedPhotoData, getCachedPhotoList, fetchAndCachePhotoList, fetchAndCachePhotoData } from '@/features/photos/photoDataCache'
+import { formatLlmError } from '@/lib/llmError'
 
 interface AiCoinCardProps {
   coin: Coin
   aiResult: AiCoinInfo | undefined
+  coinError?: LlmErrorInfo
   loading: boolean
   perCoinLoading: boolean
   onQuerySingle: (coinId: string, queryType: QueryType) => void
@@ -20,6 +22,7 @@ interface AiCoinCardProps {
 export function AiCoinCard({
   coin,
   aiResult,
+  coinError,
   loading,
   perCoinLoading,
   onQuerySingle,
@@ -192,6 +195,13 @@ export function AiCoinCard({
             <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
               <span className="inline-block w-3 h-3 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
               {t('ai.querying', { defaultValue: 'Querying...' })}
+            </div>
+          )}
+
+          {/* Per-coin error */}
+          {coinError && !perCoinLoading && (
+            <div className="mt-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-2 py-1.5">
+              {formatLlmError(coinError)}
             </div>
           )}
 

@@ -7,6 +7,7 @@ import { useAiStore } from './useAiStore'
 import { useCoinStore } from '@/features/coins/useCoins'
 import { LlmTools } from '@/features/coins/LlmTools'
 import { useScrollRestoration } from '@/hooks/useScrollRestoration'
+import { formatLlmError } from '@/lib/llmError'
 import type { Coin, QueryType } from '@shared/types'
 
 export function AiPage(): React.ReactElement {
@@ -19,6 +20,8 @@ export function AiPage(): React.ReactElement {
     results,
     loading,
     error,
+    llmError,
+    coinErrors,
     lastQueryType,
     manualInput,
     bulkProgress,
@@ -263,6 +266,12 @@ export function AiPage(): React.ReactElement {
         </div>
       )}
 
+      {llmError && (
+        <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          {formatLlmError(llmError)}
+        </div>
+      )}
+
       {coinsError && (
         <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
           {coinsError}
@@ -348,6 +357,7 @@ export function AiPage(): React.ReactElement {
                 key={coin.id}
                 coin={coin}
                 aiResult={results[coin.id]}
+                coinError={coinErrors[coin.id]}
                 loading={loading}
                 perCoinLoading={coinLoading[coin.id] ?? false}
                 onQuerySingle={handleSingleQuery}

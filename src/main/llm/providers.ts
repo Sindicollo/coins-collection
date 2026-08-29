@@ -18,10 +18,19 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
     throw new Error('Model name is empty. Set a model in AI Settings (e.g., openai/gpt-4.1).')
   }
 
+  // Local models answer fast; a hung local server should fail quickly instead
+  // of leaving the user staring at a spinner for 2 minutes. Cloud providers
+  // (OpenRouter) get a longer timeout for slow web-search round-trips.
+  const isLocal = cfg.provider === 'lmstudio' || cfg.provider === 'ollama'
+
+  // `maxRetries` controls LangChain's AsyncCaller retry loop (default 6). For
+  // local providers a refused connection won't be fixed by retrying — it just
+  // multiplies the wait (6 retries × exponential backoff ≈ 2 minutes).
   const common = {
     temperature: 0.3,
     maxTokens: 16384,
-    timeout: 120000
+    timeout: isLocal ? 60000 : 120000,
+    maxRetries: isLocal ? 0 : 2
   }
 
   // Ensure OpenAI-compatible base URL ends with /v1

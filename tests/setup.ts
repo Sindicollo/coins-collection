@@ -177,6 +177,21 @@ i18n.use(initReactI18next).init({
             rarity: 'Rarity',
             varieties: 'Varieties'
           },
+          errors: {
+            connectionRefused: 'Cannot connect to the AI service ({{baseUrl}}).',
+            connectionRefusedLmstudio: 'Cannot connect to LM Studio ({{baseUrl}}).',
+            connectionRefusedOllama: 'Cannot connect to Ollama ({{baseUrl}}).',
+            hostNotFound: 'Server not found at {{baseUrl}}.',
+            timeout: 'The AI service did not respond in time.',
+            auth: 'Authentication failed.',
+            modelNotFound: 'Model not found ({{model}}).',
+            rateLimit: 'Rate limit exceeded.',
+            serverError: 'The AI service returned an error (HTTP {{status}}).',
+            emptyResponse: 'The model returned an empty response.',
+            invalidResponse: 'The model returned an invalid response.',
+            unknown: 'AI request failed: {{detail}}',
+            unknownShort: 'AI request failed.'
+          },
           settings: {
             title: 'AI Settings',
             provider: 'Provider',
@@ -358,7 +373,9 @@ if (typeof window !== 'undefined') {
       setConfig: vi.fn(),
       testConnection: vi.fn(),
       onBulkProgress: vi.fn(() => vi.fn()),
-      cancelBulk: vi.fn()
+      cancelBulk: vi.fn(),
+      getBulkSession: vi.fn(),
+      clearBulkSession: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

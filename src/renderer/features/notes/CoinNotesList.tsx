@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Plus } from '@/components/ui/icons/Plus'
 import { CoinNoteCard } from './CoinNoteCard'
+import { formatLlmError } from '@/lib/llmError'
 import type { CoinNote, CreateCoinNoteInput, UpdateCoinNoteInput } from '@shared/types'
 
 interface CoinNotesListProps {
@@ -90,13 +91,19 @@ export function CoinNotesList({ coinId, onCountChange }: CoinNotesListProps): Re
         locale: i18n.language
       })
 
+      if (!result.ok) {
+        setAiError(formatLlmError(result.error))
+        return
+      }
+
+      const data = result.data
       const parts: string[] = []
-      if (result.info) parts.push(result.info)
-      if (result.price) parts.push(`Price: ${result.price}`)
-      if (result.mintage) parts.push(`Mintage: ${result.mintage}`)
-      if (result.rarity) parts.push(`Rarity: ${result.rarity}`)
-      if (result.varieties && result.varieties.length > 0) {
-        parts.push(`Varieties: ${result.varieties.join(', ')}`)
+      if (data.info) parts.push(data.info)
+      if (data.price) parts.push(`Price: ${data.price}`)
+      if (data.mintage) parts.push(`Mintage: ${data.mintage}`)
+      if (data.rarity) parts.push(`Rarity: ${data.rarity}`)
+      if (data.varieties && data.varieties.length > 0) {
+        parts.push(`Varieties: ${data.varieties.join(', ')}`)
       }
 
       const content = parts.join('\n')

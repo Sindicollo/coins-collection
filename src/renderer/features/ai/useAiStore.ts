@@ -1,12 +1,17 @@
 import { create } from 'zustand'
-import type { AiCoinInfo, QueryType, BulkSessionState } from '@shared/types'
+import type { AiCoinInfo, QueryType, BulkSessionState, LlmErrorInfo } from '@shared/types'
 import { AI_NOTE_TITLE_PREFIX } from '@shared/types'
 import * as aiApi from './api'
 
 interface AiState {
   results: Record<string, AiCoinInfo>
   loading: boolean
+  /** Plain-text error (manual JSON input parse failures). */
   error: string | null
+  /** Structured bulk-query error for friendly localized messages. */
+  llmError: LlmErrorInfo | null
+  /** Structured per-coin errors for single queries, keyed by coinId. */
+  coinErrors: Record<string, LlmErrorInfo>
   lastQueryType: string | null
   manualInput: string
   bulkProgress: number
@@ -78,6 +83,8 @@ export const useAiStore = create<AiStore>((set, get) => {
     results: {},
   loading: false,
   error: null,
+  llmError: null,
+  coinErrors: {},
   lastQueryType: null,
   manualInput: '',
   bulkProgress: 0,
@@ -95,6 +102,7 @@ export const useAiStore = create<AiStore>((set, get) => {
     set({
       loading: true,
       error: null,
+      llmError: null,
       lastQueryType: queryType,
       bulkProgress: 0,
       bulkTotal: 0,
@@ -107,11 +115,15 @@ export const useAiStore = create<AiStore>((set, get) => {
     const unsubscribe = subscribeBulkProgress()
 
     try {
-      const results = await aiApi.queryBulk(collectionId, queryType)
-      console.log('[useAiStore] queryBulk complete:', results.length, 'coins')
+      const result = await aiApi.queryBulk(collectionId, queryType)
+      if (!result.ok) {
+        set({ loading: false, bulkRunning: false, llmError: result.error })
+        return
+      }
+      console.log('[useAiStore] queryBulk complete:', result.data.length, 'coins')
       set((state) => {
         const newResults = { ...state.results }
-        for (const item of results) {
+        for (const item of result.data) {
           newResults[item.id] = { ...item, queryType }
         }
         return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
@@ -135,6 +147,7 @@ export const useAiStore = create<AiStore>((set, get) => {
     set({
       loading: true,
       error: null,
+      llmError: null,
       lastQueryType: queryType,
       bulkProgress: 0,
       bulkTotal: 0,
@@ -146,11 +159,15 @@ export const useAiStore = create<AiStore>((set, get) => {
     const unsubscribe = subscribeBulkProgress()
 
     try {
-      const results = await aiApi.queryBulk(collectionId, queryType, excludeCoinIds)
-      console.log('[useAiStore] resumeBulk complete:', results.length, 'coins')
+      const result = await aiApi.queryBulk(collectionId, queryType, excludeCoinIds)
+      if (!result.ok) {
+        set({ loading: false, bulkRunning: false, llmError: result.error })
+        return
+      }
+      console.log('[useAiStore] resumeBulk complete:', result.data.length, 'coins')
       set((state) => {
         const newResults = { ...state.results }
-        for (const item of results) {
+        for (const item of result.data) {
           newResults[item.id] = { ...item, queryType }
         }
         return { results: newResults, loading: false, bulkRunning: false, lastCoinTime: 0 }
@@ -165,25 +182,45 @@ export const useAiStore = create<AiStore>((set, get) => {
   },
 
   querySingle: async (coinId: string, queryType: QueryType) => {
-    set({ error: null, coinLoading: { ...get().coinLoading, [coinId]: true } })
+    set((state) => {
+      const coinErrors = { ...state.coinErrors }
+      delete coinErrors[coinId]
+      return {
+        error: null,
+        coinLoading: { ...state.coinLoading, [coinId]: true },
+        coinErrors
+      }
+    })
     try {
       const result = await aiApi.querySingle(coinId, queryType)
-      set((state) => ({
-        results: { ...state.results, [coinId]: { ...result, queryType } },
-        coinLoading: { ...state.coinLoading, [coinId]: false }
-      }))
-      return result
+      if (!result.ok) {
+        set((state) => ({
+          coinLoading: { ...state.coinLoading, [coinId]: false },
+          coinErrors: { ...state.coinErrors, [coinId]: result.error }
+        }))
+        return null
+      }
+      set((state) => {
+        const coinErrors = { ...state.coinErrors }
+        delete coinErrors[coinId]
+        return {
+          results: { ...state.results, [coinId]: { ...result.data, queryType } },
+          coinLoading: { ...state.coinLoading, [coinId]: false },
+          coinErrors
+        }
+      })
+      return result.data
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      set({
+      set((state) => ({
         error: message || 'Failed to query LLM',
-        coinLoading: { ...get().coinLoading, [coinId]: false }
-      })
+        coinLoading: { ...state.coinLoading, [coinId]: false }
+      }))
       return null
     }
   },
 
-  clearResults: () => set({ results: {}, error: null, lastQueryType: null, bulkProgress: 0, bulkTotal: 0, bulkRunning: false, coinLoading: {} }),
+  clearResults: () => set({ results: {}, error: null, llmError: null, coinErrors: {}, lastQueryType: null, bulkProgress: 0, bulkTotal: 0, bulkRunning: false, coinLoading: {} }),
 
   cancelBulk: (collectionId: string) => {
     window.api.llm.cancelBulk(collectionId)
@@ -208,7 +245,9 @@ export const useAiStore = create<AiStore>((set, get) => {
     set((state) => {
       const newResults = { ...state.results }
       delete newResults[coinId]
-      return { results: newResults }
+      const coinErrors = { ...state.coinErrors }
+      delete coinErrors[coinId]
+      return { results: newResults, coinErrors }
     })
   },
 
