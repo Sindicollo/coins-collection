@@ -58,25 +58,26 @@ describe('createLlmModel', () => {
     expect(params.apiKey).toBe('sk-test')
   })
 
-  it('uses a short timeout and zero retries for local providers (lmstudio)', () => {
+  it('uses a generous timeout and zero retries for local providers (lmstudio)', () => {
     vi.mocked(loadLlmConfig).mockReturnValue(makeConfig({ provider: 'lmstudio', model: 'qwen2.5' }))
 
     createLlmModel()
 
     const params = lastConstructorParams()
-    expect(params.timeout).toBe(60000)
+    // Reasoning/thinking models can take minutes locally — the timeout must
+    // exceed the cloud one, not be shorter
+    expect(params.timeout).toBe(180000)
     expect(params.maxRetries).toBe(0)
-    // Hard-fail fast: a refused local connection is not fixed by retrying
-    expect(params.timeout).toBeLessThan(120000)
+    expect(params.timeout).toBeGreaterThanOrEqual(120000)
   })
 
-  it('uses the same fast-fail settings for ollama and strips namespaces from model ids', () => {
+  it('uses the same local settings for ollama and strips namespaces from model ids', () => {
     vi.mocked(loadLlmConfig).mockReturnValue(makeConfig({ provider: 'ollama', model: 'library/qwen2.5:7b', baseUrl: '' }))
 
     createLlmModel()
 
     const params = lastConstructorParams()
-    expect(params.timeout).toBe(60000)
+    expect(params.timeout).toBe(180000)
     expect(params.maxRetries).toBe(0)
     expect(params.modelName).toBe('qwen2.5:7b')
     expect(params.configuration).toEqual(
