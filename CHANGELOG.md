@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.6.1
+
+### Fixed
+- Slow local models (LM Studio / Ollama) no longer time out — the response timeout was raised from 1 to 3 minutes
+- Malformed JSON in AI answers (e.g. unescaped quotes in Russian text) is now auto-corrected with a retry instead of failing the whole coin
+- Bulk AI queries now isolate per-coin/batch failures and surface a clear error instead of showing "0 results" when every coin fails
+- Scroll position no longer snaps back when navigating between a collection and the photo gallery
+- AI settings "Test Connection" button no longer collapses into an empty spinner while testing
+
+### Changed
+- Clearer, localized error messages for AI connection, authentication, rate-limit and model errors
+- Internal refactor of the LLM IPC layer for readability (no behavior change)
+
 ## v1.6.0
 
 ### Added
