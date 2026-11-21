@@ -22,8 +22,19 @@ bearer-ключ. Ключ создаётся автоматически: `src/ma
 Studio (`~/.unsloth/studio/auth/.desktop_secret`), меняет его на owner-токен через
 `POST /api/auth/desktop-login` и минтит inference-ключ через `POST /api/auth/api-keys`
 (`{ name: "Coin Collection", access: "inference" }`). IPC — `llm:unsloth-connect`.
-Если ключ в конфиге уже есть, он сначала проверяется через `GET /v1/models` — повторное
-нажатие «Connect» не плодит ключи, а обновляет список моделей.
+
+Ограничения и поведение:
+
+- **Только loopback.** Desktop-секрет даёт права владельца, поэтому он отправляется лишь на
+  `127.0.0.1` / `localhost` / `::1`; для любого другого URL возвращается `invalid_base_url`, и
+  ключ нужно создать вручную в Studio.
+- **Порт определяется из установки.** Shell пишет фактический порт в
+  `~/.unsloth/studio/run/desktop_backend.json` (8888 может быть занят, CLI принимает `-p`).
+- **Без дубликатов.** Уже сохранённый (или введённый в форме) ключ сначала проверяется через
+  `GET /v1/models`; повторное нажатие «Connect» обновляет список моделей, а не создаёт новый ключ.
+  Параллельные вызовы объединяются в один запрос.
+- **Коды ошибок**: `not_installed`, `not_running`, `invalid_base_url`, `multi_account`,
+  `auth_failed`, `key_create_failed`, `unknown`.
 
 Конфигурация — через `.env` файл:
 ```
@@ -80,7 +91,7 @@ interface LlmConfig {
 | `llm:query-single` | renderer → main | `{ coinId, queryType, config? }` | `AiCoinInfo` |
 | `llm:get-config` | renderer → main | — | `LlmConfig` |
 | `llm:test-connection` | renderer → main | `config?` | `{ ok: boolean, error?: string }` |
-| `llm:unsloth-connect` | renderer → main | `baseUrl?` | `{ ok, apiKey, baseUrl, models }` / `{ ok: false, code, detail? }` |
+| `llm:unsloth-connect` | renderer → main | `baseUrl?, existingApiKey?` | `{ ok, apiKey, baseUrl, models }` / `{ ok: false, code, detail? }` |
 
 ## UI-поток
 

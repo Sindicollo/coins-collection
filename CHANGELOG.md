@@ -5,7 +5,13 @@
 ### Added
 - Unsloth Studio as a local AI provider — pick it in **Settings → AI**, press **Connect**, and an inference API key is minted from the local Studio install automatically
 - Model picker for Unsloth Studio that shows which models are already loaded
-- Localized guidance when Unsloth Studio is not installed, not running, or rejects the desktop credential
+- Studio port is discovered from the local install, so a non-default port (`-p`) or a busy 8888 still connects
+- Localized guidance when Unsloth Studio is not installed, not running, has multiple accounts, or rejects the desktop credential
+
+### Fixed
+- Repeating **Connect** no longer mints duplicate API keys in Unsloth Studio; concurrent presses share one request
+- The local desktop credential is never sent outside localhost
+- Base URLs with a trailing slash no longer turn into `.../v1/v1` for local providers
 
 ## v1.6.1
 
