@@ -172,22 +172,40 @@ async function listModels(
 
 interface StudioTokenResponse {
   access_token?: unknown
+  /** Present when the install has several accounts and the desktop secret cannot pick one. */
+  login_required?: unknown
 }
 
 interface StudioCreateKeyResponse {
   key?: unknown
 }
 
+/** Single in-flight connect: two concurrent presses must not mint two keys. */
+let connectInFlight: Promise<UnslothConnectResult> | null = null
+
 /**
  * Connect to the local Unsloth Studio and return a ready-to-use inference key.
  *
  * An already stored key is validated first, so pressing "Connect" twice does not
- * litter the user's Studio key list with duplicates.
+ * litter the user's Studio key list with duplicates. Concurrent calls share the
+ * same request — the target is a single local server.
  */
-export async function connectUnslothStudio(options: {
+export function connectUnslothStudio(options: {
   baseUrl?: string
   existingApiKey?: string
 } = {}): Promise<UnslothConnectResult> {
+  if (!connectInFlight) {
+    connectInFlight = connectUnslothOnce(options).finally(() => {
+      connectInFlight = null
+    })
+  }
+  return connectInFlight
+}
+
+async function connectUnslothOnce(options: {
+  baseUrl?: string
+  existingApiKey?: string
+}): Promise<UnslothConnectResult> {
   const baseUrl = normalizeBaseUrl(options.baseUrl)
   const root = studioRootFromBaseUrl(options.baseUrl)
 
@@ -224,7 +242,12 @@ export async function connectUnslothStudio(options: {
   }
 
   const accessToken = typeof login.data?.access_token === 'string' ? login.data.access_token : ''
-  if (!accessToken) return { ok: false, code: 'auth_failed', detail: 'Studio returned no access token' }
+  if (!accessToken) {
+    // Multi-account installs answer 200 + { login_required: true } instead of a token.
+    return login.data?.login_required
+      ? { ok: false, code: 'multi_account' }
+      : { ok: false, code: 'auth_failed', detail: 'Studio returned no access token' }
+  }
 
   const created = await requestJson<StudioCreateKeyResponse>(`${root}/api/auth/api-keys`, {
     method: 'POST',

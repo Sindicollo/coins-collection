@@ -295,3 +295,54 @@ describe('connectUnslothStudio', () => {
     })
   })
 })
+
+describe('connectUnslothStudio (multi-account & concurrency)', () => {
+  function deferred(): { promise: Promise<void>; resolve: () => void } {
+    let resolve!: () => void
+    const promise = new Promise<void>((r) => {
+      resolve = r
+    })
+    return { promise, resolve }
+  }
+
+  beforeEach(() => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockReturnValue(SECRET)
+  })
+
+  it('reports multi_account when Studio refuses to pick an account by secret', async () => {
+    stubFetch([
+      {
+        match: (url) => url.endsWith('/api/auth/desktop-login'),
+        respond: () => jsonResponse(200, { login_required: true, login_mode: 'multi' })
+      }
+    ])
+
+    const result = await connectUnslothStudio({})
+
+    expect(result).toEqual({ ok: false, code: 'multi_account' })
+  })
+
+  it('shares one request when Connect is pressed concurrently', async () => {
+    const loginGate = deferred()
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const target = String(url)
+      if (target.endsWith('/api/auth/desktop-login')) {
+        await loginGate.promise
+        return jsonResponse(200, { access_token: 'owner-token' })
+      }
+      if (target.endsWith('/api/auth/api-keys')) return jsonResponse(200, { key: API_KEY })
+      if (target.endsWith('/v1/models')) return jsonResponse(200, modelsPayload)
+      throw new Error(`Unexpected fetch: ${target}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const first = connectUnslothStudio({})
+    const second = connectUnslothStudio({})
+    loginGate.resolve()
+    const [a, b] = await Promise.all([first, second])
+
+    expect(a).toEqual(b)
+    expect(fetchMock).toHaveBeenCalledTimes(3) // login + key + models, once each
+  })
+})

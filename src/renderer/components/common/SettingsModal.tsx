@@ -239,6 +239,11 @@ function UnslothSection({
           defaultValue:
             'Unsloth Studio must run on localhost (127.0.0.1). For a remote server, create an API key in Studio → Settings → API keys and paste it below.'
         })
+      case 'multi_account':
+        return t('ai.settings.unslothMultiAccount', {
+          defaultValue:
+            'Unsloth Studio has multiple accounts, so the desktop app cannot pick one automatically. Create an API key in Studio → Settings → API keys and paste it below.'
+        })
       case 'auth_failed':
         return t('ai.settings.unslothAuthFailed', {
           defaultValue:

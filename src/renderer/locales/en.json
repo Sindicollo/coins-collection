@@ -212,6 +212,7 @@
       "unslothNotInstalled": "Unsloth Studio was not found on this machine. Install and start the desktop app, then try again.",
       "unslothNotRunning": "Unsloth Studio is not running ({{baseUrl}}). Start it and try again.",
       "unslothInvalidBaseUrl": "Unsloth Studio must run on localhost (127.0.0.1). For a remote server, create an API key in Studio → Settings → API keys and paste it below.",
+      "unslothMultiAccount": "Unsloth Studio has multiple accounts, so the desktop app cannot pick one automatically. Create an API key in Studio → Settings → API keys and paste it below.",
       "unslothAuthFailed": "Unsloth Studio rejected the local desktop credential. Restart Unsloth Studio and try again.",
       "unslothKeyCreateFailed": "Could not create an API key. Create one manually in Unsloth Studio → Settings → API keys and paste it below.",
       "unslothUnknownError": "Could not connect to Unsloth Studio: {{detail}}",
