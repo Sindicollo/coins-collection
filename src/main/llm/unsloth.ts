@@ -15,10 +15,11 @@
 import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+import { DEFAULT_UNSLOTH_BASE_URL } from '@shared/types'
 import type { UnslothConnectResult, UnslothModel } from '@shared/types'
 
 /** Default Studio API root (OpenAI-compatible `/v1` lives under it). */
-export const DEFAULT_UNSLOTH_BASE_URL = 'http://127.0.0.1:8888/v1'
+const DEFAULT_STUDIO_ROOT = DEFAULT_UNSLOTH_BASE_URL.replace(/\/v1$/, '')
 
 /** Label of the API key created in Unsloth Studio. */
 const API_KEY_NAME = 'Coin Collection'
@@ -144,7 +145,7 @@ async function requestJson<T>(
 export function studioRootFromBaseUrl(baseUrl?: string): string {
   const raw = (baseUrl || DEFAULT_UNSLOTH_BASE_URL).trim()
   const withoutV1 = raw.replace(/\/+$/, '').replace(/\/v1$/, '')
-  return withoutV1 || DEFAULT_UNSLOTH_BASE_URL.replace(/\/v1$/, '')
+  return withoutV1 || DEFAULT_STUDIO_ROOT
 }
 
 /** `http://host:port` → `http://host:port/v1` (the OpenAI-compatible prefix). */

@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { LLM_PROVIDERS, DEFAULT_UNSLOTH_BASE_URL } from '@shared/types'
 import type { LlmConfig } from '@shared/types'
 import { loadLlmConfig } from './config'
 
@@ -22,8 +23,9 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   // take a couple of minutes for a single response — the old 60s timeout was
   // exceeded by normal slow generation. Give them more headroom than cloud
   // providers; a genuinely hung server still fails in a bounded time.
-  const isLocal =
-    cfg.provider === 'lmstudio' || cfg.provider === 'ollama' || cfg.provider === 'unsloth'
+  // `?.` keeps a stale/unknown provider value from crashing before the switch
+  // below can report it.
+  const isLocal = LLM_PROVIDERS[cfg.provider]?.local ?? false
 
   // `maxRetries` controls LangChain's AsyncCaller retry loop (default 6). For
   // local providers a refused connection won't be fixed by retrying — it just
@@ -119,7 +121,7 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
         modelName: cfg.model,
         apiKey,
         configuration: {
-          baseURL: normalizeUrl(cfg.baseUrl, 'http://127.0.0.1:8888/v1')
+          baseURL: normalizeUrl(cfg.baseUrl, DEFAULT_UNSLOTH_BASE_URL)
         }
       })
     }

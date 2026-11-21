@@ -6,7 +6,7 @@ import type {
   BulkSessionState,
   QueryType
 } from '@shared/types'
-import { DEFAULT_SEARCH_CONFIG } from '@shared/types'
+import { DEFAULT_SEARCH_CONFIG, LLM_PROVIDERS } from '@shared/types'
 import { getPreference, setPreference } from '../database/repositories/preferences'
 
 const PREF_KEYS = {
@@ -40,8 +40,7 @@ function envConfig(): LlmConfig {
 }
 
 function validateProvider(p: string): LlmProviderType {
-  const valid: LlmProviderType[] = ['openrouter', 'lmstudio', 'ollama', 'unsloth']
-  return valid.includes(p as LlmProviderType) ? (p as LlmProviderType) : 'openrouter'
+  return p in LLM_PROVIDERS ? (p as LlmProviderType) : 'openrouter'
 }
 
 function parseApiKeys(raw?: string): Partial<Record<SearchProvider, string>> {

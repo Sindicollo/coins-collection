@@ -15,8 +15,8 @@ vi.mock('fs', () => ({
 }))
 
 import { readFileSync } from 'fs'
+import { DEFAULT_UNSLOTH_BASE_URL } from '@shared/types'
 import {
-  DEFAULT_UNSLOTH_BASE_URL,
   connectUnslothStudio,
   isLoopbackBaseUrl,
   readDesktopSecret,

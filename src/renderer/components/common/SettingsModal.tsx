@@ -7,6 +7,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { CURRENCIES } from '@/utils/currency'
 import * as aiApi from '@/features/ai/api'
 import { formatLlmError } from '@/lib/llmError'
+import { LLM_PROVIDERS } from '@shared/types'
 import type {
   LlmConfig,
   LlmErrorInfo,
@@ -25,19 +26,11 @@ const LANGS = [
   { code: 'ru', key: 'lang.ru' }
 ] as const
 
-const PROVIDERS: { value: LlmProviderType; label: string }[] = [
-  { value: 'openrouter', label: 'OpenRouter' },
-  { value: 'lmstudio', label: 'LM Studio' },
-  { value: 'ollama', label: 'Ollama' },
-  { value: 'unsloth', label: 'Unsloth Studio' }
-]
+const PROVIDERS: { value: LlmProviderType; label: string }[] = (
+  Object.keys(LLM_PROVIDERS) as LlmProviderType[]
+).map((value) => ({ value, label: LLM_PROVIDERS[value].label }))
 
-const DEFAULT_URLS: Record<LlmProviderType, string> = {
-  openrouter: 'https://openrouter.ai/api/v1',
-  lmstudio: 'http://localhost:1234/v1',
-  ollama: 'http://localhost:11434/v1',
-  unsloth: 'http://127.0.0.1:8888/v1'
-}
+const defaultUrlFor = (provider: LlmProviderType): string => LLM_PROVIDERS[provider].baseUrl
 
 const SEARCH_PROVIDERS: { value: SearchProvider; label: string }[] = [
   { value: 'tavily', label: 'Tavily' },
@@ -340,7 +333,7 @@ function AiSettingsPanel({
           value={config.provider}
           onChange={(e) => {
             const provider = e.target.value as LlmProviderType
-            onChange({ ...config, provider, baseUrl: DEFAULT_URLS[provider] })
+            onChange({ ...config, provider, baseUrl: defaultUrlFor(provider) })
           }}
           className="px-3 py-2 border border-gray-300 rounded-md text-sm
             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -356,7 +349,7 @@ function AiSettingsPanel({
       {/* Unsloth Studio (local server) — auto-provision API key */}
       {config.provider === 'unsloth' && (
         <UnslothSection
-          baseUrl={config.baseUrl || DEFAULT_URLS.unsloth}
+          baseUrl={config.baseUrl || defaultUrlFor('unsloth')}
           connecting={unsloth.connecting}
           error={unsloth.error}
           onConnect={onConnectUnsloth}
@@ -615,7 +608,7 @@ export function SettingsModal({
     setUnslothError(null)
     try {
       const result = await aiApi.connectUnsloth(
-        aiConfig.baseUrl || DEFAULT_URLS.unsloth,
+        aiConfig.baseUrl || defaultUrlFor('unsloth'),
         aiConfig.apiKey
       )
       if (!result.ok) {

@@ -46,8 +46,32 @@ export interface AiSingleQuery {
   locale?: string
 }
 
+/** Default local Unsloth Studio OpenAI-compatible endpoint. */
+export const DEFAULT_UNSLOTH_BASE_URL = 'http://127.0.0.1:8888/v1'
+
+/**
+ * Single source of truth for LLM providers.
+ *
+ * The provider union, the settings dropdown, the default base URLs and the
+ * local-vs-cloud tuning are all derived from this table — adding a provider
+ * means adding one entry here.
+ */
+export const LLM_PROVIDERS = {
+  openrouter: {
+    label: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    /** Local servers get a longer timeout and no retries. */
+    local: false
+  },
+  lmstudio: { label: 'LM Studio', baseUrl: 'http://localhost:1234/v1', local: true },
+  ollama: { label: 'Ollama', baseUrl: 'http://localhost:11434/v1', local: true },
+  unsloth: { label: 'Unsloth Studio', baseUrl: DEFAULT_UNSLOTH_BASE_URL, local: true }
+} as const
+
+export type LlmProviderType = keyof typeof LLM_PROVIDERS
+
 export interface LlmConfig {
-  provider: 'openrouter' | 'lmstudio' | 'ollama' | 'unsloth'
+  provider: LlmProviderType
   model: string
   baseUrl: string
   apiKey: string
@@ -142,8 +166,6 @@ export interface BulkSessionState {
   processedCoinIds: string[]
   startedAt: number
 }
-
-export type LlmProviderType = LlmConfig['provider']
 
 /** Title prefix for AI-generated coin notes */
 export const AI_NOTE_TITLE_PREFIX = 'AI: '
