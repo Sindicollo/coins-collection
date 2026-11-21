@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.7.0
 
 ### Added
 - Unsloth Studio as a local AI provider — pick it in **Settings → AI**, press **Connect**, and an inference API key is minted from the local Studio install automatically

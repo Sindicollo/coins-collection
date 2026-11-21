@@ -62,8 +62,8 @@ If the automatic connect fails (Studio not running, credential rotated), create 
 
 | Platform | Link |
 |----------|------|
-| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.1/Coin-Collection-1.6.1-arm64.dmg) (~114 MB) |
-| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.1/Coin-Collection-Setup-1.6.1.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.6.1/Coin-Collection-1.6.1.exe) |
+| **macOS** (arm64) | [Download .dmg](https://github.com/Sindicollo/coins-collection/releases/download/v1.7.0/Coin-Collection-1.7.0-arm64.dmg) (~114 MB) |
+| **Windows** (x64) | [Download Setup](https://github.com/Sindicollo/coins-collection/releases/download/v1.7.0/Coin-Collection-Setup-1.7.0.exe) (~91 MB) — [Portable](https://github.com/Sindicollo/coins-collection/releases/download/v1.7.0/Coin-Collection-1.7.0.exe) |
 
 > ⚠️ **Windows builds are not tested.** The app is developed and tested on macOS only. Windows binaries are built via GitHub Actions but may contain platform-specific issues. Bug reports welcome!
 
