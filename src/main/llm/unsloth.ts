@@ -12,7 +12,7 @@
  * a changed Studio layout must degrade into a readable error, never a crash.
  */
 
-import { existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import type { UnslothConnectResult, UnslothModel } from '@shared/types'
@@ -47,16 +47,42 @@ export function readDesktopSecret(): string | null {
   for (const root of studioRoots()) {
     const candidates = [join(root, 'auth', '.desktop_secret'), join(root, '.desktop_secret')]
     for (const candidate of candidates) {
-      if (!existsSync(candidate)) continue
       try {
         const secret = readFileSync(candidate, 'utf-8').trim()
         if (/^desktop-[A-Za-z0-9_-]{10,}$/.test(secret)) return secret
       } catch {
-        // Unreadable file (permissions, race with an upgrade) — try the next candidate.
+        // Missing (ENOENT) or unreadable (permissions) — try the next candidate.
       }
     }
   }
   return null
+}
+
+/**
+ * Port Studio actually listens on, as recorded by the desktop shell.
+ *
+ * The shell picks a free port when 8888 is busy, and the CLI accepts `-p`, so
+ * the compile-time default is only a fallback.
+ */
+function studioPortFromRunFile(): number | null {
+  for (const root of studioRoots()) {
+    try {
+      const raw = readFileSync(join(root, 'run', 'desktop_backend.json'), 'utf-8')
+      const { port } = JSON.parse(raw) as { port?: unknown }
+      if (typeof port === 'number' && Number.isInteger(port) && port > 0 && port < 65536) {
+        return port
+      }
+    } catch {
+      // No desktop run state (CLI-only install) or unreadable — keep the default.
+    }
+  }
+  return null
+}
+
+/** Base URL used when the user has not overridden it in settings. */
+function defaultBaseUrl(): string {
+  const port = studioPortFromRunFile()
+  return port ? `http://127.0.0.1:${port}/v1` : DEFAULT_UNSLOTH_BASE_URL
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────
@@ -206,12 +232,13 @@ async function connectUnslothOnce(options: {
   baseUrl?: string
   existingApiKey?: string
 }): Promise<UnslothConnectResult> {
-  const baseUrl = normalizeBaseUrl(options.baseUrl)
-  const root = studioRootFromBaseUrl(options.baseUrl)
+  const requested = options.baseUrl?.trim() || defaultBaseUrl()
+  const baseUrl = normalizeBaseUrl(requested)
+  const root = studioRootFromBaseUrl(requested)
 
   // The desktop secret is an owner credential — it must never leave the machine,
   // and the stored key must not be probed against a foreign host either.
-  if (!isLoopbackBaseUrl(options.baseUrl)) return { ok: false, code: 'invalid_base_url' }
+  if (!isLoopbackBaseUrl(requested)) return { ok: false, code: 'invalid_base_url' }
 
   // 1. Reuse a working key (e.g. the user pressed "Connect" again to refresh models).
   const existingKey = options.existingApiKey?.trim()

@@ -14,7 +14,7 @@ vi.mock('fs', () => ({
   readFileSync: vi.fn()
 }))
 
-import { existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import {
   DEFAULT_UNSLOTH_BASE_URL,
   connectUnslothStudio,
@@ -24,6 +24,8 @@ import {
 } from '../../src/main/llm/unsloth'
 
 const SECRET = 'desktop-2rHrmUgEa2L1w0ExDB7Yx2D57bYOt0YraKPu0kWyaAiwtSLL4NrU9Jd_OXntopGm'
+const SECRET_FILE = '/auth/.desktop_secret'
+const RUN_STATE_FILE = '/run/desktop_backend.json'
 const API_KEY = 'sk-unsloth-test-key'
 
 function jsonResponse(status: number, payload: unknown): Response {
@@ -32,6 +34,20 @@ function jsonResponse(status: number, payload: unknown): Response {
     status,
     text: async () => JSON.stringify(payload)
   } as unknown as Response
+}
+
+/** Serve Studio files by path suffix; anything else behaves like ENOENT. */
+function mockStudioFiles(files: Record<string, string>): void {
+  vi.mocked(readFileSync).mockImplementation(((filePath: Parameters<typeof readFileSync>[0]) => {
+    const target = String(filePath)
+    const suffix = Object.keys(files).find((key) => target.endsWith(key))
+    if (suffix === undefined) {
+      const err = new Error(`ENOENT: no such file or directory, open '${target}'`)
+      ;(err as NodeJS.ErrnoException).code = 'ENOENT'
+      throw err
+    }
+    return files[suffix]
+  }) as typeof readFileSync)
 }
 
 /** Route a URL to a stubbed response. */
@@ -56,8 +72,7 @@ const modelsPayload = {
 }
 
 beforeEach(() => {
-  vi.mocked(existsSync).mockReturnValue(false)
-  vi.mocked(readFileSync).mockReturnValue('')
+  mockStudioFiles({})
 })
 
 afterEach(() => {
@@ -67,24 +82,21 @@ afterEach(() => {
 
 describe('readDesktopSecret', () => {
   it('returns the trimmed desktop credential', () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(`${SECRET}\n`)
+    mockStudioFiles({ [SECRET_FILE]: `${SECRET}\n` })
 
     expect(readDesktopSecret()).toBe(SECRET)
   })
 
   it('ignores files that do not look like a desktop credential', () => {
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockReturnValue('not-a-secret')
+    mockStudioFiles({ [SECRET_FILE]: 'not-a-secret' })
 
     expect(readDesktopSecret()).toBeNull()
   })
 
   it('returns null when the install is absent or unreadable', () => {
-    vi.mocked(existsSync).mockReturnValue(false)
+    mockStudioFiles({})
     expect(readDesktopSecret()).toBeNull()
 
-    vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation(() => {
       throw new Error('EACCES')
     })
@@ -146,8 +158,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('mints an inference key from the desktop credential and lists models', async () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
 
     const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const target = String(url)
@@ -185,8 +196,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('refuses to send the desktop credential to a non-loopback host', async () => {
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
@@ -220,8 +230,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('reports not_running when nothing answers on the base URL', async () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
     stubFetch([
       {
         match: (url) => url.endsWith('/api/auth/desktop-login'),
@@ -237,8 +246,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('reports auth_failed when Studio rejects the credential', async () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
     stubFetch([
       {
         match: (url) => url.endsWith('/api/auth/desktop-login'),
@@ -252,8 +260,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('reports key_create_failed when Studio returns no key', async () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
     stubFetch([
       {
         match: (url) => url.endsWith('/api/auth/desktop-login'),
@@ -271,8 +278,7 @@ describe('connectUnslothStudio', () => {
   })
 
   it('still succeeds with an empty model list when /v1/models fails', async () => {
-    vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith('/auth/.desktop_secret'))
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
     stubFetch([
       {
         match: (url) => url.endsWith('/api/auth/desktop-login'),
@@ -296,6 +302,66 @@ describe('connectUnslothStudio', () => {
   })
 })
 
+describe('connectUnslothStudio (port discovery)', () => {
+  beforeEach(() => {
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
+  })
+
+  it('uses the port recorded by the desktop run state when no URL is given', async () => {
+    mockStudioFiles({
+      [SECRET_FILE]: SECRET,
+      [RUN_STATE_FILE]: JSON.stringify({ port: 9123 })
+    })
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const target = String(url)
+      if (target === 'http://127.0.0.1:9123/api/auth/desktop-login') {
+        return jsonResponse(200, { access_token: 'owner-token' })
+      }
+      if (target === 'http://127.0.0.1:9123/api/auth/api-keys') {
+        return jsonResponse(200, { key: API_KEY })
+      }
+      if (target === 'http://127.0.0.1:9123/v1/models') {
+        return jsonResponse(200, modelsPayload)
+      }
+      throw new Error(`Unexpected fetch: ${target}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await connectUnslothStudio({})
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.baseUrl).toBe('http://127.0.0.1:9123/v1')
+  })
+
+  it('ignores an unusable recorded port and falls back to the default', async () => {
+    mockStudioFiles({
+      [SECRET_FILE]: SECRET,
+      [RUN_STATE_FILE]: JSON.stringify({ port: 'not-a-port' })
+    })
+    const fetchMock = vi.fn(async () => jsonResponse(200, { access_token: 'owner-token' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await connectUnslothStudio({})
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      'http://127.0.0.1:8888/api/auth/desktop-login'
+    )
+  })
+
+  it('prefers an explicit base URL over the recorded port', async () => {
+    mockStudioFiles({
+      [SECRET_FILE]: SECRET,
+      [RUN_STATE_FILE]: JSON.stringify({ port: 9123 })
+    })
+    const fetchMock = vi.fn(async () => jsonResponse(200, { access_token: 'owner-token' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await connectUnslothStudio({ baseUrl: 'http://127.0.0.1:7000/v1' })
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('http://127.0.0.1:7000/api/auth/desktop-login')
+  })
+})
+
 describe('connectUnslothStudio (multi-account & concurrency)', () => {
   function deferred(): { promise: Promise<void>; resolve: () => void } {
     let resolve!: () => void
@@ -306,8 +372,7 @@ describe('connectUnslothStudio (multi-account & concurrency)', () => {
   }
 
   beforeEach(() => {
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    mockStudioFiles({ [SECRET_FILE]: SECRET })
   })
 
   it('reports multi_account when Studio refuses to pick an account by secret', async () => {
