@@ -83,6 +83,7 @@ export function CoinView({
     storageKey: `collection:${collectionId}`,
     ready: !loading && coins.length > 0,
     recording: !loading && !loadingMore,
+    contentVersion: coins.length,
     onLoadMore: hasMore ? handleLoadMore : undefined
   })
 

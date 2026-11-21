@@ -1,92 +1,135 @@
 import React from 'react'
-import {
-  getScrollContainer,
-  saveScrollPosition,
-  getScrollPosition,
-  subscribeScrollContainer
-} from '@/lib/scrollContainer'
+import { saveScrollPosition, getScrollPosition, whenScrollContainer } from '@/lib/scrollContainer'
 
 interface UseScrollRestorationOptions {
   /** Unique key for this page's saved position (e.g. `collection:<id>`, `ai:<id>`). */
   storageKey: string
   /** True once the page content is loaded and tall enough to restore against. */
   ready: boolean
-  /** When false, scroll events are ignored (e.g. while the list is reloading). */
+  /** When false, scroll events are ignored (e.g. while the list is reloading). Default: true. */
   recording?: boolean
-  /** Called when the saved position exceeds the current scrollable height. */
+  /**
+   * Changes whenever more content is rendered — pass the number of loaded items.
+   * A restore that could not reach its saved position (the page was shorter)
+   * retries every time this changes.
+   */
+  contentVersion?: number
+  /** Requests one more page of content for a restore that needs more height. */
   onLoadMore?: () => void
+}
+
+/** How far the page may drift from our last assignment before we let the user take over. */
+const USER_SCROLL_TOLERANCE_PX = 2
+
+/** Safety net against a content source that keeps growing without reaching the target. */
+const MAX_LOAD_MORE_ATTEMPTS = 20
+
+interface RestoreState {
+  key: string
+  /** Position still to reach; `null` once the restore is finished or impossible. */
+  target: number | null
+  /** The scrollTop we assigned last — used to detect a manual scroll. */
+  assigned: number | null
+  attempts: number
 }
 
 /**
  * Persist and restore the scroll position of the app's scroll container
  * (see `@/lib/scrollContainer`) across page unmounts — e.g. navigating to the
  * photo gallery and back.
+ *
+ * Behavior:
+ * - the position is recorded on every scroll while `recording` is true;
+ * - it is restored once per `storageKey`, as soon as `ready` and a scroll
+ *   container are available (in whichever order that happens);
+ * - if the saved position lies beyond the rendered content, `onLoadMore` is
+ *   called and the restore retries when `contentVersion` changes;
+ * - once the user scrolls, the restore stops instead of fighting them.
+ *
+ * Nothing is saved in a cleanup: under React StrictMode the double-invoked
+ * cleanup would record `scrollTop = 0` and overwrite the real position.
  */
 export function useScrollRestoration(options: UseScrollRestorationOptions): void {
-  const { storageKey, ready, recording = true, onLoadMore } = options
+  const { storageKey, ready, recording = true, contentVersion = 0, onLoadMore } = options
 
-  // Keep the latest options in refs so the scroll listener (attached once)
-  // always reads current values without re-subscribing on every change.
-  const recordingRef = React.useRef(recording)
-  recordingRef.current = recording
+  // Latest values for callbacks that must not re-subscribe on every change.
+  const latestRef = React.useRef({ recording, onLoadMore })
+  latestRef.current = { recording, onLoadMore }
   const storageKeyRef = React.useRef(storageKey)
   storageKeyRef.current = storageKey
-  const onLoadMoreRef = React.useRef(onLoadMore)
-  onLoadMoreRef.current = onLoadMore
-  // Restore only once per storageKey — not on every re-render (the storageKey
-  // is the only thing that makes re-restoring meaningful).
-  const restoredKeyRef = React.useRef<string | null>(null)
+
+  // Restore bookkeeping of the CURRENT key (reset when the key changes).
+  const restoreRef = React.useRef<RestoreState | null>(null)
 
   // Record the position on every scroll.
   React.useEffect(() => {
-    const el = getScrollContainer()
-    if (!el) return
+    let detach: (() => void) | null = null
 
-    const onScroll = (): void => {
-      if (recordingRef.current) {
-        saveScrollPosition(storageKeyRef.current, el.scrollTop)
+    // The container is registered above this page in the tree, so it may not
+    // exist yet on mount — wait for it instead of silently recording nothing.
+    const stopWaiting = whenScrollContainer((el) => {
+      const onScroll = (): void => {
+        if (latestRef.current.recording) saveScrollPosition(storageKeyRef.current, el.scrollTop)
       }
+      el.addEventListener('scroll', onScroll, { passive: true })
+      detach = () => el.removeEventListener('scroll', onScroll)
+    })
+
+    return () => {
+      stopWaiting()
+      detach?.()
     }
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Restore the position once the content is ready.
-  // Note: intentionally nothing is saved in a cleanup — under React StrictMode
-  // the double-invoked cleanup would record scrollTop=0 and overwrite the real
-  // position.
+  // Restore the saved position once the page is ready.
   React.useLayoutEffect(() => {
-    if (!ready || restoredKeyRef.current === storageKey) return
-    const saved = getScrollPosition(storageKey)
-    if (!saved || saved <= 0) return
-
-    const restore = (el: HTMLElement): void => {
-      if (restoredKeyRef.current === storageKey) return
-      restoredKeyRef.current = storageKey
-      el.scrollTop = saved
-      // Content too short for the saved position — load more (defer to avoid a
-      // state update during the layout-effect commit phase).
-      if (el.scrollTop < saved && onLoadMoreRef.current) {
-        queueMicrotask(onLoadMoreRef.current)
+    // A new key means a new page (or a collection switch): start over.
+    if (restoreRef.current?.key !== storageKey) {
+      const saved = getScrollPosition(storageKey)
+      restoreRef.current = {
+        key: storageKey,
+        target: saved !== undefined && saved > 0 ? saved : null,
+        assigned: null,
+        attempts: 0
       }
     }
 
-    const el = getScrollContainer()
-    if (el) {
-      restore(el)
-      return
-    }
+    const state = restoreRef.current
+    if (!state || !ready || state.target === null) return
 
-    // The scroll container lives ABOVE this page in the tree, and React attaches
-    // a parent's ref after the children's layout effects. On a fresh mount (e.g.
-    // returning from the photo gallery, which renders outside `AppLayout`) the
-    // container is therefore not registered yet — wait for it, otherwise the
-    // restore never happens (production only: in dev StrictMode re-runs effects
-    // after refs are attached, which masked the bug).
-    const unsubscribe = subscribeScrollContainer((registered) => {
-      restore(registered)
-      if (restoredKeyRef.current === storageKey) unsubscribe()
+    return whenScrollContainer((el) => {
+      const target = state.target
+      if (target === null) return
+
+      // The user already scrolled away from where we put them — back off.
+      if (
+        state.assigned !== null &&
+        Math.abs(el.scrollTop - state.assigned) > USER_SCROLL_TOLERANCE_PX
+      ) {
+        state.target = null
+        return
+      }
+
+      el.scrollTop = target
+      state.assigned = el.scrollTop
+
+      if (el.scrollTop >= target - 1) {
+        state.target = null // reached
+        return
+      }
+
+      // The page is shorter than the saved position — typically a paginated
+      // list that only holds its first page after a remount. Ask for more
+      // content; `contentVersion` changes when it arrives and we retry.
+      const loadMore = latestRef.current.onLoadMore
+      if (!loadMore || state.attempts >= MAX_LOAD_MORE_ATTEMPTS) {
+        state.target = null // unreachable — settle instead of snapping later
+        return
+      }
+
+      state.attempts += 1
+      // Deferred: `onLoadMore` updates another component's state.
+      queueMicrotask(loadMore)
     })
-    return unsubscribe
-  }, [storageKey, ready])
+  }, [storageKey, ready, contentVersion])
 }

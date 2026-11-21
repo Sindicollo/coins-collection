@@ -119,7 +119,8 @@ export function AiPage(): React.ReactElement {
   // Persist scroll position across navigation to the photo gallery and back
   useScrollRestoration({
     storageKey: `ai:${collectionId ?? ''}`,
-    ready: !coinsLoading
+    ready: !coinsLoading,
+    contentVersion: coins.length
   })
 
   const handleBulkQuery = async (queryType: QueryType): Promise<void> => {
