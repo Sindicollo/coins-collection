@@ -34,6 +34,22 @@ function setupScrollContainer(height = 400, contentHeight = 2000): HTMLElement {
   return main
 }
 
+/**
+ * Mimics `AppLayout`: the scroll container is registered by a ref on an
+ * ANCESTOR, so its ref callback runs after the children's layout effects.
+ */
+function LateRegisteringLayout(props: { children: React.ReactNode }): React.ReactElement {
+  return (
+    <div
+      data-testid="scroller"
+      ref={(el) => registerScrollContainer(el)}
+      style={{ height: '400px', overflowY: 'scroll' }}
+    >
+      <div style={{ height: '2000px' }}>{props.children}</div>
+    </div>
+  )
+}
+
 describe('useScrollRestoration', () => {
   beforeEach(() => {
     clearScrollPositions()
@@ -142,5 +158,68 @@ describe('useScrollRestoration', () => {
     expect(main.scrollTop).toBe(0)
 
     document.body.removeChild(main)
+  })
+
+  /**
+   * Production ordering regression: `AppLayout` registers `<main>` through a
+   * ref, and React attaches a parent's ref AFTER its children's layout effects.
+   * So on a fresh mount (returning from the photo gallery, which renders
+   * outside `AppLayout`) `getScrollContainer()` is still `null` when the page's
+   * layout effect runs. The restore must therefore wait for registration —
+   * without this it worked only in dev (StrictMode re-runs effects after refs).
+   */
+  it('restores when the container registers after the page layout effect', () => {
+    saveScrollPosition('test:late', 320)
+
+    const view = render(
+      <LateRegisteringLayout>
+        <ScrollRestorationTester storageKey="test:late" ready />
+      </LateRegisteringLayout>
+    )
+
+    const scroller = view.getByTestId('scroller')
+    expect(getScrollContainer()).toBe(scroller)
+    expect(scroller.scrollTop).toBe(320)
+  })
+
+  it('restores once under StrictMode double-invoked effects', () => {
+    saveScrollPosition('test:strict', 180)
+
+    const view = render(
+      <React.StrictMode>
+        <LateRegisteringLayout>
+          <ScrollRestorationTester storageKey="test:strict" ready />
+        </LateRegisteringLayout>
+      </React.StrictMode>
+    )
+
+    expect(view.getByTestId('scroller').scrollTop).toBe(180)
+  })
+
+  it('does not restore a not-ready page when the container registers late', () => {
+    saveScrollPosition('test:late', 320)
+
+    const view = render(
+      <LateRegisteringLayout>
+        <ScrollRestorationTester storageKey="test:late" ready={false} />
+      </LateRegisteringLayout>
+    )
+
+    expect(view.getByTestId('scroller').scrollTop).toBe(0)
+  })
+
+  it('stops waiting for the container on unmount', () => {
+    saveScrollPosition('test:late', 320)
+
+    const view = render(
+      <LateRegisteringLayout>
+        <ScrollRestorationTester storageKey="test:late" ready={false} />
+      </LateRegisteringLayout>
+    )
+    view.unmount()
+
+    // Registering a container after unmount must not throw or resurrect state
+    expect(() => registerScrollContainer(document.createElement('main'))).not.toThrow()
+    registerScrollContainer(null)
   })
 })

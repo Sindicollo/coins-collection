@@ -1,5 +1,10 @@
 import React from 'react'
-import { getScrollContainer, saveScrollPosition, getScrollPosition } from '@/lib/scrollContainer'
+import {
+  getScrollContainer,
+  saveScrollPosition,
+  getScrollPosition,
+  subscribeScrollContainer
+} from '@/lib/scrollContainer'
 
 interface UseScrollRestorationOptions {
   /** Unique key for this page's saved position (e.g. `collection:<id>`, `ai:<id>`). */
@@ -52,16 +57,36 @@ export function useScrollRestoration(options: UseScrollRestorationOptions): void
   // position.
   React.useLayoutEffect(() => {
     if (!ready || restoredKeyRef.current === storageKey) return
-    const el = getScrollContainer()
     const saved = getScrollPosition(storageKey)
-    if (!el || !saved || saved <= 0) return
+    if (!saved || saved <= 0) return
 
-    restoredKeyRef.current = storageKey
-    el.scrollTop = saved
-    // Content too short for the saved position — load more (defer to avoid a
-    // state update during the layout-effect commit phase).
-    if (el.scrollTop < saved && onLoadMoreRef.current) {
-      queueMicrotask(onLoadMoreRef.current)
+    const restore = (el: HTMLElement): void => {
+      if (restoredKeyRef.current === storageKey) return
+      restoredKeyRef.current = storageKey
+      el.scrollTop = saved
+      // Content too short for the saved position — load more (defer to avoid a
+      // state update during the layout-effect commit phase).
+      if (el.scrollTop < saved && onLoadMoreRef.current) {
+        queueMicrotask(onLoadMoreRef.current)
+      }
     }
+
+    const el = getScrollContainer()
+    if (el) {
+      restore(el)
+      return
+    }
+
+    // The scroll container lives ABOVE this page in the tree, and React attaches
+    // a parent's ref after the children's layout effects. On a fresh mount (e.g.
+    // returning from the photo gallery, which renders outside `AppLayout`) the
+    // container is therefore not registered yet — wait for it, otherwise the
+    // restore never happens (production only: in dev StrictMode re-runs effects
+    // after refs are attached, which masked the bug).
+    const unsubscribe = subscribeScrollContainer((registered) => {
+      restore(registered)
+      if (restoredKeyRef.current === storageKey) unsubscribe()
+    })
+    return unsubscribe
   }, [storageKey, ready])
 }
