@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.1
+
+### Fixed
+- The coin list scroll position is restored again after returning from the photo gallery in packaged (installed) builds — it previously worked only in development
+- The AI page scroll position is no longer restored with a visible jump on navigation
+
 ## v1.7.0
 
 ### Added
