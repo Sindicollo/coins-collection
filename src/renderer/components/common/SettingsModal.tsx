@@ -12,7 +12,7 @@ import type {
   LlmErrorInfo,
   LlmProviderType,
   SearchProvider,
-  UnslothConnectErrorCode,
+  UnslothConnectError,
   UnslothModel
 } from '@shared/types'
 
@@ -198,12 +198,18 @@ function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.Re
 
 // ── UnslothSection ─────────────────────────────────────
 
-type UnslothError = { code: UnslothConnectErrorCode; detail?: string }
+/** Everything the AI panel needs to know about the local Studio connection. */
+interface UnslothPanelState {
+  connecting: boolean
+  error: UnslothConnectError | null
+  /** Models of the URL currently typed in the form — never a list from another server. */
+  models: UnslothModel[]
+}
 
 interface UnslothSectionProps {
   baseUrl: string
   connecting: boolean
-  error: UnslothError | null
+  error: UnslothConnectError | null
   onConnect: () => void
 }
 
@@ -263,6 +269,8 @@ function UnslothSection({
     }
   }
 
+  const errorMessage = errorText()
+
   return (
     <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
       <p className="text-xs text-gray-500">
@@ -280,7 +288,7 @@ function UnslothSection({
         )}
         {t('ai.settings.unslothConnect', { defaultValue: 'Connect to Unsloth Studio' })}
       </Button>
-      {errorText() && <p className="text-xs text-red-600">{errorText()}</p>}
+      {errorMessage && <p className="text-xs text-red-600">{errorMessage}</p>}
     </div>
   )
 }
@@ -295,9 +303,7 @@ interface AiSettingsPanelProps {
   saveError: string | null
   onTest: () => void
   loaded: boolean
-  unslothConnecting: boolean
-  unslothError: UnslothError | null
-  unslothModels: UnslothModel[]
+  unsloth: UnslothPanelState
   onConnectUnsloth: () => void
 }
 
@@ -309,12 +315,11 @@ function AiSettingsPanel({
   saveError,
   onTest,
   loaded,
-  unslothConnecting,
-  unslothError,
-  unslothModels,
+  unsloth,
   onConnectUnsloth
 }: AiSettingsPanelProps): React.ReactElement {
   const { t } = useTranslation()
+  const unslothModels = unsloth.models
 
   if (!loaded) {
     return (
@@ -352,8 +357,8 @@ function AiSettingsPanel({
       {config.provider === 'unsloth' && (
         <UnslothSection
           baseUrl={config.baseUrl || DEFAULT_URLS.unsloth}
-          connecting={unslothConnecting}
-          error={unslothError}
+          connecting={unsloth.connecting}
+          error={unsloth.error}
           onConnect={onConnectUnsloth}
         />
       )}
@@ -551,8 +556,13 @@ export function SettingsModal({
 
   // Unsloth Studio connect state
   const [unslothConnecting, setUnslothConnecting] = React.useState(false)
-  const [unslothError, setUnslothError] = React.useState<UnslothError | null>(null)
-  const [unslothModels, setUnslothModels] = React.useState<UnslothModel[]>([])
+  const [unslothError, setUnslothError] = React.useState<UnslothConnectError | null>(null)
+  const [unslothResult, setUnslothResult] = React.useState<{
+    baseUrl: string
+    models: UnslothModel[]
+  }>({ baseUrl: '', models: [] })
+  // Models belong to one server URL — never show a list fetched from another one.
+  const unslothModels = unslothResult.baseUrl === aiConfig.baseUrl ? unslothResult.models : []
 
   // Load AI config when modal opens
   React.useEffect(() => {
@@ -612,7 +622,7 @@ export function SettingsModal({
         setUnslothError({ code: result.code, detail: result.detail })
         return
       }
-      setUnslothModels(result.models)
+      setUnslothResult({ baseUrl: result.baseUrl, models: result.models })
       setAiConfig((cfg) => {
         const loadedId = result.models.find((m) => m.loaded)?.id
         // Keep an already chosen model; otherwise pick the loaded one, then anything.
@@ -711,9 +721,7 @@ export function SettingsModal({
           saveError={aiSaveError}
           onTest={handleAiTest}
           loaded={aiLoaded}
-          unslothConnecting={unslothConnecting}
-          unslothError={unslothError}
-          unslothModels={unslothModels}
+          unsloth={{ connecting: unslothConnecting, error: unslothError, models: unslothModels }}
           onConnectUnsloth={handleUnslothConnect}
         />
       )}
