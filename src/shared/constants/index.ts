@@ -51,7 +51,8 @@ export const IPC_CHANNELS = {
     BULK_PROGRESS: 'llm:bulk-progress',
     CANCEL_BULK: 'llm:cancel-bulk',
     GET_BULK_SESSION: 'llm:get-bulk-session',
-    CLEAR_BULK_SESSION: 'llm:clear-bulk-session'
+    CLEAR_BULK_SESSION: 'llm:clear-bulk-session',
+    UNSLOTH_CONNECT: 'llm:unsloth-connect'
   },
   BACKUP: {
     EXPORT_EXECUTE: 'backup:export-execute',

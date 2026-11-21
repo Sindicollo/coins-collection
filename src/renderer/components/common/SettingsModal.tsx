@@ -7,7 +7,14 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { CURRENCIES } from '@/utils/currency'
 import * as aiApi from '@/features/ai/api'
 import { formatLlmError } from '@/lib/llmError'
-import type { LlmConfig, LlmErrorInfo, LlmProviderType, SearchProvider } from '@shared/types'
+import type {
+  LlmConfig,
+  LlmErrorInfo,
+  LlmProviderType,
+  SearchProvider,
+  UnslothConnectErrorCode,
+  UnslothModel
+} from '@shared/types'
 
 // ── Constants ──────────────────────────────────────────
 
@@ -21,13 +28,15 @@ const LANGS = [
 const PROVIDERS: { value: LlmProviderType; label: string }[] = [
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'lmstudio', label: 'LM Studio' },
-  { value: 'ollama', label: 'Ollama' }
+  { value: 'ollama', label: 'Ollama' },
+  { value: 'unsloth', label: 'Unsloth Studio' }
 ]
 
 const DEFAULT_URLS: Record<LlmProviderType, string> = {
   openrouter: 'https://openrouter.ai/api/v1',
   lmstudio: 'http://localhost:1234/v1',
-  ollama: 'http://localhost:11434/v1'
+  ollama: 'http://localhost:11434/v1',
+  unsloth: 'http://127.0.0.1:8888/v1'
 }
 
 const SEARCH_PROVIDERS: { value: SearchProvider; label: string }[] = [
@@ -187,6 +196,85 @@ function WebSearchSection({ config, onChange }: WebSearchSectionProps): React.Re
   )
 }
 
+// ── UnslothSection ─────────────────────────────────────
+
+type UnslothError = { code: UnslothConnectErrorCode; detail?: string }
+
+interface UnslothSectionProps {
+  baseUrl: string
+  connecting: boolean
+  error: UnslothError | null
+  onConnect: () => void
+}
+
+/**
+ * "Connect" flow for the local Unsloth Studio server.
+ *
+ * Pressing the button asks the main process to mint (or reuse) an inference API
+ * key from Studio's local desktop credential — no manual key copying needed.
+ */
+function UnslothSection({
+  baseUrl,
+  connecting,
+  error,
+  onConnect
+}: UnslothSectionProps): React.ReactElement {
+  const { t } = useTranslation()
+
+  function errorText(): string | null {
+    if (!error) return null
+    switch (error.code) {
+      case 'not_installed':
+        return t('ai.settings.unslothNotInstalled', {
+          defaultValue:
+            'Unsloth Studio was not found on this machine. Install and start the desktop app, then try again.'
+        })
+      case 'not_running':
+        return t('ai.settings.unslothNotRunning', {
+          defaultValue: 'Unsloth Studio is not running ({{baseUrl}}). Start it and try again.',
+          baseUrl
+        })
+      case 'auth_failed':
+        return t('ai.settings.unslothAuthFailed', {
+          defaultValue:
+            'Unsloth Studio rejected the local desktop credential. Restart Unsloth Studio and try again.'
+        })
+      case 'key_create_failed':
+        return t('ai.settings.unslothKeyCreateFailed', {
+          defaultValue:
+            'Could not create an API key. Create one manually in Unsloth Studio → Settings → API keys and paste it below.'
+        })
+      case 'unknown':
+      default:
+        return t('ai.settings.unslothUnknownError', {
+          defaultValue: 'Could not connect to Unsloth Studio: {{detail}}',
+          detail: error.detail || 'unknown error'
+        })
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+      <p className="text-xs text-gray-500">
+        {t('ai.settings.unslothHint', {
+          defaultValue:
+            'Unsloth Studio must be running locally with a model loaded. Connecting creates an inference API key inside Studio and fills it in automatically.'
+        })}
+      </p>
+      <Button variant="ghost" size="sm" onClick={onConnect} disabled={connecting}>
+        {connecting && (
+          <span
+            aria-hidden="true"
+            className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin"
+          />
+        )}
+        {t('ai.settings.unslothConnect', { defaultValue: 'Connect to Unsloth Studio' })}
+      </Button>
+      {errorText() && <p className="text-xs text-red-600">{errorText()}</p>}
+    </div>
+  )
+}
+
 // ── AiSettingsPanel ────────────────────────────────────
 
 interface AiSettingsPanelProps {
@@ -197,6 +285,10 @@ interface AiSettingsPanelProps {
   saveError: string | null
   onTest: () => void
   loaded: boolean
+  unslothConnecting: boolean
+  unslothError: UnslothError | null
+  unslothModels: UnslothModel[]
+  onConnectUnsloth: () => void
 }
 
 function AiSettingsPanel({
@@ -206,7 +298,11 @@ function AiSettingsPanel({
   testResult,
   saveError,
   onTest,
-  loaded
+  loaded,
+  unslothConnecting,
+  unslothError,
+  unslothModels,
+  onConnectUnsloth
 }: AiSettingsPanelProps): React.ReactElement {
   const { t } = useTranslation()
 
@@ -242,6 +338,16 @@ function AiSettingsPanel({
         </select>
       </div>
 
+      {/* Unsloth Studio (local server) — auto-provision API key */}
+      {config.provider === 'unsloth' && (
+        <UnslothSection
+          baseUrl={config.baseUrl || DEFAULT_URLS.unsloth}
+          connecting={unslothConnecting}
+          error={unslothError}
+          onConnect={onConnectUnsloth}
+        />
+      )}
+
       {/* Base URL */}
       <Input
         label={t('ai.settings.baseUrl', { defaultValue: 'Base URL' })}
@@ -250,20 +356,52 @@ function AiSettingsPanel({
         placeholder="https://openrouter.ai/api/v1"
       />
 
-      {/* Model */}
-      <Input
-        label={t('ai.settings.model', { defaultValue: 'Model' })}
-        value={config.model}
-        onChange={(e) => onChange({ ...config, model: e.target.value })}
-        placeholder="openai/gpt-4.1"
-      />
+      {/* Model — a picker for Unsloth Studio, free text everywhere else */}
+      {config.provider === 'unsloth' && unslothModels.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">
+            {t('ai.settings.model', { defaultValue: 'Model' })}
+          </label>
+          <select
+            value={config.model}
+            onChange={(e) => onChange({ ...config, model: e.target.value })}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm
+              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            {config.model && !unslothModels.some((m) => m.id === config.model) && (
+              <option value={config.model}>{config.model}</option>
+            )}
+            {unslothModels.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.loaded
+                  ? `${m.id} — ${t('ai.settings.unslothModelLoaded', { defaultValue: 'loaded' })}`
+                  : m.id}
+              </option>
+            ))}
+          </select>
+          {!unslothModels.some((m) => m.loaded) && (
+            <p className="text-xs text-amber-600">
+              {t('ai.settings.unslothNoModelLoaded', {
+                defaultValue: 'No model is loaded in Unsloth Studio yet — load one there before querying.'
+              })}
+            </p>
+          )}
+        </div>
+      ) : (
+        <Input
+          label={t('ai.settings.model', { defaultValue: 'Model' })}
+          value={config.model}
+          onChange={(e) => onChange({ ...config, model: e.target.value })}
+          placeholder={config.provider === 'unsloth' ? 'unsloth/Qwen3-27B-GGUF' : 'openai/gpt-4.1'}
+        />
+      )}
 
       {/* API Key */}
       <PasswordInput
         label={t('ai.settings.apiKey', { defaultValue: 'API Key' })}
         value={config.apiKey}
         onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
-        placeholder="sk-..."
+        placeholder={config.provider === 'unsloth' ? 'sk-unsloth-...' : 'sk-...'}
       />
 
       {/* Web search toggle */}
@@ -401,6 +539,11 @@ export function SettingsModal({
   const [aiLoaded, setAiLoaded] = React.useState(false)
   const [aiSaveError, setAiSaveError] = React.useState<string | null>(null)
 
+  // Unsloth Studio connect state
+  const [unslothConnecting, setUnslothConnecting] = React.useState(false)
+  const [unslothError, setUnslothError] = React.useState<UnslothError | null>(null)
+  const [unslothModels, setUnslothModels] = React.useState<UnslothModel[]>([])
+
   // Load AI config when modal opens
   React.useEffect(() => {
     if (open) {
@@ -408,6 +551,8 @@ export function SettingsModal({
       setAiLoaded(false)
       setAiTestResult(null)
       setAiSaveError(null)
+      setUnslothError(null)
+      setUnslothConnecting(false)
       aiApi.getConfig().then((cfg) => {
         if (cancelled) return
         setAiConfig(cfg)
@@ -442,6 +587,31 @@ export function SettingsModal({
       setAiTestResult({ ok: false, error: message })
     } finally {
       setAiTesting(false)
+    }
+  }
+
+  const handleUnslothConnect = async (): Promise<void> => {
+    setUnslothConnecting(true)
+    setUnslothError(null)
+    try {
+      const result = await aiApi.connectUnsloth(aiConfig.baseUrl || DEFAULT_URLS.unsloth)
+      if (!result.ok) {
+        setUnslothError({ code: result.code, detail: result.detail })
+        return
+      }
+      setUnslothModels(result.models)
+      setAiConfig((cfg) => {
+        const loadedId = result.models.find((m) => m.loaded)?.id
+        // Keep an already chosen model; otherwise pick the loaded one, then anything.
+        const model = cfg.model || loadedId || result.models[0]?.id || ''
+        return { ...cfg, provider: 'unsloth', apiKey: result.apiKey, baseUrl: result.baseUrl, model }
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn('[SettingsModal] Unsloth connect failed:', message)
+      setUnslothError({ code: 'unknown', detail: message })
+    } finally {
+      setUnslothConnecting(false)
     }
   }
 
@@ -528,6 +698,10 @@ export function SettingsModal({
           saveError={aiSaveError}
           onTest={handleAiTest}
           loaded={aiLoaded}
+          unslothConnecting={unslothConnecting}
+          unslothError={unslothError}
+          unslothModels={unslothModels}
+          onConnectUnsloth={handleUnslothConnect}
         />
       )}
 

@@ -16,7 +16,7 @@ English/russian interface.
 - **Backup & Restore** — export your entire database to a ZIP archive (JSON + photos), import back with smart merge
 - **i18n** — English and Russian UI
 - **Offline-first** — all data stored locally in SQLite, no cloud required
-- **AI Assistant** — query LLMs (OpenRouter, LM Studio, Ollama) for coin prices, mintage data, and numismatic info. Optional web search via Tavily, Brave, DuckDuckGo, or SearXNG.
+- **AI Assistant** — query LLMs (OpenRouter, LM Studio, Ollama, Unsloth Studio) for coin prices, mintage data, and numismatic info. Optional web search via Tavily, Brave, DuckDuckGo, or SearXNG.
 
 ## Web Search Setup (for AI Pricing)
 
@@ -32,7 +32,7 @@ By default, AI queries use only the model's training data. To enable real-time w
 | **SearXNG** | Unlimited (self-host) | Instance URL (Docker: `docker run -p 8080:8080 searxng/searxng`) |
 | **OpenRouter Built-in** | n/a | OpenRouter key only; server-side search |
 
-### Requirements for local models (LM Studio/Ollama)
+### Requirements for local models (LM Studio/Ollama/Unsloth Studio)
 
 The local model must support **OpenAI tool-calling** format. Tested with:
 - **Qwen2.5** (7B+ recommended)
@@ -41,6 +41,17 @@ The local model must support **OpenAI tool-calling** format. Tested with:
 - **Mistral v0.3+**
 
 If your model doesn't support tool-calling, web search is automatically skipped and the model answers from training data only. Use **Test Connection** in Settings to verify.
+
+### Unsloth Studio
+
+[Unsloth Studio](https://unsloth.ai) runs a local OpenAI-compatible server (`unsloth studio --api-only`, default `http://127.0.0.1:8888/v1`) that requires an API key:
+
+1. Start Unsloth Studio and load a model.
+2. In this app: **Settings → AI → Provider → Unsloth Studio**.
+3. Click **Connect to Unsloth Studio** — the app mints an inference API key from Studio's local desktop credential, fills it in, and lists the available models.
+4. Pick a **loaded** model and press **Test Connection**.
+
+If the automatic connect fails (Studio not running, credential rotated), create a key manually in Studio → **Settings → API keys** and paste it into the API key field.
 
 ### Tips
 - For bulk pricing with web search: expect **8–15 sec per coin** (search + LLM round-trip). Time a single coin first to gauge bulk duration.

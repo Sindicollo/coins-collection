@@ -168,6 +168,7 @@
       "connectionRefused": "Не удалось подключиться к ИИ-сервису ({{baseUrl}}). Проверьте интернет-соединение.",
       "connectionRefusedLmstudio": "Не удалось подключиться к LM Studio. Убедитесь, что он запущен и модель загружена ({{baseUrl}}).",
       "connectionRefusedOllama": "Не удалось подключиться к Ollama. Убедитесь, что он запущен ({{baseUrl}}).",
+      "connectionRefusedUnsloth": "Не удалось подключиться к Unsloth Studio. Убедитесь, что оно запущено и модель загружена ({{baseUrl}}).",
       "hostNotFound": "Сервер не найден по адресу {{baseUrl}}. Проверьте базовый URL в настройках ИИ.",
       "timeout": "ИИ-сервис не ответил вовремя. Попробуйте ещё раз.",
       "auth": "Ошибка авторизации. Проверьте API-ключ в настройках ИИ.",
@@ -205,7 +206,16 @@
       "toolCallSupported": "Tool-calling: поддерживается ✓",
       "toolCallNotSupported": "Tool-calling: модель не вызвала инструмент в тесте (может работать при реальных запросах). Попробуйте другой провайдер поиска, если застряло.",
       "searchTestOk": "Поисковый сервис: ок ✓",
-      "searchTestFail": "Поисковый сервис: недоступен — проверьте API-ключ или URL"
+      "searchTestFail": "Поисковый сервис: недоступен — проверьте API-ключ или URL",
+      "unslothHint": "Unsloth Studio должно быть запущено локально с загруженной моделью. При подключении создаётся inference API-ключ внутри Studio и подставляется автоматически.",
+      "unslothConnect": "Подключить Unsloth Studio",
+      "unslothNotInstalled": "Unsloth Studio не найдено на этом компьютере. Установите и запустите приложение, затем повторите.",
+      "unslothNotRunning": "Unsloth Studio не запущено ({{baseUrl}}). Запустите его и повторите.",
+      "unslothAuthFailed": "Unsloth Studio отклонило локальный desktop-ключ. Перезапустите Unsloth Studio и повторите.",
+      "unslothKeyCreateFailed": "Не удалось создать API-ключ. Создайте его вручную в Unsloth Studio → Settings → API keys и вставьте ниже.",
+      "unslothUnknownError": "Не удалось подключиться к Unsloth Studio: {{detail}}",
+      "unslothModelLoaded": "загружена",
+      "unslothNoModelLoaded": "В Unsloth Studio пока не загружено ни одной модели — загрузите её там перед запросами."
     }
   },
   "photos": {

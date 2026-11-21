@@ -41,6 +41,18 @@ describe('formatLlmError', () => {
       expect(msg).toContain('http://localhost:11434/v1')
     })
 
+    it('gives Unsloth Studio specific guidance for the unsloth provider', () => {
+      const msg = formatLlmError(
+        makeInfo({
+          code: 'connection_refused',
+          provider: 'unsloth',
+          baseUrl: 'http://127.0.0.1:8888/v1'
+        })
+      )
+      expect(msg).toMatch(/Cannot connect to Unsloth Studio/)
+      expect(msg).toContain('http://127.0.0.1:8888/v1')
+    })
+
     it('falls back to a generic message for cloud providers', () => {
       const msg = formatLlmError(makeInfo({ code: 'connection_refused', provider: 'openrouter' }))
       expect(msg).toMatch(/Cannot connect to the AI service/)

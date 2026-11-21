@@ -21,6 +21,9 @@ export function formatLlmError(info: LlmErrorInfo | null | undefined): string {
       if (provider === 'ollama') {
         return i18n.t('ai.errors.connectionRefusedOllama', { defaultValue: 'Cannot connect to Ollama. Make sure it is running ({{baseUrl}}).', baseUrl })
       }
+      if (provider === 'unsloth') {
+        return i18n.t('ai.errors.connectionRefusedUnsloth', { defaultValue: 'Cannot connect to Unsloth Studio. Make sure it is running and a model is loaded ({{baseUrl}}).', baseUrl })
+      }
       return i18n.t('ai.errors.connectionRefused', { defaultValue: 'Cannot connect to the AI service ({{baseUrl}}). Check your internet connection.', baseUrl })
 
     case 'host_not_found':

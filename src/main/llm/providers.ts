@@ -22,7 +22,8 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
   // take a couple of minutes for a single response — the old 60s timeout was
   // exceeded by normal slow generation. Give them more headroom than cloud
   // providers; a genuinely hung server still fails in a bounded time.
-  const isLocal = cfg.provider === 'lmstudio' || cfg.provider === 'ollama'
+  const isLocal =
+    cfg.provider === 'lmstudio' || cfg.provider === 'ollama' || cfg.provider === 'unsloth'
 
   // `maxRetries` controls LangChain's AsyncCaller retry loop (default 6). For
   // local providers a refused connection won't be fixed by retrying — it just
@@ -102,6 +103,26 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
         apiKey: cfg.apiKey || 'ollama',
         configuration: {
           baseURL: normalizeUrl(cfg.baseUrl, 'http://localhost:11434/v1')
+        }
+      })
+    }
+
+    case 'unsloth': {
+      // Unsloth Studio's OpenAI-compatible endpoint always requires a bearer key
+      // (it proxies to llama.cpp/MLX behind the scenes). Point the user at the
+      // Connect button rather than letting the request fail with a bare 401.
+      const apiKey = cfg.apiKey?.trim()
+      if (!apiKey) {
+        throw new Error(
+          'Unsloth Studio API key is missing. Open AI Settings and click "Connect to Unsloth Studio".'
+        )
+      }
+      return new ChatOpenAI({
+        ...common,
+        modelName: cfg.model,
+        apiKey,
+        configuration: {
+          baseURL: normalizeUrl(cfg.baseUrl, 'http://127.0.0.1:8888/v1')
         }
       })
     }

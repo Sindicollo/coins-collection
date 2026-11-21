@@ -27,6 +27,7 @@ import { queryBulkCoins, querySingleCoin, querySingleCoinWithSearch } from '../l
 import { classifyLlmError, isFatalLlmError } from '../llm/errors'
 import { loadLlmConfig, saveLlmConfig, saveBulkSession, clearBulkSession, loadBulkSession } from '../llm/config'
 import { createSearchTool, testSearchProvider } from '../llm/search'
+import { connectUnslothStudio } from '../llm/unsloth'
 import { saveAiNote } from '../llm/notes'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 
@@ -43,7 +44,8 @@ import type {
   LlmExportCoin,
   LlmTestResult,
   LlmQueryResult,
-  QueryType
+  QueryType,
+  UnslothConnectResult
 } from '@shared/types'
 
 // ── Constants & tiny utilities ────────────────────────────────────
@@ -530,6 +532,32 @@ async function handleClearBulkSession(collectionId: string, queryType: string): 
   clearBulkSession(collectionId, validateQueryType(queryType))
 }
 
+// ── Handler: Unsloth Studio ───────────────────────────────────────
+
+/**
+ * Mint (or reuse) an Unsloth Studio inference API key.
+ *
+ * A key stored for another provider is never reused — it belongs to a cloud
+ * account and would just leak into a local request. The renderer persists the
+ * returned key as `llm.apiKey`, so a second press refreshes the model list
+ * without creating duplicate keys in Studio.
+ */
+async function handleUnslothConnect(baseUrl?: string): Promise<UnslothConnectResult> {
+  try {
+    const cfg = loadLlmConfig()
+    const isUnsloth = cfg.provider === 'unsloth'
+    // Only pass the stored URL/key along when it belongs to Unsloth — an
+    // OpenRouter URL or key would otherwise be probed against the local server.
+    return await connectUnslothStudio({
+      baseUrl: baseUrl || (isUnsloth ? cfg.baseUrl : undefined),
+      existingApiKey: isUnsloth ? cfg.apiKey : ''
+    })
+  } catch (err) {
+    console.error('[llm:unsloth] Connect failed:', err)
+    return { ok: false, code: 'unknown', detail: describeError(err) }
+  }
+}
+
 // ── Handler: connection test ──────────────────────────────────────
 
 function logConnectionStart(cfg: LlmConfig): void {
@@ -718,5 +746,10 @@ export function registerLlmHandlers(): void {
   // Connection test
   ipcMain.handle(IPC_CHANNELS.LLM.TEST_CONNECTION, (_event, config?: LlmConfig) =>
     handleTestConnection(config)
+  )
+
+  // Unsloth Studio (local provider) key provisioning
+  ipcMain.handle(IPC_CHANNELS.LLM.UNSLOTH_CONNECT, (_event, baseUrl?: string) =>
+    handleUnslothConnect(baseUrl)
   )
 }

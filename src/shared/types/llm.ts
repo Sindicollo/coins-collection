@@ -47,13 +47,43 @@ export interface AiSingleQuery {
 }
 
 export interface LlmConfig {
-  provider: 'openrouter' | 'lmstudio' | 'ollama'
+  provider: 'openrouter' | 'lmstudio' | 'ollama' | 'unsloth'
   model: string
   baseUrl: string
   apiKey: string
   enableWebSearch: boolean
   search?: SearchConfig
 }
+
+/** A model served by the local Unsloth Studio server. */
+export interface UnslothModel {
+  id: string
+  /** Only loaded models can answer; the rest have to be loaded in Studio first. */
+  loaded: boolean
+}
+
+/** Why the "Connect to Unsloth Studio" flow failed. */
+export type UnslothConnectErrorCode =
+  | 'not_installed' // no local Unsloth Studio install (desktop credential not found)
+  | 'not_running' // credential found, but nothing answers on the base URL
+  | 'auth_failed' // Studio rejected the local desktop credential
+  | 'key_create_failed' // Studio refused to mint an inference API key
+  | 'unknown'
+
+export interface UnslothConnectError {
+  code: UnslothConnectErrorCode
+  /** Raw underlying message, for debugging / fallback display. */
+  detail?: string
+}
+
+export type UnslothConnectResult =
+  | {
+      ok: true
+      apiKey: string
+      baseUrl: string
+      models: UnslothModel[]
+    }
+  | ({ ok: false } & UnslothConnectError)
 
 export interface LlmTestResult {
   ok: boolean

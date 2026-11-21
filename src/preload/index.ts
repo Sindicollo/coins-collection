@@ -79,7 +79,8 @@ const api = {
     getBulkSession: (collectionId: string, queryType: string) =>
       ipcRenderer.invoke('llm:get-bulk-session', collectionId, queryType),
     clearBulkSession: (collectionId: string, queryType: string) =>
-      ipcRenderer.invoke('llm:clear-bulk-session', collectionId, queryType)
+      ipcRenderer.invoke('llm:clear-bulk-session', collectionId, queryType),
+    connectUnsloth: (baseUrl?: string) => ipcRenderer.invoke('llm:unsloth-connect', baseUrl)
   },
   backup: {
     exportExecute: () => ipcRenderer.invoke('backup:export-execute'),

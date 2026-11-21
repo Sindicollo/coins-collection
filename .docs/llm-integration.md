@@ -12,7 +12,18 @@
 |-----------|-----|-------|
 | OpenRouter | Облачный (OpenAI-совместимый API) | `@langchain/openai` |
 | LM Studio | Локальный | `@langchain/openai` (localhost) |
-| Ollama | Локальный | `@langchain/community` |
+| Ollama | Локальный | `@langchain/openai` (localhost, `/v1`) |
+| Unsloth Studio | Локальный (`127.0.0.1:8888/v1`) | `@langchain/openai` |
+
+### Unsloth Studio
+
+Studio поднимает OpenAI-совместимый сервер (`unsloth studio --api-only`), который требует
+bearer-ключ. Ключ создаётся автоматически: `src/main/llm/unsloth.ts` читает desktop-креденшл
+Studio (`~/.unsloth/studio/auth/.desktop_secret`), меняет его на owner-токен через
+`POST /api/auth/desktop-login` и минтит inference-ключ через `POST /api/auth/api-keys`
+(`{ name: "Coin Collection", access: "inference" }`). IPC — `llm:unsloth-connect`.
+Если ключ в конфиге уже есть, он сначала проверяется через `GET /v1/models` — повторное
+нажатие «Connect» не плодит ключи, а обновляет список моделей.
 
 Конфигурация — через `.env` файл:
 ```
@@ -54,7 +65,7 @@ interface AiCoinInfo {
 
 // Конфигурация LLM
 interface LlmConfig {
-  provider: 'openrouter' | 'lmstudio' | 'ollama'
+  provider: 'openrouter' | 'lmstudio' | 'ollama' | 'unsloth'
   model: string
   baseUrl: string
   apiKey: string
@@ -69,6 +80,7 @@ interface LlmConfig {
 | `llm:query-single` | renderer → main | `{ coinId, queryType, config? }` | `AiCoinInfo` |
 | `llm:get-config` | renderer → main | — | `LlmConfig` |
 | `llm:test-connection` | renderer → main | `config?` | `{ ok: boolean, error?: string }` |
+| `llm:unsloth-connect` | renderer → main | `baseUrl?` | `{ ok, apiKey, baseUrl, models }` / `{ ok: false, code, detail? }` |
 
 ## UI-поток
 

@@ -128,4 +128,67 @@ describe('SettingsModal AI settings persistence', () => {
 
     expect(await screen.findByText(/connect ECONNREFUSED/)).toBeDefined()
   })
+
+  it('connects to Unsloth Studio, filling in the minted key and a loaded model', async () => {
+    vi.mocked(window.api.llm.getConfig).mockResolvedValue(
+      makeConfig({
+        provider: 'unsloth',
+        model: '',
+        baseUrl: 'http://127.0.0.1:8888/v1',
+        apiKey: ''
+      })
+    )
+    vi.mocked(window.api.llm.connectUnsloth).mockResolvedValue({
+      ok: true,
+      apiKey: 'sk-unsloth-abc',
+      baseUrl: 'http://127.0.0.1:8888/v1',
+      models: [
+        { id: 'unsloth/Qwen3-27B-GGUF', loaded: true },
+        { id: 'ollama/qwen3.5:27b', loaded: false }
+      ]
+    })
+
+    renderModal()
+    fireEvent.click(screen.getByText('AI'))
+    fireEvent.click(await screen.findByText('Connect to Unsloth Studio'))
+
+    await waitFor(() => {
+      expect(window.api.llm.connectUnsloth).toHaveBeenCalledWith('http://127.0.0.1:8888/v1')
+    })
+
+    // The minted key lands in the API-key field (created for the unsloth provider)
+    expect(await screen.findByDisplayValue('sk-unsloth-abc')).toBeDefined()
+    // The loaded model is preselected in the model picker (its option text carries a "loaded" marker)
+    expect(await screen.findByDisplayValue(/unsloth\/Qwen3-27B-GGUF/)).toBeDefined()
+
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(window.api.llm.setConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'unsloth',
+          apiKey: 'sk-unsloth-abc',
+          baseUrl: 'http://127.0.0.1:8888/v1',
+          model: 'unsloth/Qwen3-27B-GGUF'
+        })
+      )
+    })
+  })
+
+  it('explains why connecting to Unsloth Studio failed', async () => {
+    vi.mocked(window.api.llm.getConfig).mockResolvedValue(
+      makeConfig({ provider: 'unsloth', baseUrl: 'http://127.0.0.1:8888/v1' })
+    )
+    vi.mocked(window.api.llm.connectUnsloth).mockResolvedValue({
+      ok: false,
+      code: 'not_running',
+      detail: 'fetch failed'
+    })
+
+    renderModal()
+    fireEvent.click(screen.getByText('AI'))
+    fireEvent.click(await screen.findByText('Connect to Unsloth Studio'))
+
+    expect(await screen.findByText(/Unsloth Studio is not running/)).toBeDefined()
+  })
 })

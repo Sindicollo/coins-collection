@@ -135,6 +135,39 @@ describe('createLlmModel', () => {
     expect(ChatOpenAI).toHaveBeenCalledTimes(1)
   })
 
+  describe('unsloth studio (local provider)', () => {
+    it('uses local timeout/retries and falls back to the default Studio base URL', () => {
+      vi.mocked(loadLlmConfig).mockReturnValue(
+        makeConfig({
+          provider: 'unsloth',
+          model: 'unsloth/Qwen3-27B-GGUF',
+          baseUrl: '',
+          apiKey: 'sk-unsloth-abc'
+        })
+      )
+
+      createLlmModel()
+
+      const params = lastConstructorParams()
+      expect(params.timeout).toBe(180000)
+      expect(params.maxRetries).toBe(0)
+      expect(params.modelName).toBe('unsloth/Qwen3-27B-GGUF')
+      expect(params.apiKey).toBe('sk-unsloth-abc')
+      expect(params.configuration).toEqual(
+        expect.objectContaining({ baseURL: 'http://127.0.0.1:8888/v1' })
+      )
+    })
+
+    it('points the user at the Connect button when no key is stored', () => {
+      vi.mocked(loadLlmConfig).mockReturnValue(
+        makeConfig({ provider: 'unsloth', model: 'unsloth/Qwen3-27B-GGUF', apiKey: '' })
+      )
+
+      expect(() => createLlmModel()).toThrow(/Connect to Unsloth Studio/i)
+      expect(ChatOpenAI).not.toHaveBeenCalled()
+    })
+  })
+
   describe('validation edges', () => {
     it('throws when the model name is empty', () => {
       vi.mocked(loadLlmConfig).mockReturnValue(makeConfig({ model: '' }))

@@ -1,4 +1,4 @@
-import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, LlmQueryResult, QueryType, BulkSessionState } from '@shared/types'
+import type { AiCoinInfo, AiBulkQuery, AiSingleQuery, LlmConfig, LlmTestResult, LlmQueryResult, QueryType, BulkSessionState, UnslothConnectResult } from '@shared/types'
 import i18n from '@/lib/i18n'
 
 function getLocale(): string {
@@ -58,4 +58,12 @@ export async function clearBulkSession(
   queryType: QueryType
 ): Promise<void> {
   return window.api.llm.clearBulkSession(collectionId, queryType)
+}
+
+/**
+ * Provision (or reuse) an Unsloth Studio inference API key.
+ * Studio must be running locally — a missing install/server is reported in the result.
+ */
+export async function connectUnsloth(baseUrl?: string): Promise<UnslothConnectResult> {
+  return window.api.llm.connectUnsloth(baseUrl)
 }

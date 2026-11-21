@@ -181,6 +181,7 @@ i18n.use(initReactI18next).init({
             connectionRefused: 'Cannot connect to the AI service ({{baseUrl}}).',
             connectionRefusedLmstudio: 'Cannot connect to LM Studio ({{baseUrl}}).',
             connectionRefusedOllama: 'Cannot connect to Ollama ({{baseUrl}}).',
+            connectionRefusedUnsloth: 'Cannot connect to Unsloth Studio ({{baseUrl}}).',
             hostNotFound: 'Server not found at {{baseUrl}}.',
             timeout: 'The AI service did not respond in time.',
             auth: 'Authentication failed.',
@@ -218,7 +219,16 @@ i18n.use(initReactI18next).init({
             toolCallSupported: 'Tool-calling: supported ✓',
             toolCallNotSupported: 'Tool-calling: not supported',
             searchTestOk: 'Search provider: ok ✓',
-            searchTestFail: 'Search provider: unreachable'
+            searchTestFail: 'Search provider: unreachable',
+            unslothHint: 'Unsloth Studio must be running locally.',
+            unslothConnect: 'Connect to Unsloth Studio',
+            unslothNotInstalled: 'Unsloth Studio was not found.',
+            unslothNotRunning: 'Unsloth Studio is not running ({{baseUrl}}).',
+            unslothAuthFailed: 'Desktop credential rejected.',
+            unslothKeyCreateFailed: 'Could not create an API key.',
+            unslothUnknownError: 'Could not connect to Unsloth Studio: {{detail}}',
+            unslothModelLoaded: 'loaded',
+            unslothNoModelLoaded: 'No model is loaded in Unsloth Studio yet.'
           }
         },
         backup: {
@@ -375,7 +385,8 @@ if (typeof window !== 'undefined') {
       onBulkProgress: vi.fn(() => vi.fn()),
       cancelBulk: vi.fn(),
       getBulkSession: vi.fn(),
-      clearBulkSession: vi.fn()
+      clearBulkSession: vi.fn(),
+      connectUnsloth: vi.fn()
     },
     backup: {
       exportExecute: vi.fn(),

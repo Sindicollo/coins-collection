@@ -40,7 +40,7 @@ function envConfig(): LlmConfig {
 }
 
 function validateProvider(p: string): LlmProviderType {
-  const valid: LlmProviderType[] = ['openrouter', 'lmstudio', 'ollama']
+  const valid: LlmProviderType[] = ['openrouter', 'lmstudio', 'ollama', 'unsloth']
   return valid.includes(p as LlmProviderType) ? (p as LlmProviderType) : 'openrouter'
 }
 

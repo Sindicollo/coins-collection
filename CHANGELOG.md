@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Unsloth Studio as a local AI provider — pick it in **Settings → AI**, press **Connect**, and an inference API key is minted from the local Studio install automatically
+- Model picker for Unsloth Studio that shows which models are already loaded
+- Localized guidance when Unsloth Studio is not installed, not running, or rejects the desktop credential
+
 ## v1.6.1
 
 ### Fixed
