@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.2
+
+### Fixed
+- Deep scroll positions are restored again after switching collections: the list keeps loading pages until the saved position is reachable instead of stopping at the first page
+- Scroll restoration now waits for the scroll container instead of silently doing nothing — the same class of bug that broke restoration in packaged builds
+
 ## v1.7.1
 
 ### Fixed
