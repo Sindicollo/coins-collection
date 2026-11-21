@@ -234,6 +234,11 @@ function UnslothSection({
           defaultValue: 'Unsloth Studio is not running ({{baseUrl}}). Start it and try again.',
           baseUrl
         })
+      case 'invalid_base_url':
+        return t('ai.settings.unslothInvalidBaseUrl', {
+          defaultValue:
+            'Unsloth Studio must run on localhost (127.0.0.1). For a remote server, create an API key in Studio → Settings → API keys and paste it below.'
+        })
       case 'auth_failed':
         return t('ai.settings.unslothAuthFailed', {
           defaultValue:

@@ -66,6 +66,7 @@ export interface UnslothModel {
 export type UnslothConnectErrorCode =
   | 'not_installed' // no local Unsloth Studio install (desktop credential not found)
   | 'not_running' // credential found, but nothing answers on the base URL
+  | 'invalid_base_url' // base URL is not localhost — the desktop secret must never leave the machine
   | 'auth_failed' // Studio rejected the local desktop credential
   | 'key_create_failed' // Studio refused to mint an inference API key
   | 'unknown'

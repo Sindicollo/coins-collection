@@ -126,6 +126,24 @@ function normalizeBaseUrl(baseUrl?: string): string {
   return `${studioRootFromBaseUrl(baseUrl)}/v1`
 }
 
+/**
+ * True when the base URL points at this machine (127.0.0.1 / localhost / ::1).
+ *
+ * The desktop credential grants owner rights inside Studio, so it may only ever
+ * be sent to a loopback server. A remote or malformed URL must fall back to a
+ * manually created API key instead.
+ */
+export function isLoopbackBaseUrl(baseUrl?: string): boolean {
+  try {
+    const parsed = new URL(studioRootFromBaseUrl(baseUrl))
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    const host = parsed.hostname.replace(/^\[|\]$/g, '')
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+  } catch {
+    return false
+  }
+}
+
 // ── Studio API calls ─────────────────────────────────────────────
 
 interface StudioModelsResponse {
@@ -172,6 +190,10 @@ export async function connectUnslothStudio(options: {
 } = {}): Promise<UnslothConnectResult> {
   const baseUrl = normalizeBaseUrl(options.baseUrl)
   const root = studioRootFromBaseUrl(options.baseUrl)
+
+  // The desktop secret is an owner credential — it must never leave the machine,
+  // and the stored key must not be probed against a foreign host either.
+  if (!isLoopbackBaseUrl(options.baseUrl)) return { ok: false, code: 'invalid_base_url' }
 
   // 1. Reuse a working key (e.g. the user pressed "Connect" again to refresh models).
   const existingKey = options.existingApiKey?.trim()

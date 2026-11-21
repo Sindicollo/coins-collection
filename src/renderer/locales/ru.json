@@ -211,6 +211,7 @@
       "unslothConnect": "Подключить Unsloth Studio",
       "unslothNotInstalled": "Unsloth Studio не найдено на этом компьютере. Установите и запустите приложение, затем повторите.",
       "unslothNotRunning": "Unsloth Studio не запущено ({{baseUrl}}). Запустите его и повторите.",
+      "unslothInvalidBaseUrl": "Unsloth Studio должно быть доступно на localhost (127.0.0.1). Для удалённого сервера создайте API-ключ в Studio → Settings → API keys и вставьте его ниже.",
       "unslothAuthFailed": "Unsloth Studio отклонило локальный desktop-ключ. Перезапустите Unsloth Studio и повторите.",
       "unslothKeyCreateFailed": "Не удалось создать API-ключ. Создайте его вручную в Unsloth Studio → Settings → API keys и вставьте ниже.",
       "unslothUnknownError": "Не удалось подключиться к Unsloth Studio: {{detail}}",

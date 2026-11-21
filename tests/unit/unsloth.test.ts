@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from 'fs'
 import {
   DEFAULT_UNSLOTH_BASE_URL,
   connectUnslothStudio,
+  isLoopbackBaseUrl,
   readDesktopSecret,
   studioRootFromBaseUrl
 } from '../../src/main/llm/unsloth'
@@ -104,6 +105,23 @@ describe('studioRootFromBaseUrl', () => {
   })
 })
 
+describe('isLoopbackBaseUrl', () => {
+  it('accepts the default and every loopback spelling', () => {
+    expect(isLoopbackBaseUrl(undefined)).toBe(true)
+    expect(isLoopbackBaseUrl(DEFAULT_UNSLOTH_BASE_URL)).toBe(true)
+    expect(isLoopbackBaseUrl('http://localhost:8888/v1')).toBe(true)
+    expect(isLoopbackBaseUrl('http://127.0.0.1:9000')).toBe(true)
+    expect(isLoopbackBaseUrl('http://[::1]:8888/v1')).toBe(true)
+  })
+
+  it('rejects LAN, public, non-http and malformed URLs', () => {
+    expect(isLoopbackBaseUrl('http://192.168.1.5:8888/v1')).toBe(false)
+    expect(isLoopbackBaseUrl('https://studio.example.com')).toBe(false)
+    expect(isLoopbackBaseUrl('file:///etc/passwd')).toBe(false)
+    expect(isLoopbackBaseUrl('not a url')).toBe(false)
+  })
+})
+
 describe('connectUnslothStudio', () => {
   it('reuses a working stored key without minting a new one', async () => {
     const fetchMock = vi.fn(async () => jsonResponse(200, modelsPayload))
@@ -164,6 +182,31 @@ describe('connectUnslothStudio', () => {
       expect(result.models).toHaveLength(2)
     }
     expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('refuses to send the desktop credential to a non-loopback host', async () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockReturnValue(SECRET)
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await connectUnslothStudio({ baseUrl: 'http://192.168.1.5:8888/v1' })
+
+    expect(result).toEqual({ ok: false, code: 'invalid_base_url' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('never probes a stored key against a foreign host', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await connectUnslothStudio({
+      baseUrl: 'https://studio.example.com/v1',
+      existingApiKey: API_KEY
+    })
+
+    expect(result).toEqual({ ok: false, code: 'invalid_base_url' })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('reports not_installed when no desktop credential exists', async () => {

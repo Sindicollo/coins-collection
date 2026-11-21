@@ -224,6 +224,7 @@ i18n.use(initReactI18next).init({
             unslothConnect: 'Connect to Unsloth Studio',
             unslothNotInstalled: 'Unsloth Studio was not found.',
             unslothNotRunning: 'Unsloth Studio is not running ({{baseUrl}}).',
+            unslothInvalidBaseUrl: 'Unsloth Studio must run on localhost (127.0.0.1).',
             unslothAuthFailed: 'Desktop credential rejected.',
             unslothKeyCreateFailed: 'Could not create an API key.',
             unslothUnknownError: 'Could not connect to Unsloth Studio: {{detail}}',

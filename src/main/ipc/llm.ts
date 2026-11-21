@@ -542,7 +542,11 @@ async function handleClearBulkSession(collectionId: string, queryType: string): 
  * returned key as `llm.apiKey`, so a second press refreshes the model list
  * without creating duplicate keys in Studio.
  */
-async function handleUnslothConnect(baseUrl?: string): Promise<UnslothConnectResult> {
+async function handleUnslothConnect(baseUrl?: unknown): Promise<UnslothConnectResult> {
+  // IPC boundary: the renderer is not trusted to send a well-formed URL.
+  if (baseUrl !== undefined && typeof baseUrl !== 'string') {
+    return { ok: false, code: 'invalid_base_url' }
+  }
   try {
     const cfg = loadLlmConfig()
     const isUnsloth = cfg.provider === 'unsloth'
