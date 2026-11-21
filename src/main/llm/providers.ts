@@ -37,11 +37,8 @@ export function createLlmModel(config?: Partial<LlmConfig>): BaseChatModel {
 
   // Ensure OpenAI-compatible base URL ends with /v1
   function normalizeUrl(baseUrl: string, fallback: string): string {
-    let url = baseUrl || fallback
-    if (!url.endsWith('/v1')) {
-      url = url.replace(/\/$/, '') + '/v1'
-    }
-    return url
+    const url = (baseUrl || fallback).trim().replace(/\/+$/, '')
+    return url.endsWith('/v1') ? url : `${url}/v1`
   }
 
   switch (cfg.provider) {

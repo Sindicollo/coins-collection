@@ -121,6 +121,18 @@ describe('createLlmModel', () => {
         expect.objectContaining({ baseURL: 'http://localhost:1234/v1' })
       )
     })
+
+    it('does not double the /v1 prefix when the URL ends with a slash after it', () => {
+      vi.mocked(loadLlmConfig).mockReturnValue(
+        makeConfig({ provider: 'unsloth', apiKey: 'sk-unsloth-abc', baseUrl: 'http://127.0.0.1:8888/v1/' })
+      )
+
+      createLlmModel()
+
+      expect(lastConstructorParams().configuration).toEqual(
+        expect.objectContaining({ baseURL: 'http://127.0.0.1:8888/v1' })
+      )
+    })
   })
 
   it('does not pass the raw (possibly abusive) baseUrl without enforcing /v1 for openrouter', () => {
