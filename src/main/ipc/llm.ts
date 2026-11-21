@@ -542,8 +542,11 @@ async function handleClearBulkSession(collectionId: string, queryType: string): 
  * returned key as `llm.apiKey`, so a second press refreshes the model list
  * without creating duplicate keys in Studio.
  */
-async function handleUnslothConnect(baseUrl?: unknown): Promise<UnslothConnectResult> {
-  // IPC boundary: the renderer is not trusted to send a well-formed URL.
+export async function handleUnslothConnect(
+  baseUrl?: unknown,
+  rendererApiKey?: unknown
+): Promise<UnslothConnectResult> {
+  // IPC boundary: the renderer is not trusted to send well-formed arguments.
   if (baseUrl !== undefined && typeof baseUrl !== 'string') {
     return { ok: false, code: 'invalid_base_url' }
   }
@@ -552,9 +555,12 @@ async function handleUnslothConnect(baseUrl?: unknown): Promise<UnslothConnectRe
     const isUnsloth = cfg.provider === 'unsloth'
     // Only pass the stored URL/key along when it belongs to Unsloth — an
     // OpenRouter URL or key would otherwise be probed against the local server.
+    // The renderer's in-memory key covers the gap before the config is saved,
+    // so pressing "Connect" twice does not mint a second key.
+    const fromRenderer = typeof rendererApiKey === 'string' ? rendererApiKey.trim() : ''
     return await connectUnslothStudio({
       baseUrl: baseUrl || (isUnsloth ? cfg.baseUrl : undefined),
-      existingApiKey: isUnsloth ? cfg.apiKey : ''
+      existingApiKey: fromRenderer || (isUnsloth ? cfg.apiKey : '')
     })
   } catch (err) {
     console.error('[llm:unsloth] Connect failed:', err)
@@ -753,7 +759,9 @@ export function registerLlmHandlers(): void {
   )
 
   // Unsloth Studio (local provider) key provisioning
-  ipcMain.handle(IPC_CHANNELS.LLM.UNSLOTH_CONNECT, (_event, baseUrl?: string) =>
-    handleUnslothConnect(baseUrl)
+  ipcMain.handle(
+    IPC_CHANNELS.LLM.UNSLOTH_CONNECT,
+    (_event, baseUrl?: string, existingApiKey?: string) =>
+      handleUnslothConnect(baseUrl, existingApiKey)
   )
 }

@@ -153,7 +153,7 @@ describe('SettingsModal AI settings persistence', () => {
     fireEvent.click(await screen.findByText('Connect to Unsloth Studio'))
 
     await waitFor(() => {
-      expect(window.api.llm.connectUnsloth).toHaveBeenCalledWith('http://127.0.0.1:8888/v1')
+      expect(window.api.llm.connectUnsloth).toHaveBeenCalledWith('http://127.0.0.1:8888/v1', '')
     })
 
     // The minted key lands in the API-key field (created for the unsloth provider)

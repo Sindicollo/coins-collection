@@ -599,7 +599,10 @@ export function SettingsModal({
     setUnslothConnecting(true)
     setUnslothError(null)
     try {
-      const result = await aiApi.connectUnsloth(aiConfig.baseUrl || DEFAULT_URLS.unsloth)
+      const result = await aiApi.connectUnsloth(
+        aiConfig.baseUrl || DEFAULT_URLS.unsloth,
+        aiConfig.apiKey
+      )
       if (!result.ok) {
         setUnslothError({ code: result.code, detail: result.detail })
         return

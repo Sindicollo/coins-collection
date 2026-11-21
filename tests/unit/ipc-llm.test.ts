@@ -30,6 +30,8 @@ import {
 } from '../../src/main/llm/config'
 import { createLlmModel } from '../../src/main/llm/providers'
 import { createSearchTool } from '../../src/main/llm/search'
+import { handleUnslothConnect } from '../../src/main/ipc/llm'
+import { connectUnslothStudio } from '../../src/main/llm/unsloth'
 import type { AiBulkQuery, AiSingleQuery, AiCoinInfo, Coin, LlmConfig, LlmQueryResult, LlmTestResult } from '@shared/types'
 
 vi.mock('electron', () => ({
@@ -61,6 +63,7 @@ vi.mock('../../src/main/llm/search', () => ({
   testSearchProvider: vi.fn()
 }))
 vi.mock('../../src/main/llm/notes', () => ({ saveAiNote: vi.fn() }))
+vi.mock('../../src/main/llm/unsloth', () => ({ connectUnslothStudio: vi.fn() }))
 vi.mock('@langchain/core/messages', () => ({
   HumanMessage: class HumanMessage {},
   SystemMessage: class SystemMessage {}
@@ -381,5 +384,89 @@ describe('TEST_CONNECTION', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toMatch(/fetch failed/i)
     expect(result.errorInfo).toEqual(expect.objectContaining({ code: 'connection_refused' }))
+  })
+})
+// ── UNSLOTH_CONNECT ───────────────────────────────────────────────
+
+describe('UNSLOTH_CONNECT', () => {
+  const okResult = { ok: true, apiKey: 'sk-unsloth-new', baseUrl: 'http://127.0.0.1:8888/v1', models: [] }
+
+  beforeEach(() => {
+    vi.mocked(connectUnslothStudio).mockResolvedValue(okResult)
+  })
+
+  it('never reuses an API key stored for another provider', async () => {
+    vi.mocked(loadLlmConfig).mockReturnValue(
+      makeConfig({
+        provider: 'openrouter',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: 'sk-or-v1-cloud-secret'
+      })
+    )
+
+    await handleUnslothConnect('http://127.0.0.1:8888/v1', undefined)
+
+    expect(connectUnslothStudio).toHaveBeenCalledWith({
+      baseUrl: 'http://127.0.0.1:8888/v1',
+      existingApiKey: ''
+    })
+  })
+
+  it('never falls back to the stored base URL of another provider', async () => {
+    vi.mocked(loadLlmConfig).mockReturnValue(
+      makeConfig({ provider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1' })
+    )
+
+    await handleUnslothConnect(undefined, undefined)
+
+    expect(connectUnslothStudio).toHaveBeenCalledWith({
+      baseUrl: undefined,
+      existingApiKey: ''
+    })
+  })
+
+  it('reuses the renderer key so a repeated Connect does not mint a duplicate', async () => {
+    vi.mocked(loadLlmConfig).mockReturnValue(
+      makeConfig({ provider: 'unsloth', baseUrl: 'http://127.0.0.1:8888/v1', apiKey: '' })
+    )
+
+    await handleUnslothConnect('http://127.0.0.1:8888/v1', '  sk-unsloth-from-form  ')
+
+    expect(connectUnslothStudio).toHaveBeenCalledWith({
+      baseUrl: 'http://127.0.0.1:8888/v1',
+      existingApiKey: 'sk-unsloth-from-form'
+    })
+  })
+
+  it('falls back to the saved key and URL of the unsloth provider', async () => {
+    vi.mocked(loadLlmConfig).mockReturnValue(
+      makeConfig({
+        provider: 'unsloth',
+        baseUrl: 'http://127.0.0.1:9000/v1',
+        apiKey: 'sk-unsloth-stored'
+      })
+    )
+
+    await handleUnslothConnect(undefined, undefined)
+
+    expect(connectUnslothStudio).toHaveBeenCalledWith({
+      baseUrl: 'http://127.0.0.1:9000/v1',
+      existingApiKey: 'sk-unsloth-stored'
+    })
+  })
+
+  it('rejects a non-string base URL from the IPC boundary', async () => {
+    const result = await handleUnslothConnect({ host: 'evil.example.com' }, undefined)
+
+    expect(result).toEqual({ ok: false, code: 'invalid_base_url' })
+    expect(connectUnslothStudio).not.toHaveBeenCalled()
+  })
+
+  it('converts an unexpected crash into a structured result', async () => {
+    vi.mocked(connectUnslothStudio).mockRejectedValue(new Error('boom'))
+
+    const result = await handleUnslothConnect('http://127.0.0.1:8888/v1', undefined)
+
+    expect(result).toEqual({ ok: false, code: 'unknown', detail: 'boom' })
   })
 })

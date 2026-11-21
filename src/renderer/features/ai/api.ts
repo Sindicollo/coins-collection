@@ -63,7 +63,13 @@ export async function clearBulkSession(
 /**
  * Provision (or reuse) an Unsloth Studio inference API key.
  * Studio must be running locally — a missing install/server is reported in the result.
+ *
+ * `existingApiKey` is the key currently held by the settings form; passing it
+ * back prevents a duplicate key from being minted before the config is saved.
  */
-export async function connectUnsloth(baseUrl?: string): Promise<UnslothConnectResult> {
-  return window.api.llm.connectUnsloth(baseUrl)
+export async function connectUnsloth(
+  baseUrl?: string,
+  existingApiKey?: string
+): Promise<UnslothConnectResult> {
+  return window.api.llm.connectUnsloth(baseUrl, existingApiKey)
 }

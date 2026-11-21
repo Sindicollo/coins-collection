@@ -64,7 +64,7 @@ export interface ElectronAPI {
     cancelBulk: (collectionId: string) => Promise<void>
     getBulkSession: (collectionId: string, queryType: string) => Promise<BulkSessionState | null>
     clearBulkSession: (collectionId: string, queryType: string) => Promise<void>
-    connectUnsloth: (baseUrl?: string) => Promise<UnslothConnectResult>
+    connectUnsloth: (baseUrl?: string, existingApiKey?: string) => Promise<UnslothConnectResult>
   }
   backup: {
     exportExecute: () => Promise<string | null>
